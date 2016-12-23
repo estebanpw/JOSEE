@@ -1,0 +1,65 @@
+#ifndef STRUCTS_H
+#define STRUCTS_H
+
+#include <inttypes.h>
+
+#pragma pack(push, 1)
+
+#define READLINE 2000
+#define READBUF 50000000 //50MB
+
+#define NOFRAG 0
+#define OPENFRAG 1
+#define COVERFRAG 2
+#define CLOSEFRAG 3
+
+//Struct for FragHits, af2png and leeFrag programs
+struct FragFile {
+    //Diagonal where the frag is located
+    //This value is calculated as:
+    //posX - posY
+    int64_t diag;
+    //Start position in sequence X
+    uint64_t xStart;
+    //Start position in Sequence Y
+    uint64_t yStart;
+    //End position in Sequence X
+    uint64_t xEnd;
+    //End position in Sequence Y
+    uint64_t yEnd;
+    //Fragment Length
+    //For ungaped aligment is:
+    //xEnd-xStart+1
+    uint64_t length;
+    //Number of identities in the
+    //fragment
+    uint64_t ident;
+    //Score of the fragment. This
+    //depends on the score matrix
+    //used
+    uint64_t score;
+    //Percentage of similarity. This
+    //is calculated as score/scoreMax
+    //Where score max is the maximum
+    //score possible
+    float similarity;
+    //sequence number in the 'X' file
+    uint64_t seqX;
+    //sequence number in the 'Y' file
+    uint64_t seqY;
+    //synteny block id
+    int64_t block;
+    //'f' for the forward strain and 'r' for the reverse
+    char strand;
+    //E-value of fragment
+    long double evalue;
+};
+
+typedef struct sequence{
+    uint64_t id;    //Label of the sequence
+    uint64_t len;   //Length in nucleotides of the sequence
+    uint64_t acum;  //Accumulated length from the sequences found before in the file (if any)
+} Sequence;
+
+
+#endif
