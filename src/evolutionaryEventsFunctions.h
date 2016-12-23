@@ -15,6 +15,11 @@
 */
 void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags);
 
+/*
+	Copy frags properties to new snipped fragment
+*/
+inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len);
+
 
 /*
 	This function cuts frags into more if there are other frags that overlap partially
@@ -22,7 +27,3 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 */
 struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences);
 
-/*
-	Copy frags properties to new snipped fragment
-*/
-inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len);

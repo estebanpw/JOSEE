@@ -7,11 +7,11 @@
 #include <math.h>
 #include "structs.h"
 #include "commonFunctions.h"
-
+#include "comparisonFunctions.h"
 
 void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags){
 
-	uint64_t i, from, to, seq;
+	uint64_t i, j, from, to, seq;
 	//For all frags
 	for(i=0;i<n_frags;i++){
 
@@ -56,6 +56,20 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 	//At this point all coordinates have been mapped for the current fragments
 }
 
+
+
+inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len){
+	destination->diag = source->diag;
+    destination->xStart = xStart;
+    destination->yStart = yStart;
+    destination->xEnd = xEnd;
+    destination->yEnd = yEnd;
+    destination->length = len;
+    destination->seqX = source->seqX;
+    destination->seqY = source->seqY;
+    destination->strand = source->strand;
+}
+
 struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences){
 
 	struct FragFile new_frag;
@@ -70,6 +84,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 
 	//Start trimming process
 	uint64_t i, jX, jY, fromX, fromY, toX, toY, seqX, seqY, frag_len;
+	char strand;
 	uint64_t cur_new_len;
 
 	for(i=0; i<*n_frags; i++){
@@ -78,13 +93,11 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		fromX = frags[i].xStart; 
 		toX = frags[i].xEnd; 
 		
-		if(frags[i].strand == 'f'){
-			fromY = frags[i].yStart;
-			toY = frags[i].yEnd;	
-		}else{
-			toY = frags[i].yStart;
-			fromY = frags[i].yEnd;
-		}
+
+		fromY = frags[i].yStart;
+		toY = frags[i].yEnd;	
+		strand = frags[i].strand;
+
 		
 
 		seqX = frags[i].seqX; seqY = frags[i].seqY;
@@ -92,33 +105,61 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		frag_len = frags[i].length;
 		cur_new_len = 1;
 		jX = fromX+1;
-		jY = fromY+1;
+		if(strand == 'f') jY = fromY+1; else jY = fromY-1;
 
-		//Check how long until there is a break (by starting or ending of frag)
-		while(cur_new_len < frag_len){
+		while(jX < toX){
+			//Check how long until there is a break (by starting or ending of frag)
+			while(cur_new_len < frag_len && jX < sequences[seqX].len && jY < sequences[seqY].len && jY >= 0){
 
-			if(map_table[seqX][jX] != COVERFRAG) break;
-			if(map_table[seqY][jY] != COVERFRAG) break;
+				if(map_table[seqX][jX] != COVERFRAG) break;
+				if(map_table[seqY][jY] != COVERFRAG) break;
 
-			cur_new_len++; jX++; jY++;
-		}
+				cur_new_len++; jX++;
+				if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
+			}
 
-		//At this point, jX and jY hold the ending coordinates of the new fragment
-		//And fromX and fromY hold the starting coordinates
-		if(cur_new_len >= min_len){ //Filtering
+			//At this point, jX and jY hold the ending coordinates of the new fragment
+			//And fromX and fromY hold the starting coordinates
+			if(cur_new_len >= min_len){ //Filtering
 
-			//The fragment must be snipped out and saved
-			copyFragWithNewCoordinates(&new_frag, &frags[i], fromX, fromY, jX, jY, cur_new_len);
-			memcpy(&list_new_frags[new_frags_number], &new_frag, size_fragment);
+				//The fragment must be snipped out and saved
+				copyFragWithNewCoordinates(&new_frag, &frags[i], fromX, fromY, jX, jY, cur_new_len);
+				memcpy(&list_new_frags[new_frags_number], &new_frag, size_fragment);
+				new_frags_number++;
+				//Check if we need to realloc the list of new frags
+				if(new_frags_number == list_reallocs*INIT_TRIM_FRAGS){
+					list_reallocs++;
+					list_new_frags = (struct FragFile *) realloc(list_new_frags, list_reallocs*INIT_TRIM_FRAGS*size_fragment);
+					if(list_new_frags == NULL) terror("Could not realloc fragments on the trimming process");
+				}
 
-			//And set the mapping grid to the new values
-			map_table[seqX][jX] = 3;
-			map_table[seqY][jY] = 3;
-			if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = 1;
-			if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = 1;
+				//And set the mapping grid to the new values
+				map_table[seqX][jX] = 3;
+				map_table[seqY][jY] = 3;
+				if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = 1;
+				if(strand == 'f'){
+					if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = 1;	
+				}else{
+					if(jY > 0 && jY-1 < fromY) map_table[seqY][jY-1] = 1;
+				}
+				
+				//Set the fromX and fromY to 1 (start frag) again in case this is not the first time we split
 
-		}else{
+			}
+			//If you are here, either the fragment was too short, or was written correctly or we are at the end of the frag
+			//Just keep going
+			//Copy frag values
+			
+			fromX = jX+1; //One to move from an ending 3 to an opening 1
+			if(strand == 'f') fromY = jY+1; else fromY = jY-1; //Same
+			
+			//And one more to skip the opening 1
+			jX = fromX+1;
+			if(strand == 'f') jY = fromY+1; else fromY = jY-1; 
 
+			cur_new_len = 1;
+
+			//End of outside while
 		}
 
 
@@ -127,16 +168,4 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 	*n_frags = new_frags_number;
 	return list_new_frags;
 
-}
-
-inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len){
-	destination->diag = source->diag;
-    destination->xStart = xStart;
-    destination->yStart = yStart;
-    destination->xEnd = xEnd;
-    destination->yEnd = yEnd;
-    destination->length = len;
-    destination->seqX = source->seqX;
-    destination->seqY = source->seqY;
-    destination->strand = source->strand;
 }
