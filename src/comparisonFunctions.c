@@ -213,3 +213,11 @@ void writeSequenceLength(uint64_t *length, FILE *f) {
         fwrite(tmpArray, sizeof(uint64_t), 1, f);
     }
 }
+
+uint64_t sizeofFragment() {
+    return 9 * sizeof(uint64_t) + 2 * sizeof(int64_t) + 1 * sizeof(float) + 1 * sizeof(char) + 1 * sizeof(long double);
+}
+
+uint64_t sizeofSequence() {
+    return 3 * sizeof(uint64_t);
+}

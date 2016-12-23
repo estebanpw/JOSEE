@@ -24,4 +24,14 @@ void readSequenceLength(uint64_t *length, FILE *f);
  */
 void writeSequenceLength(uint64_t *length, FILE *f);
 
+/*
+	To compute sizeof fragment when not using padding
+*/
+uint64_t sizeofFragment();
+
+/*
+	To compute sizeof sequence when not using padding
+*/
+uint64_t sizeofSequence();
+
 #endif /* COMPARISON_FUNCTIONS_H */
