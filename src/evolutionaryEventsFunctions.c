@@ -11,7 +11,7 @@
 
 void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags){
 
-	uint64_t i, j, from, to, seq;
+	uint64_t i, from, to, seq;
 	//For all frags
 	for(i=0;i<n_frags;i++){
 
@@ -21,19 +21,28 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 
 		//Map coordinates in frag for seqX, which is always forward
 		for(j=from;j<to;j++){
-			if(map_table[seq][j] == NOFRAG || map_table[seq][j] == COVERFRAG){
-				if(j == from) map_table[seq][j] = OPENFRAG;
-				else if(j == to) map_table[seq][j] = CLOSEFRAG;
-				else map_table[seq][j] = COVERFRAG;
+			if(j == from) map_table[seq][j] = OPENFRAG;
+			if(j == to) map_table[seq][j] = CLOSEFRAG;
+			
+			if(map_table[seq][j] == NOFRAG){
+				map_table[seq][j] = COVERFRAG;
 			}
 		}
 
 		//Map coordinates in frag for seqY, which might be reversed
 		//Remember RAMGECKO coordinates are global respective to forward and with Ystart > Yend when reversed
+		//So reversed should only be switched
 
-		seq = frags[i].seqY;
-		from = frags[i].yEnd;
-		to = frags[i].yStart;
+		if(frags[i].strand == 'f'){
+			seq = frags[i].seqY;
+			from = frags[i].yStart;
+			to = frags[i].yEnd;
+		}else{
+			seq = frags[i].seqY;
+			from = frags[i].yEnd;
+			to = frags[i].yStart;	
+		}
+		
 
 		for(j=from;j<to;j++){
 			if(map_table[seq][j] == NOFRAG || map_table[seq][j] == COVERFRAG){
@@ -45,4 +54,89 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 	}
 
 	//At this point all coordinates have been mapped for the current fragments
+}
+
+struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences){
+
+	struct FragFile new_frag;
+	struct FragFile * list_new_frags;
+	uint64_t list_reallocs = 1;
+	uint64_t new_frags_number = 0;
+	uint64_t size_fragment = sizeofFragment(); //To not compute it every time
+
+	//Allocate memory
+	list_new_frags = (struct FragFile *) malloc(INIT_TRIM_FRAGS*sizeofFragment());
+	if(list_new_frags == NULL) terror("Could not allocate memory for list of new fragments in trimming");
+
+	//Start trimming process
+	uint64_t i, jX, jY, fromX, fromY, toX, toY, seqX, seqY, frag_len;
+	uint64_t cur_new_len;
+
+	for(i=0; i<*n_frags; i++){
+		
+		//Copy frag values
+		fromX = frags[i].xStart; 
+		toX = frags[i].xEnd; 
+		
+		if(frags[i].strand == 'f'){
+			fromY = frags[i].yStart;
+			toY = frags[i].yEnd;	
+		}else{
+			toY = frags[i].yStart;
+			fromY = frags[i].yEnd;
+		}
+		
+
+		seqX = frags[i].seqX; seqY = frags[i].seqY;
+
+		frag_len = frags[i].length;
+		cur_new_len = 1;
+		jX = fromX+1;
+		jY = fromY+1;
+
+		//Check how long until there is a break (by starting or ending of frag)
+		while(cur_new_len < frag_len){
+
+			if(map_table[seqX][jX] != COVERFRAG) break;
+			if(map_table[seqY][jY] != COVERFRAG) break;
+
+			cur_new_len++; jX++; jY++;
+		}
+
+		//At this point, jX and jY hold the ending coordinates of the new fragment
+		//And fromX and fromY hold the starting coordinates
+		if(cur_new_len >= min_len){ //Filtering
+
+			//The fragment must be snipped out and saved
+			copyFragWithNewCoordinates(&new_frag, &frags[i], fromX, fromY, jX, jY, cur_new_len);
+			memcpy(&list_new_frags[new_frags_number], &new_frag, size_fragment);
+
+			//And set the mapping grid to the new values
+			map_table[seqX][jX] = 3;
+			map_table[seqY][jY] = 3;
+			if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = 1;
+			if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = 1;
+
+		}else{
+
+		}
+
+
+	}
+
+	*n_frags = new_frags_number;
+	return list_new_frags;
+
+}
+
+inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len){
+	destination->diag = source->diag;
+    destination->xStart = xStart;
+    destination->yStart = yStart;
+    destination->xEnd = xEnd;
+    destination->yEnd = yEnd;
+    destination->length = len;
+    destination->seqX = source->seqX;
+    destination->seqY = source->seqY;
+    destination->strand = source->strand;
 }

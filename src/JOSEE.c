@@ -7,6 +7,7 @@
 #include "structs.h"
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
+#include "evolutionaryEventsFunctions.h"
 
 
 
@@ -17,8 +18,8 @@ int main(int ac, char **av) {
     
     //Iterator
     uint64_t i;
-    //Number of frags loaded
-    uint64_t total_frags;
+    //Number of frags loaded, number of sequences loaded
+    uint64_t total_frags, n_files;
     //Array of fragments to hold them all
     struct FragFile * loaded_frags = NULL;
     //Clocks to measure time
@@ -42,7 +43,7 @@ int main(int ac, char **av) {
 
     //Load lengths and substract accumulated length
     begin = clock();
-    load_sequences_descriptors(&sequences, lengths_file);
+    n_files = load_sequences_descriptors(&sequences, lengths_file);
     end = clock();
     fprintf(stdout, "[INFO] Loading sequence descriptors. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     fclose(lengths_file);
@@ -56,12 +57,20 @@ int main(int ac, char **av) {
     fclose(frags_file);
 
 
-        
-
+    //Initial mapping of fragments to table of genomes
+    unsigned char ** map_table = (unsigned char **) calloc(n_files, sizeof(unsigned char *));
+    //Allocate map table
+    for(i=0; i<n_files; i++){ map_table[i] = calloc(sequences[i].len, sizeof(unsigned char)); if(map_table[i] == NULL) terror("Could not allocate map table"); }
+    map_frags_to_genomes(map_table, loaded_frags, total_frags);
 
 
     
+    for(i=0; i<n_files; i++){
+        free(map_table[i]);
+    }
+    free(map_table);
     free(sequences);
+    free(loaded_frags);
 
     
     return 0;

@@ -23,7 +23,7 @@ char buffered_fgetc(char *buffer, uint64_t *pos, uint64_t *read, FILE *f) {
     return buffer[*pos-1];
 }
 
-void load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file){
+uint64_t load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file){
 
     uint64_t n_files;
 
@@ -51,7 +51,7 @@ void load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file){
 
     //Copy pointer direction to allocated heap
     *sequences = st;
-
+    return n_files;
 }
 
 void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * sequences, struct FragFile ** loaded_frags){
@@ -86,13 +86,26 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
         readFragment(&temp_frag, fragsfile);
         
         //Transform coordinates to local
+        //Actually, it is not required yet.
         
-        temp_frag.xStart = temp_frag.xStart - sequences[temp_frag.seqX].acum;
-        temp_frag.xEnd = temp_frag.xEnd - sequences[temp_frag.seqX].acum;
+        //printf("Frags. (%"PRIu64", %"PRIu64") - (%"PRIu64", %"PRIu64")\n", temp_frag.xStart, temp_frag.xEnd, temp_frag.yStart, temp_frag.yEnd);
+        //printf("SeqX SeqY: (%"PRIu64", %"PRIu64")\n", temp_frag.seqX, temp_frag.seqY);
+        //printf("Frags. (%"PRIu64", %"PRIu64")\n", sequences[temp_frag.seqX].acum, sequences[temp_frag.seqY].acum);        
+
+        temp_frag.xStart = temp_frag.xStart;
+        temp_frag.xEnd = temp_frag.xEnd;
         
 
-        temp_frag.yEnd = temp_frag.yEnd - sequences[temp_frag.seqY].acum;
-        temp_frag.yEnd = temp_frag.yEnd - sequences[temp_frag.seqY].acum;
+        temp_frag.yStart = temp_frag.yStart;
+        temp_frag.yEnd = temp_frag.yEnd;
+
+
+        //temp_frag.xStart = temp_frag.xStart - sequences[temp_frag.seqX].acum;
+        //temp_frag.xEnd = temp_frag.xEnd - sequences[temp_frag.seqX].acum; 
+
+        //temp_frag.yStart = temp_frag.yStart - sequences[temp_frag.seqY].acum;
+        //temp_frag.yEnd = temp_frag.yEnd - sequences[temp_frag.seqY].acum;
+
 
         //Copy temp fragment into array
         memcpy(&temp_frags_array[*n_frags], &temp_frag, sizeofFragment());

@@ -7,6 +7,7 @@
 
 #define READLINE 2000
 #define READBUF 50000000 //50MB
+#define INIT_TRIM_FRAGS 10000
 
 #define NOFRAG 0
 #define OPENFRAG 1

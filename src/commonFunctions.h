@@ -14,8 +14,9 @@ char buffered_fgetc(char *buffer, uint64_t *pos, uint64_t *read, FILE *f);
 
 /*
 	Load sequences lengths and compute their accumulated values
+	Returns the number of sequences loaded
 */
-void load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file);
+uint64_t load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file);
 
 /*
 	Load all fragments and transform global coordinates to local
