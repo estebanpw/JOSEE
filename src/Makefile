@@ -5,8 +5,8 @@ BIN=../bin
 
 all: JOSEE
 
-JOSEE: JOSEE.c
-	$(CC) $(CFLAGS) commonFunctions.c -lm comparisonFunctions.c evolutionaryEventsFunctions.c JOSEE.c -lpthread -o $(BIN)/JOSEE
+JOSEE: JOSEE.cpp
+	$(CXX) $(CFLAGS) commonFunctions.cpp -lm comparisonFunctions.cpp evolutionaryEventsFunctions.cpp class_structs.cpp JOSEE.cpp -lpthread -o $(BIN)/JOSEE
 
 clean:
 	rm -rf $(BIN)/JOSEE

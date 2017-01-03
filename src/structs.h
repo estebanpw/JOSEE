@@ -9,10 +9,15 @@
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000
 
+#define MAX_MEM_POOLS 256
+#define POOL_SIZE 1024*1024*256 //256 MB
+
 #define NOFRAG 0
 #define OPENFRAG 1
 #define COVERFRAG 2
 #define CLOSEFRAG 3
+
+class memory_pool;
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -56,11 +61,37 @@ struct FragFile {
     long double evalue;
 };
 
+//A block that belongs to a genome and that has some synteny level (conserved block)
+typedef struct block{
+    uint64_t start;
+    uint64_t end;
+    uint64_t order;
+    uint32_t synteny_level;
+} Block;
+
+//A table of length equal to a genome with pointers to blocks per position
+typedef struct blocktable{
+    Block * blocks;
+} Block_table;
+
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
     uint64_t len;   //Length in nucleotides of the sequence
     uint64_t acum;  //Accumulated length from the sequences found before in the file (if any)
+    Block_table * block_table; //A table for quick access (to be substituted by hash table) to blocks
 } Sequence;
 
+class memory_pool{
+
+private:
+    char ** mem_pool;
+    uint64_t * base;
+    uint64_t current_pool;
+
+public:
+    memory_pool();
+    void * request_bytes(uint64_t bytes);
+    ~memory_pool();
+};
 
 #endif
