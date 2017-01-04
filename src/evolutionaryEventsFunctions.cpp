@@ -134,13 +134,13 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 				}
 
 				//And set the mapping grid to the new values
-				map_table[seqX][jX] = 3;
-				map_table[seqY][jY] = 3;
-				if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = 1;
+				map_table[seqX][jX] = CLOSEFRAG;
+				map_table[seqY][jY] = CLOSEFRAG;
+				if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = OPENFRAG;
 				if(strand == 'f'){
-					if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = 1;	
+					if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = OPENFRAG;	
 				}else{
-					if(jY > 0 && jY-1 < fromY) map_table[seqY][jY-1] = 1;
+					if(jY > 0 && jY-1 < fromY) map_table[seqY][jY-1] = OPENFRAG;
 				}
 				
 				//Set the fromX and fromY to 1 (start frag) again in case this is not the first time we split

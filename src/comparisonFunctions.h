@@ -34,4 +34,29 @@ uint64_t sizeofFragment();
 */
 uint64_t sizeofSequence();
 
+/*
+	To compute sizeof Block when not using padding
+*/
+uint64_t sizeofBlock();
+
+/*
+	To compute sizeof Frags_list when not using padding
+*/
+uint64_t sizeofFrags_list();
+
+/*
+	To compute sizeof Bucket when not using padding
+*/
+uint64_t sizeofBucket();
+
+/*
+	Check if two blocks are equal
+*/
+int isBlockEqualTo(Block * a, Block * b);
+
+/*
+	Checks if a SEQ_ID is contained in a list of frags
+*/
+int idNotInList(Frags_list * fl, uint64_t seq_id);
+
 #endif /* COMPARISON_FUNCTIONS_H */

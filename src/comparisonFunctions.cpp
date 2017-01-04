@@ -219,5 +219,32 @@ uint64_t sizeofFragment() {
 }
 
 uint64_t sizeofSequence() {
-    return 3 * sizeof(uint64_t) + sizeof(Block_table *);
+    return 3 * sizeof(uint64_t);
+}
+
+uint64_t sizeofBlock(){
+    return  4*sizeof(uint64_t) + sizeof(Sequence *);
+}
+
+uint64_t sizeofFrags_list(){
+    return sizeof(struct FragFile *) + sizeof(struct frags_list *);
+}
+
+uint64_t sizeofBucket(){
+    return sizeofBlock() + sizeof(struct bucket *) + sizeof(Frags_list *);
+}
+
+int isBlockEqualTo(Block * a, Block * b){
+    if(a->start == b->start && a->end == b->end && a->genome->id == b->genome->id) return 1;
+    return 0;
+}
+
+int idNotInList(Frags_list * fl, uint64_t seq_id){
+    Frags_list * ptr = fl;
+    while(ptr != NULL){
+        
+        if(ptr->f->seqX == seq_id || ptr->f->seqY == seq_id) return 0;
+        ptr = ptr->next;
+    }
+    return 1;
 }

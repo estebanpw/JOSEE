@@ -35,6 +35,7 @@ int main(int ac, char **av) {
     char multifrags_path[512];
     multifrags_path[0] = '\0';
 
+
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file;
     init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path);
@@ -89,7 +90,7 @@ int main(int ac, char **av) {
     
 
 
-    // Debug
+    // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(DEBUG_ACTIVE){
         char write_debug[512];
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);

@@ -18,6 +18,7 @@
 #define CLOSEFRAG 3
 
 class memory_pool;
+class hash_table;
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -61,37 +62,74 @@ struct FragFile {
     long double evalue;
 };
 
-//A block that belongs to a genome and that has some synteny level (conserved block)
-typedef struct block{
-    uint64_t start;
-    uint64_t end;
-    uint64_t order;
-    uint32_t synteny_level;
-} Block;
-
-//A table of length equal to a genome with pointers to blocks per position
-typedef struct blocktable{
-    Block * blocks;
-} Block_table;
-
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
     uint64_t len;   //Length in nucleotides of the sequence
     uint64_t acum;  //Accumulated length from the sequences found before in the file (if any)
-    Block_table * block_table; //A table for quick access (to be substituted by hash table) to blocks
 } Sequence;
 
+//A block that belongs to a genome and that has some synteny level (conserved block)
+typedef struct block{
+    uint64_t start;     //Starting coordinate
+    uint64_t end;       //Ending coordinate
+    uint64_t order;     //Order of block according to the genome
+    uint64_t synteny_level; //Number of other genomes where this block is present
+    Sequence * genome;    //A pointer to the genome to which it belongs
+} Block;
+
+
+
+
+//Class for allocating memory only once and requesting particular amounts of bytes
 class memory_pool{
 
 private:
     char ** mem_pool;
     uint64_t * base;
     uint64_t current_pool;
+    uint64_t max_pools;
 
 public:
-    memory_pool();
+    memory_pool(uint64_t max_pools);
     void * request_bytes(uint64_t bytes);
+    void reset_n_bytes(uint64_t bytes);
     ~memory_pool();
+};
+
+typedef struct frags_list{
+    struct FragFile * f;
+    struct frags_list * next;
+} Frags_list;
+
+
+typedef struct bucket {
+	Block b;
+    Frags_list * f_list;
+	struct bucket * next;
+} Bucket;
+
+//Hash-table class for Blocks
+class hash_table
+{
+
+private:
+	Bucket * ht; // the table itself
+	memory_pool * mp;
+    uint64_t ht_size; //Size for the hash table
+    double key_factor; //To partitionate the space by the largest genome
+    uint64_t computed_sizeof_block; //Avoid overcomputing
+    uint64_t computed_sizeof_frags_list; //Avoid overcomputing
+    Sequence * sequences;
+
+public:
+    hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key);
+	//Bucket * getBucketAt(uint64_t index);
+	//Chunk * getChunkByKey(const Vec3GLui& key);
+	void insert_block(struct FragFile * f);
+	~hash_table();
+
+private:
+	uint64_t compute_hash(uint64_t key);
 };
 
 #endif

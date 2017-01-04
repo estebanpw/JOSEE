@@ -82,14 +82,20 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
     //To keep track of current frag
     *n_frags = 0;
 
-    
+
     while(!feof(fragsfile)){
         readFragment(&temp_frag, fragsfile);
         
         //Transform coordinates to local
-        //Actually, it is not required yet.
+        //Actually, it is not required anymore.
         
-        //printf("Frags. (%"PRIu64", %"PRIu64") - (%"PRIu64", %"PRIu64")\n", temp_frag.xStart, temp_frag.xEnd, temp_frag.yStart, temp_frag.yEnd);
+        /*if(prevx != temp_frag.seqX || prevy != temp_frag.seqY){
+            printf("Frag: (%"PRIu64", %"PRIu64") coord: (%"PRIu64", %"PRIu64") diag:: %"PRId64"\n", temp_frag.seqX, temp_frag.seqY, temp_frag.xStart, temp_frag.yStart, temp_frag.diag);
+            getchar();
+        }
+        prevx = temp_frag.seqX; prevy = temp_frag.seqY;*/
+
+        
         //printf("SeqX SeqY: (%"PRIu64", %"PRIu64")\n", temp_frag.seqX, temp_frag.seqY);
         //printf("Frags. (%"PRIu64", %"PRIu64")\n", sequences[temp_frag.seqX].acum, sequences[temp_frag.seqY].acum);        
 
