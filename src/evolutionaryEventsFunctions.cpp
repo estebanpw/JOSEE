@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/time.h>
 #include <inttypes.h>
 #include <ctype.h>
@@ -79,7 +79,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 	uint64_t size_fragment = sizeofFragment(); //To not compute it every time
 
 	//Allocate memory
-	list_new_frags = (struct FragFile *) malloc(INIT_TRIM_FRAGS*sizeofFragment());
+	list_new_frags = (struct FragFile *) std::malloc(INIT_TRIM_FRAGS*sizeofFragment());
 	if(list_new_frags == NULL) terror("Could not allocate memory for list of new fragments in trimming");
 
 	//Start trimming process
@@ -129,7 +129,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 				//Check if we need to realloc the list of new frags
 				if(new_frags_number == list_reallocs*INIT_TRIM_FRAGS){
 					list_reallocs++;
-					list_new_frags = (struct FragFile *) realloc(list_new_frags, list_reallocs*INIT_TRIM_FRAGS*size_fragment);
+					list_new_frags = (struct FragFile *) std::realloc(list_new_frags, list_reallocs*INIT_TRIM_FRAGS*size_fragment);
 					if(list_new_frags == NULL) terror("Could not realloc fragments on the trimming process");
 				}
 

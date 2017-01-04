@@ -10,7 +10,7 @@ memory_pool::memory_pool()
 	this->base = (uint64_t *) malloc(MAX_MEM_POOLS * sizeof(uint64_t));
 	this->base[0] = 0;
 	if (this->mem_pool == NULL) terror("Could not allocate memory pools");
-	this->mem_pool[0] = (char *)malloc(POOL_SIZE * sizeof(char));
+	this->mem_pool[0] = (char *) malloc(POOL_SIZE * sizeof(char));
 	if (this->mem_pool[0] == NULL) terror("Could not allocate initial memory pool");
 }
 

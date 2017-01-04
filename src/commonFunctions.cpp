@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <sys/time.h>
 #include <inttypes.h>
 #include <ctype.h>
@@ -7,6 +7,7 @@
 #include <math.h>
 #include "structs.h"
 #include "comparisonFunctions.h"
+
 
 void terror(const char *s) {
     printf("ERR**** %s ****\n", s);
@@ -34,7 +35,7 @@ uint64_t load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file){
 
     
     //Allocate heap for sequences struct to hold lengths and ids
-    Sequence * st = (Sequence *) malloc(n_files*sizeofSequence());
+    Sequence * st = (Sequence *) std::malloc(n_files*sizeofSequence());
 
     if(st == NULL) terror("Could not allocate memory for sequence descriptors");
 
@@ -69,7 +70,7 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
     total_frags = 1 + total_frags/sizeofFragment(); 
     
     //Allocate memory for all frags
-    struct FragFile * temp_frags_array = (struct FragFile *) malloc(total_frags * sizeofFragment());
+    struct FragFile * temp_frags_array = (struct FragFile *) std::malloc(total_frags * sizeofFragment());
     if(temp_frags_array == NULL) terror("Could not allocate heap for all fragments");
 
     fprintf(stdout, "[INFO] There are %"PRIu64" fragments to be loaded, requiring %"PRIu64" Megabyte(s) of RAM\n", total_frags, (total_frags*sizeof(struct FragFile))/(1024*1024));

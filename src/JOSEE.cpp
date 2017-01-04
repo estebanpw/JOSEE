@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <string.h>
 #include <ctype.h>
 #include <pthread.h>
@@ -8,6 +8,7 @@
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
 #include "evolutionaryEventsFunctions.h"
+
 
 int DEBUG_ACTIVE = 0;
 
@@ -40,6 +41,7 @@ int main(int ac, char **av) {
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
+    path_lengths[0]='\0';
     strcpy(path_lengths, multifrags_path);
     strcat(path_lengths, ".lengths");
     lengths_file = fopen64(path_lengths, "rb");
@@ -64,10 +66,10 @@ int main(int ac, char **av) {
 
     //Initial mapping of fragments to table of genomes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    unsigned char ** map_table = (unsigned char **) calloc(n_files, sizeof(unsigned char *));
+    unsigned char ** map_table = (unsigned char **) std::calloc(n_files, sizeof(unsigned char *));
     //Allocate map table
     for(i=0; i<n_files; i++){ 
-        map_table[i] = (unsigned char *) calloc(sequences[i].len, sizeof(unsigned char)); 
+        map_table[i] = (unsigned char *) std::calloc(sequences[i].len, sizeof(unsigned char)); 
         if(map_table[i] == NULL) terror("Could not allocate map table"); 
     }
     map_frags_to_genomes(map_table, loaded_frags, total_frags);
@@ -124,6 +126,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint6
         if(strcmp(av[pNum], "-multifrags") == 0){
             *multifrags = fopen64(av[pNum+1], "rb");
             strncpy(path_frags, av[pNum+1], strlen(av[pNum+1]));
+            path_frags[strlen(av[pNum+1])] = '\0';
             if(multifrags==NULL) terror("Could not open multifrags file");
         }
         if(strcmp(av[pNum], "-out") == 0){
