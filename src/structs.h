@@ -113,9 +113,11 @@ class hash_table
 {
 
 private:
-	Bucket * ht; // the table itself
+	Bucket ** ht; // the table itself
 	memory_pool * mp;
     uint64_t ht_size; //Size for the hash table
+    uint64_t n_buckets; //To compute the load factor
+    uint64_t n_entries; //Used up entries
     double key_factor; //To partitionate the space by the largest genome
     uint64_t computed_sizeof_block; //Avoid overcomputing
     uint64_t computed_sizeof_frags_list; //Avoid overcomputing
@@ -123,11 +125,10 @@ private:
 
 public:
     hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key);
-	//Bucket * getBucketAt(uint64_t index);
-	//Chunk * getChunkByKey(const Vec3GLui& key);
 	void insert_block(struct FragFile * f);
-    Bucket * keys_iterator(){ return &ht[0]; }
-	~hash_table();
+    Bucket * keys_iterator(){ return ht[0]; }
+    double get_load_factor(){ return (double)ht_size/n_buckets;}
+    void print_hash_table(int print);
 
 private:
 	uint64_t compute_hash(uint64_t key);

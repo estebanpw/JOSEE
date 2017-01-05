@@ -53,15 +53,18 @@ memory_pool::~memory_pool()
 hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key){
 	this->mp = main_mem_pool;
 	this->ht_size = init_size;
-	this->ht = (Bucket *) this->mp->request_bytes(init_size*sizeof(Bucket *));
+	this->ht = (Bucket **) this->mp->request_bytes(init_size*sizeof(Bucket *));
 	this->sequences = sequences;
+
+	uint64_t i;
+	for(i=0;i<init_size;i++) this->ht[i] = NULL;
 
     computed_sizeof_block = sizeofBucket(); //Avoid overcomputing
     computed_sizeof_frags_list = sizeofFrags_list(); //Avoid overcomputing
 
 	//Just in case the init size is larger than the highest genome
 	if(init_size < highest_key){
-		this->key_factor = (double)(highest_key)/(init_size);
+		this->key_factor = (double)(init_size)/(highest_key);
 	}else{
 		this->key_factor = 1.0;
 	}
@@ -98,7 +101,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 	bkt_x->b.genome = &this->sequences[f->seqX];
 
 	//Insertions
-	Bucket * ptr = &ht[hash_x];
+	Bucket * ptr = ht[hash_x];
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
@@ -125,13 +128,17 @@ void hash_table::insert_x_side(struct FragFile * f){
 	//If not null pointer, it was already contained and thus we have to reset the bytes requested
 	if(ptr == NULL){
 		
+		if(ht[hash_x] == NULL) this->n_entries++; 
+
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		bkt_x->next = &ht[hash_x]; //Insert at the head
-		ht[hash_x] = *bkt_x;
+		bkt_x->next = ht[hash_x]; //Insert at the head
+		ht[hash_x] = bkt_x;
 		//Insert frag into list
-		ht[hash_x].f_list = frag_pointer;
-		ht[hash_x].f_list->next = NULL; 
-		ht[hash_x].f_list->f = f;
+		ht[hash_x]->f_list = frag_pointer;
+		ht[hash_x]->f_list->next = NULL; 
+		ht[hash_x]->f_list->f = f;
+		
+		this->n_buckets++;
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
@@ -161,7 +168,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	bkt_y->b.genome = &this->sequences[f->seqY];
 
 	//Insertions
-	Bucket * ptr = &ht[hash_y];
+	Bucket * ptr = ht[hash_y];
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
@@ -188,13 +195,17 @@ void hash_table::insert_y_side(struct FragFile * f){
 	//If not null pointer, it was already contained and thus we have to reset the bytes requested
 	if(ptr == NULL){
 		
+		if(ht[hash_y] == NULL) this->n_entries++; 
+
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		bkt_y->next = &ht[hash_y]; //Insert at the head
-		ht[hash_y] = *bkt_y;
+		bkt_y->next = ht[hash_y]; //Insert at the head
+		ht[hash_y] = bkt_y;
 		//Insert frag into list
-		ht[hash_y].f_list = frag_pointer;
-		ht[hash_y].f_list->next = NULL; 
-		ht[hash_y].f_list->f = f;
+		ht[hash_y]->f_list = frag_pointer;
+		ht[hash_y]->f_list->next = NULL; 
+		ht[hash_y]->f_list->f = f;
+
+		this->n_buckets++;
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
@@ -206,7 +217,27 @@ void hash_table::insert_y_side(struct FragFile * f){
 	
 }
 
-
+void hash_table::print_hash_table(int print){
+	uint64_t i, bck_counter, total_buckets = 0;
+	Bucket * ptr;
+	for(i=0;i<this->ht_size;i++){
+		bck_counter = 0;
+		ptr = this->ht[i];
+		while(ptr != NULL){ 
+			if(print == 2){
+				printBlock(&ptr->b);
+				getchar();
+			}
+			bck_counter++; ptr = ptr->next; 
+		}
+		if(print >= 1){
+			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
+			getchar();
+		}
+		total_buckets += bck_counter;
+	}
+	fprintf(stdout, "%"PRIu64" buckets.\n", total_buckets);
+}
 
 
 

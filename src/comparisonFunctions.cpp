@@ -249,3 +249,12 @@ int idNotInList(Frags_list * fl, struct FragFile * f){
     }
     return 1;
 }
+
+void printFragment(struct FragFile * f){
+    
+    fprintf(stdout, "FRAG::(%"PRIu64", %"PRIu64") to (%"PRIu64", %"PRIu64"): [%"PRIu64"]-[%"PRIu64"]\n", f->xStart, f->yStart, f->xEnd, f->yEnd, f->seqX, f->seqY);
+}
+
+void printBlock(Block * b){
+    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] synteny[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->synteny_level, b->genome->id);
+}

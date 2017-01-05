@@ -89,11 +89,17 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
     
     //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    begin = clock();
     memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
-    //hash_table * ht = new hash_table(mp, )
+    hash_table * ht = new hash_table(mp, 9000, sequences, 900000);
     for(i=0;i<total_frags;i++){
-
+        ht->insert_block(&loaded_frags[i]);
     }
+    end = clock();
+    fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
+    
+
+    ht->print_hash_table(2);
 
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(DEBUG_ACTIVE){
@@ -109,6 +115,9 @@ int main(int ac, char **av) {
     free(map_table);
     free(sequences);
     free(loaded_frags);
+
+    delete ht;
+    delete mp;
 
     
     return 0;

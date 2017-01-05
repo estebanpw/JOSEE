@@ -59,4 +59,14 @@ int isBlockEqualTo(Block * a, Block * b);
 */
 int idNotInList(Frags_list * fl, struct FragFile * f);
 
+/*
+	Prints a FragFile to stdout
+*/
+void printFragment(struct FragFile * f);
+
+/*
+	Prints a Block to stdout
+*/
+void printBlock(Block * b);
+
 #endif /* COMPARISON_FUNCTIONS_H */
