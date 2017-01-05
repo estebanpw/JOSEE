@@ -126,10 +126,13 @@ public:
 	//Bucket * getBucketAt(uint64_t index);
 	//Chunk * getChunkByKey(const Vec3GLui& key);
 	void insert_block(struct FragFile * f);
+    Bucket * keys_iterator(){ return &ht[0]; }
 	~hash_table();
 
 private:
 	uint64_t compute_hash(uint64_t key);
+    void insert_x_side(struct FragFile * f);
+    void insert_y_side(struct FragFile * f);
 };
 
 #endif

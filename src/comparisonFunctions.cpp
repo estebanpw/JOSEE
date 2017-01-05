@@ -239,11 +239,12 @@ int isBlockEqualTo(Block * a, Block * b){
     return 0;
 }
 
-int idNotInList(Frags_list * fl, uint64_t seq_id){
+int idNotInList(Frags_list * fl, struct FragFile * f){
     Frags_list * ptr = fl;
     while(ptr != NULL){
         
-        if(ptr->f->seqX == seq_id || ptr->f->seqY == seq_id) return 0;
+        if(ptr->f->seqX == f->seqX || ptr->f->seqY == f->seqX) return 0;
+        if(ptr->f->seqX == f->seqY || ptr->f->seqY == f->seqY) return 0;
         ptr = ptr->next;
     }
     return 1;

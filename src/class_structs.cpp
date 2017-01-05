@@ -74,9 +74,18 @@ uint64_t hash_table::compute_hash(uint64_t key){
 }
 
 void hash_table::insert_block(struct FragFile * f){
-	uint64_t hash_x = compute_hash(f->xStart);
-	uint64_t hash_y = compute_hash(f->yStart);
 	
+	this->insert_x_side(f);
+	this->insert_y_side(f);
+
+}
+
+void hash_table::insert_x_side(struct FragFile * f){
+	uint64_t hash_x = compute_hash(f->xStart);
+	
+	//Condition to insert in the frags list
+	int insert_on_list = 0;
+
 	//Get memory for buckets
 	Bucket * bkt_x = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
 
@@ -93,32 +102,57 @@ void hash_table::insert_block(struct FragFile * f){
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
+			
+			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 
-			if(idNotInList(ptr->f_list, bkt_x->b->genome)){
-				//Add to the list for syntenia
-				bkt_x->f_list->f->next = ptr->f_list;
-				ht[hash_x].f_list = 
+			if(idNotInList(ptr->f_list, f)){
+				//The block exists but not linked to this fragment, so add it to the list
+				insert_on_list = 1;
 			}else{
-				//A repetition 
+				//If the block already exists for this genome and for this fragment then it is a repetition
+				//(Only varies its y-coordinates)
+				//What do here?
 			}
+			//Exit since the block exists
 			break;
 		}else{
+			//Advance for next block
 			ptr = ptr->next;	
 		}
 	}
 
-	if(ptr != NULL) ht[hash_x] = bkt_x; //Actual insertion
+	//Actual insertion: If null pointer then the block was not contained in the set
+	//If not null pointer, it was already contained and thus we have to reset the bytes requested
+	if(ptr == NULL){
+		
+		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		bkt_x->next = &ht[hash_x]; //Insert at the head
+		ht[hash_x] = *bkt_x;
+		//Insert frag into list
+		ht[hash_x].f_list = frag_pointer;
+		ht[hash_x].f_list->next = NULL; 
+		ht[hash_x].f_list->f = f;
+	}
 
-	//Get memory for the list of fragments
+	if(ptr != NULL && insert_on_list == 1){
+		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		frag_pointer->next = ptr->f_list;
+		frag_pointer->f = f;
+		ptr->f_list = frag_pointer;
+	}
+	
+}
+
+void hash_table::insert_y_side(struct FragFile * f){
+	uint64_t hash_y = compute_hash(f->yStart);
+	
+	//Condition to insert in the frags list
+	int insert_on_list = 0;
+
+	//Get memory for buckets
 	Bucket * bkt_y = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
 
-	bkt_x->f_list = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-	bkt_x->f_list->f = f;
-	bkt_x->f_list->next = NULL;
-	bkt_y->f_list = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-	bkt_y->f_list->f = f;
-	bkt_y->f_list->next = NULL;
-
+	//Fill data of block
 	bkt_y->next = NULL;
 	bkt_y->b.start = f->yStart;
 	bkt_y->b.end = f->yEnd;
@@ -126,12 +160,51 @@ void hash_table::insert_block(struct FragFile * f){
 	bkt_y->b.synteny_level = 1; // Assigned
 	bkt_y->b.genome = &this->sequences[f->seqY];
 
+	//Insertions
+	Bucket * ptr = &ht[hash_y];
 
+	while(ptr != NULL){
+		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
+			
+			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 
+			if(idNotInList(ptr->f_list, f)){
+				//The block exists but not linked to this fragment, so add it to the list
+				insert_on_list = 1;
+			}else{
+				//If the block already exists for this genome and for this fragment then it is a repetition
+				//(Only varies its y-coordinates)
+				//What do here?
+			}
+			//Exit since the block exists
+			break;
+		}else{
+			//Advance for next block
+			ptr = ptr->next;	
+		}
+	}
+
+	//Actual insertion: If null pointer then the block was not contained in the set
+	//If not null pointer, it was already contained and thus we have to reset the bytes requested
+	if(ptr == NULL){
+		
+		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		bkt_y->next = &ht[hash_y]; //Insert at the head
+		ht[hash_y] = *bkt_y;
+		//Insert frag into list
+		ht[hash_y].f_list = frag_pointer;
+		ht[hash_y].f_list->next = NULL; 
+		ht[hash_y].f_list->f = f;
+	}
+
+	if(ptr != NULL && insert_on_list == 1){
+		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		frag_pointer->next = ptr->f_list;
+		frag_pointer->f = f;
+		ptr->f_list = frag_pointer;
+	}
+	
 }
-
-
-
 
 
 

@@ -57,6 +57,6 @@ int isBlockEqualTo(Block * a, Block * b);
 /*
 	Checks if a SEQ_ID is contained in a list of frags
 */
-int idNotInList(Frags_list * fl, uint64_t seq_id);
+int idNotInList(Frags_list * fl, struct FragFile * f);
 
 #endif /* COMPARISON_FUNCTIONS_H */
