@@ -88,7 +88,12 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
     
+    //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
+    //hash_table * ht = new hash_table(mp, )
+    for(i=0;i<total_frags;i++){
 
+    }
 
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(DEBUG_ACTIVE){
