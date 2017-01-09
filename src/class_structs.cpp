@@ -220,12 +220,18 @@ void hash_table::insert_y_side(struct FragFile * f){
 void hash_table::print_hash_table(int print){
 	uint64_t i, bck_counter, total_buckets = 0;
 	Bucket * ptr;
+	Frags_list * fl;
 	for(i=0;i<this->ht_size;i++){
 		bck_counter = 0;
 		ptr = this->ht[i];
 		while(ptr != NULL){ 
 			if(print == 2){
 				printBlock(&ptr->b);
+				fl = ptr->f_list;
+				while(fl != NULL){
+					fprintf(stdout, "\t"); printFragment(fl->f);
+					fl = fl->next;
+				}
 				getchar();
 			}
 			bck_counter++; ptr = ptr->next; 

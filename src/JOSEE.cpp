@@ -9,8 +9,8 @@
 #include "comparisonFunctions.h"
 #include "evolutionaryEventsFunctions.h"
 
-
 int DEBUG_ACTIVE = 0;
+int HARD_DEBUG_ACTIVE = 0;
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint64_t * min_len_trimming, uint64_t * min_trimm_itera, char * path_frags);
 
@@ -74,6 +74,17 @@ int main(int ac, char **av) {
         if(map_table[i] == NULL) terror("Could not allocate map table"); 
     }
     map_frags_to_genomes(map_table, loaded_frags, total_frags);
+
+    /*
+    uint64_t j;
+    for(j=0;j<total_frags;j++){
+        if(loaded_frags[j].yEnd == 209){
+            printFragment(&loaded_frags[j]);
+            getchar();
+        }
+    }
+    */
+
     end = clock();
     fprintf(stdout, "[INFO] Initial mapping completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -87,6 +98,7 @@ int main(int ac, char **av) {
     }
     end = clock();
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
+
     
     //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
@@ -98,8 +110,10 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     
-
-    ht->print_hash_table(2);
+    if(HARD_DEBUG_ACTIVE){
+        ht->print_hash_table(2);
+    }
+    
 
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(DEBUG_ACTIVE){
@@ -128,6 +142,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint6
     int pNum = 0;
     while(pNum < argc){
         if(strcmp(av[pNum], "--debug") == 0) DEBUG_ACTIVE = 1;
+        if(strcmp(av[pNum], "--hdebug") == 0) HARD_DEBUG_ACTIVE = 1;
         if(strcmp(av[pNum], "--help") == 0){
             fprintf(stdout, "USAGE:\n");
             fprintf(stdout, "           JOSEE -multifrags [query] -out [results]\n");
