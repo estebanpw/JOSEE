@@ -86,12 +86,6 @@ void hash_table::insert_block(struct FragFile * f){
 void hash_table::insert_x_side(struct FragFile * f){
 	uint64_t hash_x = compute_hash(f->xStart);
 	
-	int mydebug = 0;
-	if(hash_x == 50){
-		printf("TRY: "); printFragment(f);
-		mydebug = 1;
-		getchar();
-	}
 
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
@@ -115,7 +109,6 @@ void hash_table::insert_x_side(struct FragFile * f){
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 			if(idNotInList(ptr->f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
-				if(mydebug) printf("yoho\n");
 				insert_on_list = 1;	
 			}else{
 				//If the block already exists for this genome and for this fragment then it is a repetition
@@ -145,7 +138,6 @@ void hash_table::insert_x_side(struct FragFile * f){
 		
 		this->n_buckets++;
 
-		if(mydebug) printf("Enter new $$\n");
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
@@ -154,7 +146,6 @@ void hash_table::insert_x_side(struct FragFile * f){
 		frag_pointer->f = f;
 		ptr->f_list = frag_pointer;
 
-		if(mydebug) printf("Addition new $$\n");
 	}
 	
 
@@ -162,13 +153,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 void hash_table::insert_y_side(struct FragFile * f){
 	uint64_t hash_y = compute_hash(f->yStart);
-	
-	int mydebug = 0;
-	if(hash_y == 50){
-		printf("TRY: "); printFragment(f);
-		mydebug = 1;
-		getchar();
-	}
+		
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
 
@@ -191,7 +176,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 			if(idNotInList(ptr->f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
-				if(mydebug) printf("yoho\n");
 				insert_on_list = 1;	
 			}else{
 				//If the block already exists for this genome and for this fragment then it is a repetition
@@ -221,7 +205,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 		this->n_buckets++;
 
-		if(mydebug) printf("Enter new $$\n");
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
@@ -229,7 +212,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 		frag_pointer->next = ptr->f_list;
 		frag_pointer->f = f;
 		ptr->f_list = frag_pointer;	
-		if(mydebug) printf("Addition new $$\n");
 
 	}
 	
