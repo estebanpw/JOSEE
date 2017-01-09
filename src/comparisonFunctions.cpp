@@ -243,8 +243,9 @@ int idNotInList(Frags_list * fl, struct FragFile * f){
     Frags_list * ptr = fl;
     while(ptr != NULL){
         
-        if(ptr->f->seqX == f->seqX || ptr->f->seqY == f->seqX) return 0;
-        if(ptr->f->seqX == f->seqY || ptr->f->seqY == f->seqY) return 0;
+        if(ptr->f->seqX == f->seqX && ptr->f->seqY == f->seqY) return 0;
+        
+        
         ptr = ptr->next;
     }
     return 1;

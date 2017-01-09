@@ -84,7 +84,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 	uint64_t new_frags_number = 0;
 	uint64_t size_fragment = sizeofFragment(); //To not compute it every time
 
-
+	
 	//Allocate memory
 	list_new_frags = (struct FragFile *) std::malloc(INIT_TRIM_FRAGS*sizeofFragment());
 	if(list_new_frags == NULL) terror("Could not allocate memory for list of new fragments in trimming");
@@ -120,6 +120,13 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		cur_new_len = 1;
 		jX = fromX+1;
 		if(strand == 'f') jY = fromY+1; else jY = fromY-1;
+
+		/*
+		if(seqX == 0 && frags[i].xEnd == 5165){
+			printFragment(&frags[i]);
+			getchar();
+		}
+		*/
 
 		while(jX < toX && jY != toY){
 			//Check how long until there is a break (by starting or ending of frag)

@@ -86,6 +86,13 @@ void hash_table::insert_block(struct FragFile * f){
 void hash_table::insert_x_side(struct FragFile * f){
 	uint64_t hash_x = compute_hash(f->xStart);
 	
+	int mydebug = 0;
+	if(hash_x == 50){
+		printf("TRY: "); printFragment(f);
+		mydebug = 1;
+		getchar();
+	}
+
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
 
@@ -105,23 +112,21 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
-			
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
-
 			if(idNotInList(ptr->f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
-				insert_on_list = 1;
+				if(mydebug) printf("yoho\n");
+				insert_on_list = 1;	
 			}else{
 				//If the block already exists for this genome and for this fragment then it is a repetition
 				//(Only varies its y-coordinates)
 				//What do here?
+				
 			}
 			//Exit since the block exists
 			break;
-		}else{
-			//Advance for next block
-			ptr = ptr->next;	
 		}
+		ptr = ptr->next;	
 	}
 
 	//Actual insertion: If null pointer then the block was not contained in the set
@@ -139,6 +144,8 @@ void hash_table::insert_x_side(struct FragFile * f){
 		ht[hash_x]->f_list->f = f;
 		
 		this->n_buckets++;
+
+		if(mydebug) printf("Enter new $$\n");
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
@@ -146,13 +153,22 @@ void hash_table::insert_x_side(struct FragFile * f){
 		frag_pointer->next = ptr->f_list;
 		frag_pointer->f = f;
 		ptr->f_list = frag_pointer;
+
+		if(mydebug) printf("Addition new $$\n");
 	}
 	
+
 }
 
 void hash_table::insert_y_side(struct FragFile * f){
 	uint64_t hash_y = compute_hash(f->yStart);
 	
+	int mydebug = 0;
+	if(hash_y == 50){
+		printf("TRY: "); printFragment(f);
+		mydebug = 1;
+		getchar();
+	}
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
 
@@ -172,23 +188,21 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
-			
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
-
 			if(idNotInList(ptr->f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
-				insert_on_list = 1;
+				if(mydebug) printf("yoho\n");
+				insert_on_list = 1;	
 			}else{
 				//If the block already exists for this genome and for this fragment then it is a repetition
 				//(Only varies its y-coordinates)
 				//What do here?
+				
 			}
 			//Exit since the block exists
 			break;
-		}else{
-			//Advance for next block
-			ptr = ptr->next;	
 		}
+		ptr = ptr->next;	
 	}
 
 	//Actual insertion: If null pointer then the block was not contained in the set
@@ -206,13 +220,17 @@ void hash_table::insert_y_side(struct FragFile * f){
 		ht[hash_y]->f_list->f = f;
 
 		this->n_buckets++;
+
+		if(mydebug) printf("Enter new $$\n");
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		frag_pointer->next = ptr->f_list;
 		frag_pointer->f = f;
-		ptr->f_list = frag_pointer;
+		ptr->f_list = frag_pointer;	
+		if(mydebug) printf("Addition new $$\n");
+
 	}
 	
 }
