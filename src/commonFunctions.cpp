@@ -149,3 +149,17 @@ void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence
     }
 
 }
+
+void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t to, uint64_t rate, uint64_t seq){
+    uint64_t i, acu = 0;
+    static uint64_t CALL = 0;
+    fprintf(stdout, "===========(%"PRIu64" -> %"PRIu64")@%"PRIu64"\n", from, to, seq);
+    for(i=from;i<to;i++){
+        fprintf(stdout, "%u", maptable[seq][i]);
+        acu++;
+        if(acu != 0 && acu % rate == 0) fprintf(stdout, "\n");
+    }
+    fprintf(stdout, "\n===========CALL: %"PRIu64"\n", CALL);
+    CALL++;
+
+}

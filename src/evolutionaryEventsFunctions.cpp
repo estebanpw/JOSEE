@@ -154,6 +154,9 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 					if(list_new_frags == NULL) terror("Could not realloc fragments on the trimming process");
 				}
 
+				
+
+
 				//And set the mapping grid to the new values
 
 				/*
@@ -168,10 +171,10 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 				map_table[seqY][jY] = CLOSEFRAG;
 
 				//Set open for this one
-				/*
+				
 				map_table[seqX][fromX] = OPENFRAG;
 				map_table[seqY][fromY] = OPENFRAG;
-				*/
+				
 
 				//Open next if it was cut in between
 				/*
@@ -183,6 +186,15 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 				}
 				*/
 				//Set the fromX and fromY to 1 (start frag) again in case this is not the first time we split
+
+				/* DEBUG PURPOSES */
+				/*
+				if(frags[i].seqY == 3 && frags[i].yEnd == 5375){
+					printf("Created: "); printFragment(&new_frag);
+					print_maptable_portion(map_table, frags[i].yStart - 20, frags[i].yEnd + 20, 50, frags[i].seqY);
+					getchar();
+				}
+				*/
 
 			}
 			//If you are here, either the fragment was too short, or was written correctly or we are at the end of the frag

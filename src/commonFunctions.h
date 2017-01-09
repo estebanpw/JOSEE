@@ -30,4 +30,10 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
 */
 void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence * sequences, const char * out_file_path);
 
+/*
+	Prints a section of the maptable
+	This function is intended for debug
+*/
+void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t to, uint64_t rate, uint64_t seq);
+
 #endif /* COMMON_FUNCTIONS_H */
