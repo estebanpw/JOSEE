@@ -103,9 +103,11 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	//Insertions
 	Bucket * ptr = ht[hash_x];
+	Bucket * theoretical_position = NULL;
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
+
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 			if(idNotInList(ptr->f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
@@ -119,6 +121,15 @@ void hash_table::insert_x_side(struct FragFile * f){
 			//Exit since the block exists
 			break;
 		}
+
+		//If the block is not equal but a block for this genome is already contained in the bucket
+		//Then we should insert ordered
+		//if(bkt_x->b.genome == ptr->b.genome){
+			if(bkt_x->b.start > ptr->b.start){ //Only if its bigger so that it keeps the reference to the previous
+				theoretical_position = ptr;
+			}
+		//}
+
 		ptr = ptr->next;	
 	}
 
@@ -129,8 +140,17 @@ void hash_table::insert_x_side(struct FragFile * f){
 		if(ht[hash_x] == NULL) this->n_entries++; 
 
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		bkt_x->next = ht[hash_x]; //Insert at the head
-		ht[hash_x] = bkt_x;
+		
+		//Insert between theoretical position and its next
+		if(theoretical_position == NULL){
+			bkt_x->next = ht[hash_x];  //Insert at the head
+			ht[hash_x] = bkt_x;
+		}else{
+			bkt_x->next = theoretical_position->next;
+			theoretical_position->next = bkt_x;
+		}
+		
+
 		//Insert frag into list
 		ht[hash_x]->f_list = frag_pointer;
 		ht[hash_x]->f_list->next = NULL; 
@@ -170,6 +190,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 	//Insertions
 	Bucket * ptr = ht[hash_y];
+	Bucket * theoretical_position = NULL;
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
@@ -186,6 +207,15 @@ void hash_table::insert_y_side(struct FragFile * f){
 			//Exit since the block exists
 			break;
 		}
+
+		//If the block is not equal but a block for this genome is already contained in the bucket
+		//Then we should insert ordered
+		//if(bkt_y->b.genome == ptr->b.genome){
+			if(bkt_y->b.start > ptr->b.start){
+				theoretical_position = ptr;
+			}
+		//}
+
 		ptr = ptr->next;	
 	}
 
@@ -196,8 +226,16 @@ void hash_table::insert_y_side(struct FragFile * f){
 		if(ht[hash_y] == NULL) this->n_entries++; 
 
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		bkt_y->next = ht[hash_y]; //Insert at the head
-		ht[hash_y] = bkt_y;
+		
+		//Insert between theoretical position and its next
+		if(theoretical_position == NULL){
+			bkt_y->next = ht[hash_y];  //Insert at the head
+			ht[hash_y] = bkt_y;
+		}else{
+			bkt_y->next = theoretical_position->next;
+			theoretical_position->next = bkt_y;
+		}
+		
 		//Insert frag into list
 		ht[hash_y]->f_list = frag_pointer;
 		ht[hash_y]->f_list->next = NULL; 
