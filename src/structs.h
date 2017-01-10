@@ -127,7 +127,8 @@ private:
 public:
     hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key);
 	void insert_block(struct FragFile * f);
-    Bucket * get_key_at(uint64_t pos){ if(pos < ht_size) return ht[pos]; else return NULL; }
+    Bucket * get_key_at(uint64_t pos){ if(pos < ht_size && pos >= 0) return ht[pos]; else return NULL; } //Returns a reference to the key by absolute position
+    Bucket * get_value_at(uint64_t pos); //Returns a reference to the key computed from the hash of x_pos
     double get_load_factor(){ return (double)ht_size/n_buckets;}
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);

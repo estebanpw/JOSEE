@@ -287,6 +287,12 @@ void hash_table::print_hash_table(int print){
 	fprintf(stdout, "%"PRIu64" buckets.\n", total_buckets);
 }
 
+Bucket * hash_table::get_value_at(uint64_t pos){
+	Bucket * ptr = this->get_key_at(compute_hash(pos));
+	while(ptr != NULL && ptr->b.start != pos) ptr = ptr->next;
+
+	return ptr;
+}
 
 
 

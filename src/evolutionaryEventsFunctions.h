@@ -31,3 +31,12 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 */
 void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
 
+/*
+	Checks if a truple of consecutive blocks is a reversion or not
+*/
+void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c);
+
+/*
+	Detects if a reversion took place
+*/
+void detect_reversion(hash_table * ht, uint64_t max_len_seq);

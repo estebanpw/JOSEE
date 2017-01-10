@@ -258,3 +258,82 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 
 	free(seq_orders);
 }
+
+void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
+	
+	Block * A, * B, * C;
+
+	A = &a->b;
+	B = &b->b;
+	C = &c->b;
+
+	//At this point we have the reference to each block A,B,C
+	//We need to compute whether any of the fragments that generate B is reversed
+	//Also that both A and C have no reversion themselves
+	//Also that A,B,C have the same syteny
+
+	if(A->synteny_level != B->synteny_level || A->synteny_level != C->synteny_level) return; //No equal synteny
+
+	Frags_list * ptr;
+	char b_strand;
+
+	//Checking for no reversion in A
+	ptr = a->f_list;
+	while(ptr != NULL){
+		if(ptr->f->strand == 'r') return;
+		ptr = ptr->next;
+	}
+	//Checking for no reversion in C
+	ptr = c->f_list;
+	while(ptr != NULL){
+		if(ptr->f->strand == 'r') return;
+		ptr = ptr->next;
+	}
+
+
+	//Current truple
+	printBlock(A);
+	printBlock(B);
+	
+
+	//Check that there is a reversion in one or two fragments in B
+	ptr = b->f_list;
+	b_strand = ptr->f->strand; //First strand
+	
+	while(ptr != NULL){
+
+		//Print fragments of b
+		printf("\t"); printFragment(ptr->f);
+
+		
+		if(b_strand != ptr->f->strand){ //If there is one not equal to the first strand
+			//Found reversion
+			fprintf(stdout, "Found reversion between:\n");
+			printBlock(A);
+			printBlock(B);
+			printBlock(C);
+			getchar();
+		}
+		
+		ptr = ptr->next;
+	}
+	printBlock(C); //So that it prints in order!
+	getchar();
+}
+
+void detect_reversion(hash_table * ht, uint64_t max_len_seq){
+	Bucket * a, * b, * c;
+
+	uint64_t pos_a = 0, pos_b, pos_c;
+
+	//There cant be reversion without previous blocks
+	//Neither if there cant be blocks afterwards
+	while(pos_a<max_len_seq){
+		
+		a = ht->get_value_at(pos_a);
+
+		//TODO
+			
+	}
+}
+

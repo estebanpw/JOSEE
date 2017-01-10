@@ -39,11 +39,11 @@ int main(int ac, char **av) {
     uint64_t ht_size = 100; //Default
 
 
-    //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file;
     init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size);
 
-    //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
     path_lengths[0]='\0';
     strcpy(path_lengths, multifrags_path);
@@ -52,7 +52,7 @@ int main(int ac, char **av) {
     if(lengths_file == NULL) terror("Could not open input lengths file");
 
 
-    //Load lengths and substract accumulated length %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Load lengths and substract accumulated length %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     n_files = load_sequences_descriptors(&sequences, lengths_file);
     end = clock();
@@ -60,7 +60,7 @@ int main(int ac, char **av) {
     fclose(lengths_file);
 
 
-    //Load fragments into array %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Load fragments into array %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     load_fragments_local(frags_file, &total_frags, sequences, &loaded_frags);
     end = clock();
@@ -68,7 +68,7 @@ int main(int ac, char **av) {
     fclose(frags_file); 
 
 
-    //Initial mapping of fragments to table of genomes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Initial mapping of fragments to table of genomes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     unsigned char ** map_table = (unsigned char **) std::calloc(n_files, sizeof(unsigned char *));
     //Allocate map table
@@ -84,7 +84,7 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Initial mapping completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
 
-    //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     for(i=0;i<N_ITERA;i++){
         aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len, sequences);
@@ -114,9 +114,15 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     
     
+    //Detect evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    begin = clock();
+    detect_reversion(ht, max_len_sequence);
+    end = clock();
+    fprintf(stdout, "[INFO] Finished searching for evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
 
-    // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     if(DEBUG_ACTIVE){
         char write_debug[512];
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);
