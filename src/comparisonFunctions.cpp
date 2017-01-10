@@ -219,7 +219,7 @@ uint64_t sizeofFragment() {
 }
 
 uint64_t sizeofSequence() {
-    return 3 * sizeof(uint64_t);
+    return 3 * sizeof(uint64_t) + sizeof(uint32_t);
 }
 
 uint64_t sizeofBlock(){

@@ -66,6 +66,7 @@ typedef struct sequence{
     uint64_t id;    //Label of the sequence
     uint64_t len;   //Length in nucleotides of the sequence
     uint64_t acum;  //Accumulated length from the sequences found before in the file (if any)
+    uint32_t coverage; //The percentage of bases covered by fragments of a minimum length
 } Sequence;
 
 //A block that belongs to a genome and that has some synteny level (conserved block)

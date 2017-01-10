@@ -28,6 +28,17 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
 	Computes the longest sequence
 */
 uint64_t get_maximum_length(Sequence * sequences, uint64_t n_seqs);
+
+/*
+	Computes the coverage per sequence
+*/
+void get_coverage_from_genome_grid(unsigned char ** maptable, Sequence * sequences, uint64_t n_seqs, uint64_t min_len_without_breaks);
+
+/*
+	Shows length and coverage per sequence
+*/
+void print_sequences_data(Sequence * sequences, uint64_t n_seqs);
+
 /*
 	Writes all rows of a maptable to a file path that is created
 	This function is intended for debug

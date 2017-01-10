@@ -46,7 +46,7 @@ uint64_t load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file){
         st[i].acum = acum;
         if(1 != fread(&st[i].len, sizeof(uint64_t), 1, lengths_file)) terror("Wrong number of sequences or sequence file corrupted");
         acum += st[i].len;
-        fprintf(stdout, "[INFO] Sequence %"PRIu64" has length %"PRIu64"\n", i, st[i].len);
+        //fprintf(stdout, "[INFO] Sequence %"PRIu64" has length %"PRIu64"\n", i, st[i].len);
         i++;
     }
 
@@ -137,6 +137,36 @@ uint64_t get_maximum_length(Sequence * sequences, uint64_t n_seqs){
     return m_len;
 }
 
+void get_coverage_from_genome_grid(unsigned char ** maptable, Sequence * sequences, uint64_t n_seqs, uint64_t min_len_without_breaks){
+    uint64_t i, j;
+
+    uint64_t sum_bases;
+    uint64_t current;
+
+    for(i=0;i<n_seqs;i++){
+        current = 0;
+        sum_bases = 0;
+        for(j=0;j<sequences[i].len;j++){
+            if(maptable[i][j] != COVERFRAG){
+                if(current >= min_len_without_breaks){
+                    sum_bases += current;
+                }
+                current = 0;
+            }else{
+                current++;
+            }
+        }
+        sequences[i].coverage = (100*sum_bases)/sequences[i].len;
+    }
+}
+
+void print_sequences_data(Sequence * sequences, uint64_t n_seqs){
+    uint64_t i;
+    fprintf(stdout, "[INFO] Sequences data:\n");
+    for(i=0;i<n_seqs;i++){
+        fprintf(stdout, "\t(%"PRIu64")\tL:%"PRIu64"\tC:%"PRIu32"\n", i, sequences[i].len, sequences[i].coverage);
+    }
+}
 
 void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence * sequences, const char * out_file_path){
     uint64_t i, j;
