@@ -126,6 +126,18 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * seque
     *loaded_frags = temp_frags_array;
 }
 
+uint64_t get_maximum_length(Sequence * sequences, uint64_t n_seqs){
+    uint64_t i;
+    uint64_t m_len = 0;
+    for(i=0;i<n_seqs;i++){
+        if(m_len < sequences[i].len){
+            m_len = sequences[i].len;
+        }
+    }
+    return m_len;
+}
+
+
 void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence * sequences, const char * out_file_path){
     uint64_t i, j;
     FILE * out_file;

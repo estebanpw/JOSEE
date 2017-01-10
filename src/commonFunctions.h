@@ -25,6 +25,10 @@ uint64_t load_sequences_descriptors(Sequence ** sequences, FILE * lengths_file);
 void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, Sequence * sequences, struct FragFile ** loaded_frags);
 
 /*
+	Computes the longest sequence
+*/
+uint64_t get_maximum_length(Sequence * sequences, uint64_t n_seqs);
+/*
 	Writes all rows of a maptable to a file path that is created
 	This function is intended for debug
 */

@@ -12,7 +12,8 @@
 int DEBUG_ACTIVE = 0;
 int HARD_DEBUG_ACTIVE = 0;
 
-void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint64_t * min_len_trimming, uint64_t * min_trimm_itera, char * path_frags);
+void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
+    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size);
 
 int main(int ac, char **av) {
     
@@ -34,11 +35,13 @@ int main(int ac, char **av) {
     //Path to the multifrags file
     char multifrags_path[512];
     multifrags_path[0] = '\0';
+    //Initial hash table size (divisor of the longest sequence)
+    uint64_t ht_size = 100; //Default
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path);
+    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -103,16 +106,15 @@ int main(int ac, char **av) {
     //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
-    hash_table * ht = new hash_table(mp, 9000, sequences, 900000);
+    uint64_t max_len_sequence = get_maximum_length(sequences, n_files);
+    hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, sequences, max_len_sequence);
     for(i=0;i<total_frags;i++){
         ht->insert_block(&loaded_frags[i]);
     }
     end = clock();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     
-    if(HARD_DEBUG_ACTIVE){
-        ht->print_hash_table(2);
-    }
+    
     
 
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -120,7 +122,13 @@ int main(int ac, char **av) {
         char write_debug[512];
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);
         write_maptable_to_disk(map_table, n_files, sequences, write_debug);
+        
     }
+    if(HARD_DEBUG_ACTIVE){
+        ht->print_hash_table(2);
+    }
+
+    
     
     
     for(i=0; i<n_files; i++){
@@ -138,7 +146,9 @@ int main(int ac, char **av) {
 }
 
 
-void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags){
+void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
+    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size){
+    
     int pNum = 0;
     while(pNum < argc){
         if(strcmp(av[pNum], "--debug") == 0) DEBUG_ACTIVE = 1;
@@ -147,8 +157,9 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint6
             fprintf(stdout, "USAGE:\n");
             fprintf(stdout, "           JOSEE -multifrags [query] -out [results]\n");
             fprintf(stdout, "OPTIONAL:\n");
-            fprintf(stdout, "           -min_len_trimming   [Integer:   0>=X] (default 100)\n");
-            fprintf(stdout, "           -min_trim_itera     [Integer:   0>=X] (default 4)\n");
+            fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
+            fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
+            fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows help for program usage\n");
             exit(1);
@@ -170,6 +181,10 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, uint6
         if(strcmp(av[pNum], "-min_trim_itera") == 0){
             *min_trim_itera = (uint64_t) atoi(av[pNum+1]);
             if(*min_trim_itera < 0) terror("Minimum number of trimming iterations must be zero or more");
+        }
+        if(strcmp(av[pNum], "-hash_table_divisor") == 0){
+            *ht_size = (uint64_t) atoi(av[pNum+1]);
+            if(*ht_size < 1) terror("The hash table divisor must be one at least");
         }
         pNum++;
     }
