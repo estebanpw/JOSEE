@@ -62,6 +62,10 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 inline void copyFragWithNewCoordinates(struct FragFile * destination, struct FragFile * source, uint64_t xStart, uint64_t yStart, uint64_t xEnd, uint64_t yEnd, uint64_t len){
     destination->xStart = xStart;
     destination->xEnd = xEnd;
+
+	destination->yStart = yStart;
+    destination->yEnd = yEnd;	
+	/*
     if(source->strand == 'f'){
 		destination->yStart = yStart;
     	destination->yEnd = yEnd;		
@@ -69,6 +73,7 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
 		destination->yStart = yEnd;
     	destination->yEnd = yStart;
 	}
+	*/
 
     destination->length = len;
     destination->seqX = source->seqX;
@@ -102,6 +107,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		
 		
 		strand = frags[i].strand;
+		/*
 		if(strand == 'f'){
 			fromY = frags[i].yStart;
 			toY = frags[i].yEnd;	
@@ -109,6 +115,9 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			fromY = frags[i].yEnd;	
 			toY = frags[i].yStart;
 		}
+		*/
+		fromY = frags[i].yStart;
+		toY = frags[i].yEnd;	
 		
 		
 

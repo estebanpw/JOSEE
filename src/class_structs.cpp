@@ -271,15 +271,16 @@ void hash_table::print_hash_table(int print){
 				fl = ptr->f_list;
 				while(fl != NULL){
 					fprintf(stdout, "\t"); printFragment(fl->f);
+					if(fl->f->strand == 'r') getchar();
 					fl = fl->next;
 				}
-				getchar();
+				//getchar();
 			}
 			bck_counter++; ptr = ptr->next; 
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			getchar();
+			//getchar();
 		}
 		total_buckets += bck_counter;
 	}

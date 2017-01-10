@@ -102,8 +102,11 @@ int main(int ac, char **av) {
     begin = clock();
     memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
     uint64_t max_len_sequence = get_maximum_length(sequences, n_files);
+    uint64_t coord_aux;
     hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, sequences, max_len_sequence);
     for(i=0;i<total_frags;i++){
+        //Switch coordinates of reversed fragments. This can only be done at the end of trimming and not meanwhile!
+        if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
         ht->insert_block(&loaded_frags[i]);
     }
     compute_order_of_blocks(ht, n_files);
