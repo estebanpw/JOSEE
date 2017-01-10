@@ -106,6 +106,7 @@ int main(int ac, char **av) {
     for(i=0;i<total_frags;i++){
         ht->insert_block(&loaded_frags[i]);
     }
+    compute_order_of_blocks(ht, n_files);
     end = clock();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     

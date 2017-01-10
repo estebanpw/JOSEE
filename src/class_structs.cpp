@@ -166,6 +166,8 @@ void hash_table::insert_x_side(struct FragFile * f){
 		frag_pointer->f = f;
 		ptr->f_list = frag_pointer;
 
+		ptr->b.synteny_level =  ptr->b.synteny_level + 1;
+
 	}
 	
 
@@ -250,6 +252,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 		frag_pointer->next = ptr->f_list;
 		frag_pointer->f = f;
 		ptr->f_list = frag_pointer;	
+		ptr->b.synteny_level =  ptr->b.synteny_level + 1;
 
 	}
 	

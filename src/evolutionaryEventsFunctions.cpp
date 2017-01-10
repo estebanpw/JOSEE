@@ -230,6 +230,22 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 }
 
 
-void blocks_from_grid(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, Sequence * sequences){
-	
+void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
+	uint64_t i;
+	Bucket * ptr;
+	uint64_t * seq_orders = (uint64_t *) std::calloc(n_seqs, sizeof(uint64_t));
+	if(seq_orders == NULL) terror("Could not allocate vector of orders");
+
+	for(i=0;i<ht->get_size();i++){
+		ptr = ht->get_key_at(i);
+		while(ptr != NULL){
+
+			ptr->b.order = seq_orders[ptr->b.genome->id];
+			seq_orders[ptr->b.genome->id]++;
+
+			ptr = ptr->next;
+		}
+	}
+
+	free(seq_orders);
 }

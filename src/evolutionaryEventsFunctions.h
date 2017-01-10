@@ -25,3 +25,9 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
 */
 struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences);
 
+/*
+	Iterates through the keys in the hash table and computes and stores the
+	order for each block found
+*/
+void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
+
