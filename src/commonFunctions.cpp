@@ -216,5 +216,6 @@ void traverse_synteny_list(Synteny_list * sbl){
             ptr_sb = ptr_sb->next;
         }
         ptr_sbl = ptr_sbl->next;
+        getchar();
     }
 }

@@ -290,14 +290,16 @@ Bucket * hash_table::get_value_at(uint64_t pos){
 	return ptr;
 }
 
-Block * hash_table::get_block_from_frag(struct FragFile * f){
+Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
 	Bucket * ptr = this->get_key_at(compute_hash(f->xStart));
 	
 	while(ptr != NULL){
-		if(ptr->b.start == f->xStart && ptr->b.end == f->xEnd
+		if(x_or_y == 0 && ptr->b.start == f->xStart && ptr->b.end == f->xEnd
 		&& ptr->b.genome->id == f->seqX) { return &ptr->b;} 
-		if(ptr->b.start == f->yStart && ptr->b.end == f->yEnd
+		if(x_or_y == 1 && ptr->b.start == f->yStart && ptr->b.end == f->yEnd
 		&& ptr->b.genome->id == f->seqY) { return &ptr->b;} 
+
+		ptr = ptr->next;
 	}
 	return NULL;
 }

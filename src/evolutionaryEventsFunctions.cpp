@@ -264,46 +264,75 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
 	uint64_t i;
 	Bucket * ptr;
-	Block * aux;
+	Block * aux_block = NULL;
 	Frags_list * flptr;
 	uint64_t pre_comp_sb = sizeofSyntenyBlock();
 	uint64_t pre_comp_sbl = sizeofSyntenyList();
+	unsigned char * had_genome_bitmask = (unsigned char *) std::malloc(n_seqs*sizeof(unsigned char));
+	if(had_genome_bitmask == NULL) terror("Could not allocate bit mask");
 
 	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+	
 	Synteny_list * curr_sbl = sbl;
 	Synteny_block * curr_sb = NULL;
-	/* ATTENTION SOMETHING IS NOT RIGHT HERE REDO!! */
+
+
 	for(i=0;i<ht->get_size();i++){
 		ptr = ht->get_key_at(i);
-		curr_sbl->next = NULL;
+
 		while(ptr != NULL){
 			//Each block is here
 			//For each block, add the blocks linked by the fragments
-			curr_sbl->sb = NULL;
+			memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
 			flptr = ptr->b.f_list;
 			while(flptr != NULL){
 				//Each fragment in the current block
-				aux = ht->get_block_from_frag(flptr->f);
-				if(aux != NULL){
+				//Only if we did not already have the genome in the frags
+				if(had_genome_bitmask[flptr->f->seqX] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 0);
+
+				//Insert frag_x
+				if(aux_block != NULL){
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
-					aux_sb->b = aux; //insert at the head
+					aux_sb->b = aux_block; //insert at the head
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
-					printf("Added: "); printBlock(curr_sb->b); getchar();
+					aux_block = NULL;
+					had_genome_bitmask[flptr->f->seqX] = 1;
+					//printf("\t"); printBlock(aux_sb->b);
 				}
+
+				if(had_genome_bitmask[flptr->f->seqY] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 1);
+
+				//Insert frag_y
+				if(aux_block != NULL){
+					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
+					aux_sb->b = aux_block; //insert at the head
+					aux_sb->next = curr_sb;
+					curr_sb = aux_sb;
+					aux_block = NULL;
+					had_genome_bitmask[flptr->f->seqY] = 1;
+					//printf("\t"); printBlock(aux_sb->b);
+				}
+				
 				flptr = flptr->next;
 			}
 
 			// End block
 			curr_sbl->sb = curr_sb;
 			curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
-			printf("\t break synteny!!\n");
 			curr_sbl = curr_sbl->next;
+			curr_sbl->next = NULL;
+			curr_sb = NULL;
 			ptr = ptr->next;
+			
+			//printf("broke stnyteny ---------------------------\n");
+			//getchar();
 		}
 	}
+	free(had_genome_bitmask);
 	return sbl;
 }
+
 
 void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 	/*

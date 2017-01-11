@@ -138,7 +138,7 @@ public:
 	void insert_block(struct FragFile * f);
     Bucket * get_key_at(uint64_t pos){ if(pos < ht_size && pos >= 0) return ht[pos]; else return NULL; } //Returns a reference to the key by absolute position
     Bucket * get_value_at(uint64_t pos); //Returns a reference to the key computed from the hash of x_pos
-    Block * get_block_from_frag(struct FragFile * f);
+    Block * get_block_from_frag(struct FragFile * f, int x_or_y);
     double get_load_factor(){ return (double)ht_size/n_buckets;}
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);

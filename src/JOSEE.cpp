@@ -114,11 +114,9 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     
     
-    //Detect evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    //detect_evolutionary_event(ht, max_len_sequence);
     Synteny_list * sbl = compute_synteny_list(ht, n_files, mp);
-    traverse_synteny_list(sbl);
     end = clock();
     fprintf(stdout, "[INFO] Finished searching for evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
