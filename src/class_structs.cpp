@@ -98,7 +98,6 @@ void hash_table::insert_x_side(struct FragFile * f){
 	bkt_x->b.start = f->xStart;
 	bkt_x->b.end = f->xEnd;
 	bkt_x->b.order = 0; //Order will be assigned later
-	bkt_x->b.synteny_level = 1; // Assigned
 	bkt_x->b.genome = &this->sequences[f->seqX];
 
 	//Insertions
@@ -109,7 +108,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
 
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
-			if(idNotInList(ptr->f_list, f)){
+			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
 				insert_on_list = 1;	
 			}else{
@@ -152,9 +151,9 @@ void hash_table::insert_x_side(struct FragFile * f){
 		
 
 		//Insert frag into list
-		ht[hash_x]->f_list = frag_pointer;
-		ht[hash_x]->f_list->next = NULL; 
-		ht[hash_x]->f_list->f = f;
+		ht[hash_x]->b.f_list = frag_pointer;
+		ht[hash_x]->b.f_list->next = NULL; 
+		ht[hash_x]->b.f_list->f = f;
 		
 		this->n_buckets++;
 
@@ -162,11 +161,10 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	if(ptr != NULL && insert_on_list == 1){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		frag_pointer->next = ptr->f_list;
+		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
-		ptr->f_list = frag_pointer;
+		ptr->b.f_list = frag_pointer;
 
-		ptr->b.synteny_level =  ptr->b.synteny_level + 1;
 
 	}
 	
@@ -187,7 +185,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 	bkt_y->b.start = f->yStart;
 	bkt_y->b.end = f->yEnd;
 	bkt_y->b.order = 0; //Order will be assigned later
-	bkt_y->b.synteny_level = 1; // Assigned
 	bkt_y->b.genome = &this->sequences[f->seqY];
 
 	//Insertions
@@ -197,7 +194,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
-			if(idNotInList(ptr->f_list, f)){
+			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
 				insert_on_list = 1;	
 			}else{
@@ -239,9 +236,9 @@ void hash_table::insert_y_side(struct FragFile * f){
 		}
 		
 		//Insert frag into list
-		ht[hash_y]->f_list = frag_pointer;
-		ht[hash_y]->f_list->next = NULL; 
-		ht[hash_y]->f_list->f = f;
+		ht[hash_y]->b.f_list = frag_pointer;
+		ht[hash_y]->b.f_list->next = NULL; 
+		ht[hash_y]->b.f_list->f = f;
 
 		this->n_buckets++;
 
@@ -249,10 +246,9 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 	if(ptr != NULL && insert_on_list == 1){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
-		frag_pointer->next = ptr->f_list;
+		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
-		ptr->f_list = frag_pointer;	
-		ptr->b.synteny_level =  ptr->b.synteny_level + 1;
+		ptr->b.f_list = frag_pointer;	
 
 	}
 	
@@ -268,19 +264,19 @@ void hash_table::print_hash_table(int print){
 		while(ptr != NULL){ 
 			if(print == 2){
 				printBlock(&ptr->b);
-				fl = ptr->f_list;
+				fl = ptr->b.f_list;
 				while(fl != NULL){
 					fprintf(stdout, "\t"); printFragment(fl->f);
 					if(fl->f->strand == 'r') getchar();
 					fl = fl->next;
 				}
-				//getchar();
+				getchar();
 			}
 			bck_counter++; ptr = ptr->next; 
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			//getchar();
+			getchar();
 		}
 		total_buckets += bck_counter;
 	}
@@ -292,6 +288,18 @@ Bucket * hash_table::get_value_at(uint64_t pos){
 	while(ptr != NULL && ptr->b.start != pos) ptr = ptr->next;
 
 	return ptr;
+}
+
+Block * hash_table::get_block_from_frag(struct FragFile * f){
+	Bucket * ptr = this->get_key_at(compute_hash(f->xStart));
+	
+	while(ptr != NULL){
+		if(ptr->b.start == f->xStart && ptr->b.end == f->xEnd
+		&& ptr->b.genome->id == f->seqX) { return &ptr->b;} 
+		if(ptr->b.start == f->yStart && ptr->b.end == f->yEnd
+		&& ptr->b.genome->id == f->seqY) { return &ptr->b;} 
+	}
+	return NULL;
 }
 
 

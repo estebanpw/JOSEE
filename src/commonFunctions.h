@@ -51,4 +51,8 @@ void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence
 */
 void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t to, uint64_t rate, uint64_t seq);
 
+/*
+	Prints the blocks that compose a synteny block
+*/
+void traverse_synteny_list(Synteny_list * sbl);
 #endif /* COMMON_FUNCTIONS_H */

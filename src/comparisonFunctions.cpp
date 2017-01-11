@@ -234,6 +234,14 @@ uint64_t sizeofBucket(){
     return sizeofBlock() + sizeof(struct bucket *) + sizeof(Frags_list *);
 }
 
+uint64_t sizeofSyntenyBlock(){
+    return sizeof(Block *) + sizeof(Synteny_block *);
+}
+
+uint64_t sizeofSyntenyList(){
+    return sizeof(Synteny_block *) + sizeof(Synteny_list *);
+}
+
 int isBlockEqualTo(Block * a, Block * b){
     if(a->start == b->start && a->end == b->end && a->genome->id == b->genome->id) return 1;
     return 0;
@@ -257,5 +265,5 @@ void printFragment(struct FragFile * f){
 }
 
 void printBlock(Block * b){
-    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] synteny[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->synteny_level, b->genome->id);
+    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->genome->id);
 }

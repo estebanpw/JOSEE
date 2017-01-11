@@ -27,9 +27,14 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 
 /*
 	Iterates through the keys in the hash table and computes and stores the
-	order for each block found
+	order for each block found. 
 */
 void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
+
+/*
+	Produces the list of syteny blocks
+*/
+Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp);
 
 /*
 	Checks if a truple of consecutive blocks is a reversion or not
@@ -39,4 +44,4 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c);
 /*
 	Detects if a reversion took place
 */
-void detect_reversion(hash_table * ht, uint64_t max_len_seq);
+void detect_evolutionary_event(hash_table * ht, uint64_t max_len_seq);

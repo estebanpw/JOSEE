@@ -116,7 +116,9 @@ int main(int ac, char **av) {
     
     //Detect evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_reversion(ht, max_len_sequence);
+    //detect_evolutionary_event(ht, max_len_sequence);
+    Synteny_list * sbl = compute_synteny_list(ht, n_files, mp);
+    traverse_synteny_list(sbl);
     end = clock();
     fprintf(stdout, "[INFO] Finished searching for evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     

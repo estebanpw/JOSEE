@@ -50,6 +50,16 @@ uint64_t sizeofFrags_list();
 uint64_t sizeofBucket();
 
 /*
+	To compute sizeof Synteny block when not using padding
+*/
+uint64_t sizeofSyntenyBlock();
+
+/*
+	To compute sizeof Synteny block list when not using padding
+*/
+uint64_t sizeofSyntenyList();
+
+/*
 	Check if two blocks are equal
 */
 int isBlockEqualTo(Block * a, Block * b);

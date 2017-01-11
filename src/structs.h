@@ -62,6 +62,7 @@ struct FragFile {
     long double evalue;
 };
 
+//Sequence descriptor
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
     uint64_t len;   //Length in nucleotides of the sequence
@@ -69,16 +70,30 @@ typedef struct sequence{
     uint32_t coverage; //The percentage of bases covered by fragments of a minimum length
 } Sequence;
 
+typedef struct frags_list{
+    struct FragFile * f;
+    struct frags_list * next;
+} Frags_list;
+
 //A block that belongs to a genome and that has some synteny level (conserved block)
 typedef struct block{
     uint64_t start;     //Starting coordinate
     uint64_t end;       //Ending coordinate
     uint64_t order;     //Order of block according to the genome
-    uint64_t synteny_level; //Number of other genomes where this block is present
-    Sequence * genome;    //A pointer to the genome to which it belongs
+    Frags_list * f_list;    //List of fragments that compose it
+    Sequence * genome;      //A pointer to the genome to which it belongs
 } Block;
 
+//A synteny block is a collection of blocks
+typedef struct synteny_block{
+    Block * b;
+    struct synteny_block * next;
+} Synteny_block;
 
+typedef struct synteny_list{
+    Synteny_block * sb;
+    struct synteny_list * next;
+} Synteny_list;
 
 
 //Class for allocating memory only once and requesting particular amounts of bytes
@@ -97,15 +112,9 @@ public:
     ~memory_pool();
 };
 
-typedef struct frags_list{
-    struct FragFile * f;
-    struct frags_list * next;
-} Frags_list;
-
 
 typedef struct bucket {
 	Block b;
-    Frags_list * f_list;
 	struct bucket * next;
 } Bucket;
 
@@ -129,9 +138,11 @@ public:
 	void insert_block(struct FragFile * f);
     Bucket * get_key_at(uint64_t pos){ if(pos < ht_size && pos >= 0) return ht[pos]; else return NULL; } //Returns a reference to the key by absolute position
     Bucket * get_value_at(uint64_t pos); //Returns a reference to the key computed from the hash of x_pos
+    Block * get_block_from_frag(struct FragFile * f);
     double get_load_factor(){ return (double)ht_size/n_buckets;}
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);
+    Bucket * get_iterator(){ return ht[0];}
 
 private:
 	uint64_t compute_hash(uint64_t key);

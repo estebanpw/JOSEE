@@ -245,6 +245,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 	uint64_t * seq_orders = (uint64_t *) std::calloc(n_seqs, sizeof(uint64_t));
 	if(seq_orders == NULL) terror("Could not allocate vector of orders");
 
+	//Compute orders
 	for(i=0;i<ht->get_size();i++){
 		ptr = ht->get_key_at(i);
 		while(ptr != NULL){
@@ -255,12 +256,58 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 			ptr = ptr->next;
 		}
 	}
-
+	//Not needed anymore
 	free(seq_orders);
+	
+}
+
+Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
+	uint64_t i;
+	Bucket * ptr;
+	Block * aux;
+	Frags_list * flptr;
+	uint64_t pre_comp_sb = sizeofSyntenyBlock();
+	uint64_t pre_comp_sbl = sizeofSyntenyList();
+
+	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+	Synteny_list * curr_sbl = sbl;
+	Synteny_block * curr_sb = NULL;
+	/* ATTENTION SOMETHING IS NOT RIGHT HERE REDO!! */
+	for(i=0;i<ht->get_size();i++){
+		ptr = ht->get_key_at(i);
+		curr_sbl->next = NULL;
+		while(ptr != NULL){
+			//Each block is here
+			//For each block, add the blocks linked by the fragments
+			curr_sbl->sb = NULL;
+			flptr = ptr->b.f_list;
+			while(flptr != NULL){
+				//Each fragment in the current block
+				aux = ht->get_block_from_frag(flptr->f);
+				if(aux != NULL){
+					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
+					aux_sb->b = aux; //insert at the head
+					aux_sb->next = curr_sb;
+					curr_sb = aux_sb;
+					printf("Added: "); printBlock(curr_sb->b); getchar();
+				}
+				flptr = flptr->next;
+			}
+
+			// End block
+			curr_sbl->sb = curr_sb;
+			curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+			printf("\t break synteny!!\n");
+			curr_sbl = curr_sbl->next;
+			ptr = ptr->next;
+		}
+	}
+	return sbl;
 }
 
 void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
-	
+	/*
+
 	Block * A, * B, * C;
 
 	A = &a->b;
@@ -278,13 +325,13 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 	char b_strand;
 
 	//Checking for no reversion in A
-	ptr = a->f_list;
+	ptr = a->b.f_list;
 	while(ptr != NULL){
 		if(ptr->f->strand == 'r') return;
 		ptr = ptr->next;
 	}
 	//Checking for no reversion in C
-	ptr = c->f_list;
+	ptr = c->b.f_list;
 	while(ptr != NULL){
 		if(ptr->f->strand == 'r') return;
 		ptr = ptr->next;
@@ -297,7 +344,7 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 	
 
 	//Check that there is a reversion in one or two fragments in B
-	ptr = b->f_list;
+	ptr = b->b.f_list;
 	b_strand = ptr->f->strand; //First strand
 	
 	while(ptr != NULL){
@@ -319,21 +366,59 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 	}
 	printBlock(C); //So that it prints in order!
 	getchar();
+	*/
 }
 
-void detect_reversion(hash_table * ht, uint64_t max_len_seq){
-	Bucket * a, * b, * c;
+void detect_evolutionary_event(hash_table * ht, uint64_t max_len_seq){
+	/*
+	Bucket * a = NULL, * b = NULL, * c = NULL, * d = NULL, * e = NULL;
 
-	uint64_t pos_a = 0, pos_b, pos_c;
+	uint64_t i = 0;
 
-	//There cant be reversion without previous blocks
-	//Neither if there cant be blocks afterwards
-	while(pos_a<max_len_seq){
-		
-		a = ht->get_value_at(pos_a);
+	//Get first 5 consecutive synteny blocks
+	while(a == NULL) {
+		a = ht->get_key_at(i);
+		if(a == NULL) i++;
+	}
+	b = a->next;
+	while(b == NULL) {
+		i++;
+		b = ht->get_key_at(i);
+	}
+	c = b->next;
+	while(c == NULL) {
+		i++;
+		c = ht->get_key_at(i);
+	}
+	d = c->next;
+	while(d == NULL) {
+		i++;
+		d = ht->get_key_at(i);
+	}
+	e = d->next;
+	while(e == NULL) {
+		i++;
+		e = ht->get_key_at(i);
+	}
+
+	Frags_list * fl;
+	printf("Showing consecutive synteny blocks\n");
+	printf("\t"); fl = a->b.f_list; printBlock(&a->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
+	printf("\t"); fl = b->b.f_list; printBlock(&b->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
+	printf("\t"); fl = c->b.f_list; printBlock(&c->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
+	printf("\t"); fl = d->b.f_list; printBlock(&d->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
+	printf("\t"); fl = e->b.f_list; printBlock(&e->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
+	*/
+
+	/*
+	while(i<max_len_seq){
 
 		//TODO
+		if(a != NULL && b != NULL && c != NULL && d != NULL && e != NULL){
+			//Got 5 consecutive synteny blocks
+		}
 			
 	}
+	*/
 }
 

@@ -203,5 +203,18 @@ void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t t
     }
     fprintf(stdout, "\n===========CALL: %"PRIu64"\n", CALL);
     CALL++;
+}
 
+void traverse_synteny_list(Synteny_list * sbl){
+    Synteny_list * ptr_sbl = sbl;
+    Synteny_block * ptr_sb;
+    while(ptr_sbl != NULL){
+        fprintf(stdout, "SBL:\n");
+        ptr_sb = ptr_sbl->sb;
+        while(ptr_sb != NULL){
+            fprintf(stdout, "\t");printBlock(ptr_sb->b);
+            ptr_sb = ptr_sb->next;
+        }
+        ptr_sbl = ptr_sbl->next;
+    }
 }
