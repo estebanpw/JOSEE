@@ -79,4 +79,9 @@ void printFragment(struct FragFile * f);
 */
 void printBlock(Block * b);
 
+/*
+	Prints a Synteny Block to stdout
+*/
+void printSyntenyBlock(Synteny_block * b);
+
 #endif /* COMPARISON_FUNCTIONS_H */

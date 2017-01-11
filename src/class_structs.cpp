@@ -106,10 +106,11 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
-
+			
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
+
 				insert_on_list = 1;	
 			}else{
 				//If the block already exists for this genome and for this fragment then it is a repetition
@@ -150,6 +151,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 		}
 		
 
+
 		//Insert frag into list
 		ht[hash_x]->b.f_list = frag_pointer;
 		ht[hash_x]->b.f_list->next = NULL; 
@@ -160,6 +162,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
+		
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
@@ -192,7 +195,14 @@ void hash_table::insert_y_side(struct FragFile * f){
 	Bucket * theoretical_position = NULL;
 
 	while(ptr != NULL){
+		if(ht[hash_y]->b.start == 52 && ht[hash_y]->b.end == 209 && f->yStart == 85 && f->yEnd == 186){
+			printf("\nresult: %d\n", isBlockEqualTo(&bkt_y->b, &ptr->b));
+			printf("Trying to insert : "); printBlock(&bkt_y->b);
+			printf("Compared to      : "); printBlock(&ptr->b);
+
+		}
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
+
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
 			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
@@ -235,6 +245,10 @@ void hash_table::insert_y_side(struct FragFile * f){
 			theoretical_position->next = bkt_y;
 		}
 		
+		if(ht[hash_y]->b.start == 52 && ht[hash_y]->b.end == 209 && f->yStart == 85 && f->yEnd == 186){
+			printf("im inserting it!!"); //BUg here
+		}
+
 		//Insert frag into list
 		ht[hash_y]->b.f_list = frag_pointer;
 		ht[hash_y]->b.f_list->next = NULL; 
@@ -245,6 +259,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	}
 
 	if(ptr != NULL && insert_on_list == 1){
+		
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;

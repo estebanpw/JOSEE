@@ -44,4 +44,4 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c);
 /*
 	Detects if a reversion took place
 */
-void detect_evolutionary_event(hash_table * ht, uint64_t max_len_seq);
+void detect_evolutionary_event(Synteny_list * sbl);

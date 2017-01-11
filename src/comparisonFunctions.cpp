@@ -223,7 +223,7 @@ uint64_t sizeofSequence() {
 }
 
 uint64_t sizeofBlock(){
-    return  4*sizeof(uint64_t) + sizeof(Sequence *);
+    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *);
 }
 
 uint64_t sizeofFrags_list(){
@@ -261,9 +261,17 @@ int idNotInList(Frags_list * fl, struct FragFile * f){
 
 void printFragment(struct FragFile * f){
     
-    fprintf(stdout, "FRAG::(%"PRIu64", %"PRIu64") to (%"PRIu64", %"PRIu64"): [%"PRIu64"]-[%"PRIu64"] %c\n", f->xStart, f->yStart, f->xEnd, f->yEnd, f->seqX, f->seqY, f->strand);
+    fprintf(stdout, "FRAG::(%"PRIu64", %"PRIu64") to (%"PRIu64", %"PRIu64"): [%"PRIu64"]-[%"PRIu64"] %c LEN[%"PRIu64"]\n", f->xStart, f->yStart, f->xEnd, f->yEnd, f->seqX, f->seqY, f->strand, f->length);
 }
 
 void printBlock(Block * b){
-    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->genome->id);
+    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
+}
+
+void printSyntenyBlock(Synteny_block * b){
+    Synteny_block * ptr = b;
+    while(ptr != NULL){
+        printBlock(ptr->b);
+        ptr = ptr->next;
+    }
 }

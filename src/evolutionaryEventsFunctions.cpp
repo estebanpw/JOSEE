@@ -398,56 +398,26 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 	*/
 }
 
-void detect_evolutionary_event(hash_table * ht, uint64_t max_len_seq){
-	/*
-	Bucket * a = NULL, * b = NULL, * c = NULL, * d = NULL, * e = NULL;
+void detect_evolutionary_event(Synteny_list * sbl){
+	Synteny_list * A, * B, * C, * D, * E;
+	A = sbl;
+	do{
 
-	uint64_t i = 0;
+		if(A != NULL) B = A->next; else return; //At least three
+		if(B != NULL) C = B->next; else return;
+		if(C != NULL) D = C->next;
+		if(D != NULL) E = D->next;
 
-	//Get first 5 consecutive synteny blocks
-	while(a == NULL) {
-		a = ht->get_key_at(i);
-		if(a == NULL) i++;
-	}
-	b = a->next;
-	while(b == NULL) {
-		i++;
-		b = ht->get_key_at(i);
-	}
-	c = b->next;
-	while(c == NULL) {
-		i++;
-		c = ht->get_key_at(i);
-	}
-	d = c->next;
-	while(d == NULL) {
-		i++;
-		d = ht->get_key_at(i);
-	}
-	e = d->next;
-	while(e == NULL) {
-		i++;
-		e = ht->get_key_at(i);
-	}
+		//Evolutionary operations
+		printf("3 consecutive \n");
+		printSyntenyBlock(A->sb); printf("========\n");
+		printSyntenyBlock(B->sb); printf("========\n");
+		printSyntenyBlock(C->sb); printf("========\n");
+		getchar();
+		//next
+		A = A->next;
 
-	Frags_list * fl;
-	printf("Showing consecutive synteny blocks\n");
-	printf("\t"); fl = a->b.f_list; printBlock(&a->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
-	printf("\t"); fl = b->b.f_list; printBlock(&b->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
-	printf("\t"); fl = c->b.f_list; printBlock(&c->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
-	printf("\t"); fl = d->b.f_list; printBlock(&d->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
-	printf("\t"); fl = e->b.f_list; printBlock(&e->b); while(fl != NULL){ printFragment(fl->f); fl = fl->next; }
-	*/
+	}while(A != NULL);
 
-	/*
-	while(i<max_len_seq){
-
-		//TODO
-		if(a != NULL && b != NULL && c != NULL && d != NULL && e != NULL){
-			//Got 5 consecutive synteny blocks
-		}
-			
-	}
-	*/
 }
 
