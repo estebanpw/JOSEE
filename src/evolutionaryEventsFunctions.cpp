@@ -263,16 +263,19 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
 	uint64_t i;
+	//Pointers
 	Bucket * ptr;
 	Block * aux_block = NULL;
 	Frags_list * flptr;
+	//Avoid overcomputation
 	uint64_t pre_comp_sb = sizeofSyntenyBlock();
 	uint64_t pre_comp_sbl = sizeofSyntenyList();
+
+	//Bit mask to tell if the synteny block already contains a genome
 	unsigned char * had_genome_bitmask = (unsigned char *) std::malloc(n_seqs*sizeof(unsigned char));
 	if(had_genome_bitmask == NULL) terror("Could not allocate bit mask");
 
 	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
-	
 	Synteny_list * curr_sbl = sbl;
 	Synteny_block * curr_sb = NULL;
 

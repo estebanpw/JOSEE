@@ -89,6 +89,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
+	int exit = 0;
 
 	//Get memory for buckets
 	Bucket * bkt_x = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
@@ -119,17 +120,17 @@ void hash_table::insert_x_side(struct FragFile * f){
 				
 			}
 			//Exit since the block exists
-			break;
+			exit = 1;
 		}
 
 		//If the block is not equal but a block for this genome is already contained in the bucket
 		//Then we should insert ordered
 		//if(bkt_x->b.genome == ptr->b.genome){
-			if(bkt_x->b.start > ptr->b.start){ //Only if its bigger so that it keeps the reference to the previous
-				theoretical_position = ptr;
-			}
+		if(bkt_x->b.start > ptr->b.start){ //Only if its bigger so that it keeps the reference to the previous
+			theoretical_position = ptr;
+		}
 		//}
-
+		if(exit == 1) break;
 		ptr = ptr->next;	
 	}
 
@@ -142,6 +143,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		
 		//Insert between theoretical position and its next
+		
 		if(theoretical_position == NULL){
 			bkt_x->next = ht[hash_x];  //Insert at the head
 			ht[hash_x] = bkt_x;
@@ -153,9 +155,9 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 
 		//Insert frag into list
-		ht[hash_x]->b.f_list = frag_pointer;
-		ht[hash_x]->b.f_list->next = NULL; 
-		ht[hash_x]->b.f_list->f = f;
+		bkt_x->b.f_list = frag_pointer;
+		bkt_x->b.f_list->next = NULL; 
+		bkt_x->b.f_list->f = f;
 		
 		this->n_buckets++;
 
@@ -179,6 +181,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 		
 	//Condition to insert in the frags list
 	int insert_on_list = 0;
+	int exit = 0;
 
 	//Get memory for buckets
 	Bucket * bkt_y = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
@@ -195,12 +198,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	Bucket * theoretical_position = NULL;
 
 	while(ptr != NULL){
-		if(ht[hash_y]->b.start == 52 && ht[hash_y]->b.end == 209 && f->yStart == 85 && f->yEnd == 186){
-			printf("\nresult: %d\n", isBlockEqualTo(&bkt_y->b, &ptr->b));
-			printf("Trying to insert : "); printBlock(&bkt_y->b);
-			printf("Compared to      : "); printBlock(&ptr->b);
-
-		}
+		
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
 
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
@@ -214,16 +212,17 @@ void hash_table::insert_y_side(struct FragFile * f){
 				
 			}
 			//Exit since the block exists
-			break;
+			exit = 1;
 		}
 
 		//If the block is not equal but a block for this genome is already contained in the bucket
 		//Then we should insert ordered
 		//if(bkt_y->b.genome == ptr->b.genome){
-			if(bkt_y->b.start > ptr->b.start){
-				theoretical_position = ptr;
-			}
+		if(bkt_y->b.start > ptr->b.start){
+			theoretical_position = ptr;
+		}
 		//}
+		if(exit == 1) break;
 
 		ptr = ptr->next;	
 	}
@@ -244,15 +243,14 @@ void hash_table::insert_y_side(struct FragFile * f){
 			bkt_y->next = theoretical_position->next;
 			theoretical_position->next = bkt_y;
 		}
+
 		
-		if(ht[hash_y]->b.start == 52 && ht[hash_y]->b.end == 209 && f->yStart == 85 && f->yEnd == 186){
-			printf("im inserting it!!"); //BUg here
-		}
 
 		//Insert frag into list
-		ht[hash_y]->b.f_list = frag_pointer;
-		ht[hash_y]->b.f_list->next = NULL; 
-		ht[hash_y]->b.f_list->f = f;
+		bkt_y->b.f_list = frag_pointer;
+		bkt_y->b.f_list->next = NULL; 
+		bkt_y->b.f_list->f = f;
+
 
 		this->n_buckets++;
 
@@ -263,6 +261,9 @@ void hash_table::insert_y_side(struct FragFile * f){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
+		if(f->yStart == 7398 && f->yEnd == 7542){
+			printf("im inserting it @ 2222222!!\n"); //BUg here
+		}
 		ptr->b.f_list = frag_pointer;	
 
 	}
@@ -270,7 +271,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 }
 
 void hash_table::print_hash_table(int print){
-	uint64_t i, bck_counter, total_buckets = 0;
+	uint64_t i, bck_counter, total_buckets = 0, block_len_verifier;
 	Bucket * ptr;
 	Frags_list * fl;
 	for(i=0;i<this->ht_size;i++){
@@ -279,19 +280,21 @@ void hash_table::print_hash_table(int print){
 		while(ptr != NULL){ 
 			if(print == 2){
 				printBlock(&ptr->b);
+				block_len_verifier = ptr->b.end - ptr->b.start;
 				fl = ptr->b.f_list;
 				while(fl != NULL){
 					fprintf(stdout, "\t"); printFragment(fl->f);
-					if(fl->f->strand == 'r') getchar();
+					if(block_len_verifier != fl->f->length) terror("Found different length of fragment in block");
+					//if(fl->f->strand == 'r') getchar();
 					fl = fl->next;
 				}
-				getchar();
+				//getchar();
 			}
 			bck_counter++; ptr = ptr->next; 
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			getchar();
+			//getchar();
 		}
 		total_buckets += bck_counter;
 	}
