@@ -117,13 +117,13 @@ int main(int ac, char **av) {
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     Synteny_list * sbl = compute_synteny_list(ht, n_files, mp);
+    traverse_synteny_list(sbl);
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    //traverse_synteny_list(sbl);
-    //detect_evolutionary_event(sbl);
+    detect_evolutionary_event(sbl);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 

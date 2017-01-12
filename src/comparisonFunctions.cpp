@@ -223,7 +223,7 @@ uint64_t sizeofSequence() {
 }
 
 uint64_t sizeofBlock(){
-    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *);
+    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + sizeof(unsigned char);
 }
 
 uint64_t sizeofFrags_list(){

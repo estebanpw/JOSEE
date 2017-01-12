@@ -82,6 +82,7 @@ typedef struct block{
     uint64_t order;     //Order of block according to the genome
     Frags_list * f_list;    //List of fragments that compose it
     Sequence * genome;      //A pointer to the genome to which it belongs
+    unsigned char present_in_synteny;   //To tell whether it has already been used in a synteny block
 } Block;
 
 //A synteny block is a collection of blocks

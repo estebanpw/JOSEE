@@ -262,7 +262,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 }
 
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
-	uint64_t i;
+	uint64_t i, synteny_level;
 	//Pointers
 	Bucket * ptr;
 	Block * aux_block = NULL;
@@ -287,6 +287,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			//Each block is here
 			//For each block, add the blocks linked by the fragments
 			memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
+			synteny_level = 0; //Restart synteny level
 			flptr = ptr->b.f_list;
 			while(flptr != NULL){
 				//Each fragment in the current block
@@ -294,39 +295,52 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				if(had_genome_bitmask[flptr->f->seqX] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 0);
 
 				//Insert frag_x
-				if(aux_block != NULL){
+				if(aux_block != NULL && aux_block->present_in_synteny == 0){
+					aux_block->present_in_synteny = 1;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
 					aux_sb->b = aux_block; //insert at the head
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
 					had_genome_bitmask[flptr->f->seqX] = 1;
+					synteny_level++;
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 
 				if(had_genome_bitmask[flptr->f->seqY] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 1);
 
 				//Insert frag_y
-				if(aux_block != NULL){
+				if(aux_block != NULL && aux_block->present_in_synteny == 0){
+					aux_block->present_in_synteny = 1;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
 					aux_sb->b = aux_block; //insert at the head
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
 					had_genome_bitmask[flptr->f->seqY] = 1;
+					synteny_level++;
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 				
 				flptr = flptr->next;
 			}
 
-			// End block
-			curr_sbl->sb = curr_sb;
-			curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
-			curr_sbl = curr_sbl->next;
-			curr_sbl->next = NULL;
+			// End synteny block
+			if(synteny_level > 1){
+				curr_sbl->sb = curr_sb;
+				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+				curr_sbl = curr_sbl->next;
+				curr_sbl->next = NULL;
+			}
+			if(synteny_level == 1){
+				//Since there is a minimum synteny, restore its level so that it can be used
+				curr_sb->b->present_in_synteny = 0;
+				mp->reset_n_bytes(pre_comp_sb);
+			}
 			curr_sb = NULL;
+			//Go to next block
 			ptr = ptr->next;
+			
 			
 			//printf("broke stnyteny ---------------------------\n");
 			//getchar();
