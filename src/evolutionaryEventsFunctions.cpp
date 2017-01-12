@@ -328,6 +328,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			// End synteny block
 			if(synteny_level > 1){
 				curr_sbl->sb = curr_sb;
+				curr_sbl->synteny_level = synteny_level;
 				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 				curr_sbl = curr_sbl->next;
 				curr_sbl->next = NULL;
@@ -351,7 +352,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 }
 
 
-void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
+void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c){
 	/*
 
 	Block * A, * B, * C;
@@ -416,7 +417,7 @@ void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c){
 }
 
 void detect_evolutionary_event(Synteny_list * sbl){
-	Synteny_list * A, * B, * C, * D, * E;
+	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 	A = sbl;
 	do{
 
@@ -425,16 +426,43 @@ void detect_evolutionary_event(Synteny_list * sbl){
 		if(C != NULL) D = C->next;
 		if(D != NULL) E = D->next;
 
-		//Evolutionary operations
-		printf("3 consecutive \n");
-		printSyntenyBlock(A->sb); printf("========\n");
-		printSyntenyBlock(B->sb); printf("========\n");
-		printSyntenyBlock(C->sb); printf("========\n");
-		getchar();
+		//Evolutionary events
+		//At this point we have 5 consecutive synteny blocks
+		/*
+			A->synteny_level == B->synteny_level && 
+			
+		*/
+		if(A != NULL && B != NULL && C != NULL){
+			//Work only with those that share the same synteny level 
+			//Level 3 synteny
+			if(A->synteny_level > 2 && A->synteny_level == B->synteny_level && B->synteny_level == C->synteny_level){
+
+				//5-level
+				if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
+					if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
+					if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
+					if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
+					if(D != NULL) printSyntenyBlock(D->sb);printf("\nNEXT\n");
+					if(E != NULL) printSyntenyBlock(E->sb);printf("\nNEXT\n");
+				}else{
+					if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
+					if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
+					if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
+					
+				}
+				printf("BREAK\n");
+
+			}
+		}
+		
+		
+		
+		
+
 		//next
 		A = A->next;
 
-	}while(A != NULL);
+	} while(A != NULL);
 
 }
 

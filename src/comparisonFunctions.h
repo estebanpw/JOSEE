@@ -80,6 +80,10 @@ void printFragment(struct FragFile * f);
 void printBlock(Block * b);
 
 /*
+	Prints a Block to stdout without tags
+*/
+void printBlockWriteMode(Block * b);
+/*
 	Prints a Synteny Block to stdout
 */
 void printSyntenyBlock(Synteny_block * b);

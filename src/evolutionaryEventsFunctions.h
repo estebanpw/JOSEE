@@ -39,7 +39,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 /*
 	Checks if a truple of consecutive blocks is a reversion or not
 */
-void has_reversion_in_truple(Bucket * a, Bucket * b, Bucket * c);
+void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c);
 
 /*
 	Detects if a reversion took place

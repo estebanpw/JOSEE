@@ -93,6 +93,7 @@ typedef struct synteny_block{
 
 typedef struct synteny_list{
     Synteny_block * sb;
+    uint64_t synteny_level;
     struct synteny_list * next;
 } Synteny_list;
 

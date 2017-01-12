@@ -239,7 +239,7 @@ uint64_t sizeofSyntenyBlock(){
 }
 
 uint64_t sizeofSyntenyList(){
-    return sizeof(Synteny_block *) + sizeof(Synteny_list *);
+    return sizeof(Synteny_block *) + sizeof(Synteny_list *) + sizeof(uint64_t);
 }
 
 int isBlockEqualTo(Block * a, Block * b){
@@ -268,10 +268,15 @@ void printBlock(Block * b){
     fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
 }
 
+void printBlockWriteMode(Block * b){
+    fprintf(stdout, "%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
+}
+
 void printSyntenyBlock(Synteny_block * b){
     Synteny_block * ptr = b;
     while(ptr != NULL){
-        printBlock(ptr->b);
+        printBlockWriteMode(ptr->b);
         ptr = ptr->next;
     }
 }
+
