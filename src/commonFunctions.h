@@ -55,4 +55,10 @@ void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t t
 	Prints the blocks that compose a synteny block
 */
 void traverse_synteny_list(Synteny_list * sbl);
+
+/*
+	Travels the synteny list until finding the synteny block to which the
+	given block corresponds to
+*/
+Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b);
 #endif /* COMMON_FUNCTIONS_H */

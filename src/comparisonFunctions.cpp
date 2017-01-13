@@ -268,6 +268,15 @@ void printBlock(Block * b){
     fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
 }
 
+void printFragsFromBlock(Block * b){
+    printBlock(b);
+    Frags_list * fl = b->f_list;
+    while(fl != NULL){
+        printf("\t");printFragment(fl->f);
+        fl = fl->next;
+    }
+}
+
 void printBlockWriteMode(Block * b){
     fprintf(stdout, "%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
 }
@@ -275,8 +284,17 @@ void printBlockWriteMode(Block * b){
 void printSyntenyBlock(Synteny_block * b){
     Synteny_block * ptr = b;
     while(ptr != NULL){
-        printBlockWriteMode(ptr->b);
+        //printBlockWriteMode(ptr->b);
+        printBlock(ptr->b);
         ptr = ptr->next;
     }
 }
 
+void printSyntenyListNode(Synteny_list * sbl){
+    Synteny_block * sb_ptr = sbl->sb;
+    while(sb_ptr != NULL){
+        printFragsFromBlock(sb_ptr->b);
+        sb_ptr = sb_ptr->next;
+    }
+    getchar();
+}

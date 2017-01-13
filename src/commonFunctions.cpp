@@ -219,3 +219,19 @@ void traverse_synteny_list(Synteny_list * sbl){
         getchar();
     }
 }
+
+Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b){
+    Synteny_list * ptr_sbl = sbl;
+    Synteny_block * ptr_sb;
+    while(ptr_sbl != NULL){
+        ptr_sb = ptr_sbl->sb;
+        while(ptr_sb != NULL){
+            if(isBlockEqualTo(b, ptr_sb->b) == 1){
+                return ptr_sbl;
+            }
+            ptr_sb = ptr_sb->next;
+        }
+        ptr_sbl = ptr_sbl->next;
+    }
+    return NULL;
+}

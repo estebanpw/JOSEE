@@ -277,18 +277,21 @@ void hash_table::print_hash_table(int print){
 	uint64_t i, bck_counter, total_buckets = 0, block_len_verifier;
 	Bucket * ptr;
 	Frags_list * fl;
+	int had_reversed = 0;
 	for(i=0;i<this->ht_size;i++){
 		bck_counter = 0;
 		ptr = this->ht[i];
+		had_reversed = 0;
 		while(ptr != NULL){ 
 			if(print == 2){
 				printBlock(&ptr->b);
+				had_reversed = 0;
 				block_len_verifier = ptr->b.end - ptr->b.start;
 				fl = ptr->b.f_list;
 				while(fl != NULL){
 					fprintf(stdout, "\t"); printFragment(fl->f);
 					if(block_len_verifier != fl->f->length) terror("Found different length of fragment in block");
-					//if(fl->f->strand == 'r') getchar();
+					if(fl->f->strand == 'r') had_reversed = 1;
 					fl = fl->next;
 				}
 				//getchar();
@@ -297,7 +300,7 @@ void hash_table::print_hash_table(int print){
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			//getchar();
+			if(had_reversed == 1) getchar();
 		}
 		total_buckets += bck_counter;
 	}

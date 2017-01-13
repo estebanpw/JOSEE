@@ -123,11 +123,18 @@ int main(int ac, char **av) {
     
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(sbl);
+    //detect_evolutionary_event(sbl);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
-
+    
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    Bucket * b = ht->get_value_at(208657);
+    if(b == NULL) terror("Could not find requested");
+
+    printSyntenyListNode(find_synteny_block_from_block(sbl, &b->b));
+    getchar();
+
     if(DEBUG_ACTIVE){
         char write_debug[512];
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);

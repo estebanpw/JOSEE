@@ -80,12 +80,24 @@ void printFragment(struct FragFile * f);
 void printBlock(Block * b);
 
 /*
+	Prints a Block to stdout with its fragments
+*/
+void printFragsFromBlock(Block * b);
+
+/*
 	Prints a Block to stdout without tags
 */
 void printBlockWriteMode(Block * b);
+
 /*
 	Prints a Synteny Block to stdout
 */
 void printSyntenyBlock(Synteny_block * b);
+
+/*
+	Prints all frags that correspond to a synteny block
+	for all synteny blocks in a synteny node
+*/
+void printSyntenyListNode(Synteny_list * sbl);
 
 #endif /* COMPARISON_FUNCTIONS_H */
