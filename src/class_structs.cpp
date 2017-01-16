@@ -338,5 +338,47 @@ Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
 }
 
 
+strand_matrix::strand_matrix(uint64_t sequences){
+	uint64_t i;
+	this->n_seqs = sequences;
+	this->squared_sequences = sequences * sequences;
+	this->sm = (unsigned char **) std::calloc(sequences, sizeof(unsigned char *));
+	if(this->sm == NULL) terror("Could not allocate strand matrix");
+	for(i=0;i<sequences;i++){
+		this->sm[i] = (unsigned char *) std::calloc(sequences, sizeof(unsigned char));
+		if(this->sm == NULL) terror("Could not allocate strand matrix subdimensions");
+	}
+}
+
+void strand_matrix::add_fragment_strands(Synteny_list * sbl){
+	Synteny_block * sb_ptr;
+	Frags_list * fl;
+	if(sbl != NULL){
+		sb_ptr = sbl->sb;
+		while(sb_ptr != NULL){
+
+			fl = sb_ptr->b->f_list;
+			while(fl != NULL){
+				//TODO
+				//Check if the fragment has to be added or not to the strand matrix
+				//I think all fragments should be added and that the current issues are bugs
+				if(1==1){ //REPLACE: has_to_be_added(sb_ptr->b->)
+					(this->sm[fl->f->seqX][fl->f->seqY] == 'f') ? this->sm[fl->f->seqX][fl->f->seqY] = 0 : this->sm[fl->f->seqX][fl->f->seqY] = 1;
+				}
+
+				fl = fl->next;
+			}
+			
+
+			sb_ptr = sb_ptr->next;
+		}
+	}
+}
 
 
+strand_matrix::~strand_matrix(){
+	for (uint64_t i = 0; i < this->n_seqs; i++) {
+		free(this->sm[i]);
+	}
+	free(this->sm);
+}

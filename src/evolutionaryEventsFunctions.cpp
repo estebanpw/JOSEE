@@ -416,96 +416,94 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 	*/
 }
 
-void generate_strand_matrix(Synteny_list * sbl, char ** strand_matrix){
-	Synteny_list * sbl_ptr = sbl;
-	Synteny_block * sb_ptr;
-	Frags_list * fl;
-	uint64_t i;
-	for(i=0;i<sbl->synteny_level;i++){ //up to the number of blocks that compose the synteny
-		sb_ptr = sbl->sb;
-		while(sb_ptr != NULL){
-
-			fl = sb_ptr->b->f_list;
-			while(fl != NULL){
-				//TODO
-				//Check if the fragment has to be added or not to the strand matrix
-				if(1==1){ //REPLACE: has_to_be_added(sb_ptr->b->)
-					strand_matrix[fl->f->seqX][fl->f->seqY] = fl->f->strand;
-				}
-
-				fl = fl->next;
-			}
-			
-
-			sb_ptr = sb_ptr->next;
-		}
-	}
-}
 
 void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 	
-	//Strand matrix to detect reversions
-	uint64_t i;
-	char ** strand_matrix = (char **) std::calloc(n_sequences, sizeof(char *));
-	if(strand_matrix == NULL) terror("Could not allocate strand matrix");
-	for(i=0;i<n_sequences;i++){
-		strand_matrix[i] = (char *) std::calloc(n_sequences, sizeof(char));
-		if(strand_matrix == NULL) terror("Could not allocate strand matrix subdimensions");
-	}
+	//Strand matrices
+	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
+	sm_A = new strand_matrix(n_sequences);
+	sm_B = new strand_matrix(n_sequences);
+	sm_C = new strand_matrix(n_sequences);
+	sm_D = new strand_matrix(n_sequences);
+	sm_E = new strand_matrix(n_sequences);
 
+
+	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 	A = sbl;
-	do{
 
-		if(A != NULL) B = A->next; else return; //At least three
-		if(B != NULL) C = B->next; else return;
-		if(C != NULL) D = C->next;
-		if(D != NULL) E = D->next;
+	//Copy pointers of first consecutive blocks
+	if(A != NULL) B = A->next; else return;
+	if(B != NULL) C = B->next; else return; //Three at least
+	if(C != NULL) D = C->next;
+	if(D != NULL) E = D->next;
+
+	//Generate their strand matrices
+	sm_A->add_fragment_strands(A);
+	sm_A->add_fragment_strands(B);
+	sm_A->add_fragment_strands(C);
+	sm_A->add_fragment_strands(D);
+	sm_A->add_fragment_strands(E);
+
+	while(A != NULL && B != NULL && C != NULL){ // AT least three
+
+
+		
 
 		//Evolutionary events
-		//At this point we have 5 consecutive synteny blocks
-		/*
-			A->synteny_level == B->synteny_level && 
-			
-		*/
-		if(A != NULL && B != NULL && C != NULL){
-			//Work only with those that share the same synteny level 
-			//Level 3 synteny
-			if(A->synteny_level > 2 && A->synteny_level == B->synteny_level && B->synteny_level == C->synteny_level){
+		
+		//Work only with those that share the same synteny level 
+		//Level 3 synteny
+		if(A->synteny_level > 2 && A->synteny_level == B->synteny_level && B->synteny_level == C->synteny_level){
 
-				//5-level
-				if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
-					if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
-					if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
-					if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
-					if(D != NULL) printSyntenyBlock(D->sb);printf("\nNEXT\n");
-					if(E != NULL) printSyntenyBlock(E->sb);printf("\nNEXT\n");
-				}else{
-					if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
-					if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
-					if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
-					
-				}
-				printf("BREAK\n");
+			//5-level
+			if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
+				if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
+				if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
+				if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
+				if(D != NULL) printSyntenyBlock(D->sb);printf("\nNEXT\n");
+				if(E != NULL) printSyntenyBlock(E->sb);printf("\nNEXT\n");
 
+			}else{
+				if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
+				if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
+				if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
+				
 			}
+
+			// At this point we have the strand matrix generated for the 
+
+			printf("BREAK\n");
+
 		}
-		
-		
-		
+
+		//Only generate the new strand matrix and pass the others
+		sm_A = sm_B;
+		sm_B = sm_C;
+		sm_C = sm_D;
+		sm_D = sm_E;
+
+		//advance pointers
+		A = B;
+		B = C;
+		C = D;
+		D = E;
+
+		//next iteration
+		if(E != NULL) E = E->next;
+		//And generate new strand matrix
+		sm_E->reset(); //Need hard reset to not use fragments from last synteny
+		sm_E->add_fragment_strands(E);
 		
 
-		//next
-		A = A->next;
-
-	} while(A != NULL);
-
-
-	//Free strand matrix
-	for(i=0;i<n_sequences;i++){
-		free(strand_matrix[i]);
 	}
-	free(strand_matrix);
+
+
+	delete sm_A;
+	delete sm_B;
+	delete sm_C;
+	delete sm_D;
+	delete sm_E;
 
 }
 

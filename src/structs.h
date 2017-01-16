@@ -2,6 +2,7 @@
 #define STRUCTS_H
 
 #include <inttypes.h>
+#include <string.h>
 
 #pragma pack(push, 1)
 
@@ -150,6 +151,20 @@ private:
 	uint64_t compute_hash(uint64_t key);
     void insert_x_side(struct FragFile * f);
     void insert_y_side(struct FragFile * f);
+};
+
+class strand_matrix
+{
+
+public:
+    unsigned char ** sm;
+    uint64_t n_seqs;
+    uint64_t squared_sequences;
+
+    strand_matrix(uint64_t sequences);
+    void reset() { memset(this->sm, 0, squared_sequences); }
+    void add_fragment_strands(Synteny_list * sbl);
+    ~strand_matrix();
 };
 
 #endif
