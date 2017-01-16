@@ -60,6 +60,11 @@ uint64_t sizeofSyntenyBlock();
 uint64_t sizeofSyntenyList();
 
 /*
+	Check if two fragments are equal based on sequence ids, coordinates and strand
+*/
+int isFragmentEqualTo(struct FragFile * a, struct FragFile * b);
+
+/*
 	Check if two blocks are equal
 */
 int isBlockEqualTo(Block * a, Block * b);

@@ -129,11 +129,27 @@ int main(int ac, char **av) {
     
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-    Bucket * b = ht->get_value_at(208657);
+    /*
+    print_maptable_portion(map_table, 208657, 209236, 60, 1);
+    print_maptable_portion(map_table, 208576, 209155, 60, 3);
+    print_maptable_portion(map_table, 208576, 209155, 60, 2);
+    printf("the not seen\n");
+    print_maptable_portion(map_table, 208419, 208998, 60, 0);
+    print_maptable_portion(map_table, 208657, 209236, 60, 1);
+    getchar();
+    */
+    /*
+    printf("Despeerate.: \n");find_fragments_from_maptable(map_table, 208419, 208998, 0, loaded_frags, total_frags);
+    getchar();
+    */
+    
+    Bucket * b = ht->get_value_at(208419);
     if(b == NULL) terror("Could not find requested");
 
-    printSyntenyListNode(find_synteny_block_from_block(sbl, &b->b));
+    Synteny_list * sbl = find_synteny_block_from_block(sbl, &b->b);
+    if(sbl != NULL) printSyntenyListNode(sbl);
     getchar();
+    
 
     if(DEBUG_ACTIVE){
         char write_debug[512];

@@ -242,6 +242,13 @@ uint64_t sizeofSyntenyList(){
     return sizeof(Synteny_block *) + sizeof(Synteny_list *) + sizeof(uint64_t);
 }
 
+int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
+    if(a->seqX != b->seqX) return 0;
+    if(a->xStart != b->xStart) return 0;
+    if(a->xEnd != b->xEnd) return 0;
+    return 1;
+}
+
 int isBlockEqualTo(Block * a, Block * b){
     if(a->start == b->start && a->end == b->end && a->genome->id == b->genome->id) return 1;
     return 0;

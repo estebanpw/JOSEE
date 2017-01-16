@@ -61,4 +61,12 @@ void traverse_synteny_list(Synteny_list * sbl);
 	given block corresponds to
 */
 Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b);
+
+/*
+	Looks for fragments in the maptable that start at the given positions in the given sequence
+	WARNING: Performs linear search.
+*/
+void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uint64_t end, uint64_t seq, struct FragFile * frags, uint64_t n_frags);
+
+
 #endif /* COMMON_FUNCTIONS_H */

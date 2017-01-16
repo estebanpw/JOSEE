@@ -105,6 +105,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 	Bucket * ptr = ht[hash_x];
 	Bucket * theoretical_position = NULL;
 
+	
 	while(ptr != NULL){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
 			
@@ -198,6 +199,14 @@ void hash_table::insert_y_side(struct FragFile * f){
 	//Insertions
 	Bucket * ptr = ht[hash_y];
 	Bucket * theoretical_position = NULL;
+
+
+	if(bkt_y->b.start == 208576 && bkt_y->b.end == 209155 && f->seqY == 3){
+		if(f->seqX == 0 && f->xStart == 208419 && f->xEnd == 208998){
+			printf("I KNEW IT!!!!!!!!!!!!!!!!!!!!!!!! IT WAS TOLD\n");
+			getchar();
+		}
+	}
 
 	while(ptr != NULL){
 		

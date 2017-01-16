@@ -416,7 +416,43 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 	*/
 }
 
-void detect_evolutionary_event(Synteny_list * sbl){
+void generate_strand_matrix(Synteny_list * sbl, char ** strand_matrix){
+	Synteny_list * sbl_ptr = sbl;
+	Synteny_block * sb_ptr;
+	Frags_list * fl;
+	uint64_t i;
+	for(i=0;i<sbl->synteny_level;i++){ //up to the number of blocks that compose the synteny
+		sb_ptr = sbl->sb;
+		while(sb_ptr != NULL){
+
+			fl = sb_ptr->b->f_list;
+			while(fl != NULL){
+				//TODO
+				//Check if the fragment has to be added or not to the strand matrix
+				if(1==1){ //REPLACE: has_to_be_added(sb_ptr->b->)
+					strand_matrix[fl->f->seqX][fl->f->seqY] = fl->f->strand;
+				}
+
+				fl = fl->next;
+			}
+			
+
+			sb_ptr = sb_ptr->next;
+		}
+	}
+}
+
+void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
+	
+	//Strand matrix to detect reversions
+	uint64_t i;
+	char ** strand_matrix = (char **) std::calloc(n_sequences, sizeof(char *));
+	if(strand_matrix == NULL) terror("Could not allocate strand matrix");
+	for(i=0;i<n_sequences;i++){
+		strand_matrix[i] = (char *) std::calloc(n_sequences, sizeof(char));
+		if(strand_matrix == NULL) terror("Could not allocate strand matrix subdimensions");
+	}
+
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 	A = sbl;
 	do{
@@ -463,6 +499,13 @@ void detect_evolutionary_event(Synteny_list * sbl){
 		A = A->next;
 
 	} while(A != NULL);
+
+
+	//Free strand matrix
+	for(i=0;i<n_sequences;i++){
+		free(strand_matrix[i]);
+	}
+	free(strand_matrix);
 
 }
 

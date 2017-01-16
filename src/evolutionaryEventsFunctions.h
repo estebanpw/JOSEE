@@ -41,7 +41,14 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 */
 void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c);
 
+
+/*
+	Computes the strand matrix for a synteny block to compute reversions
+	The strand_matrix is assumed to have length n*n where n is the number of sequences
+*/
+void generate_strand_matrix(Synteny_list * sbl, char ** strand_matrix);
+
 /*
 	Detects if a reversion took place
 */
-void detect_evolutionary_event(Synteny_list * sbl);
+void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences);
