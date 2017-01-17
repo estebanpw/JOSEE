@@ -352,6 +352,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 }
 
 
+
 void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c){
 	/*
 
@@ -488,7 +489,7 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 
 		//advance pointers
 		A = B;
-		B = C;
+		B = C;	
 		C = D;
 		D = E;
 

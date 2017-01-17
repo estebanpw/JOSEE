@@ -337,6 +337,37 @@ Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
 	return NULL;
 }
 
+void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints, uint64_t n_sequences){
+	uint64_t i, block_counts = 0;
+	Bucket * ptr;
+	uint64_t * bps_from = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
+	uint64_t * bps_to = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
+	if(bps_from == NULL || bps_to == NULL) terror("Could not allocate breakpoint coordinates");
+
+	fprintf(out_blocks, "id\seq\torder\tstart\tend\tlength\n");
+	fprintf(out_breakpoints, "id\tseq\tstart\tend\tlength\n");
+	for(i=0;i<this->ht_size;i++){
+		ptr = this->ht[i];
+		while(ptr != NULL){ 
+			
+			bps_to[ptr->b.genome->id] = ptr->b.start;
+			
+			fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+			block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id], bps_to[ptr->b.genome->id], bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id]);
+			
+			fprintf(out_blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+			block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start);
+			
+			bps_from[ptr->b.genome->id] = ptr->b.end;
+
+			block_counts++;
+			ptr = ptr->next; 
+		}
+	}
+	std::free(bps_from);
+	std::free(bps_to);
+}
+
 
 strand_matrix::strand_matrix(uint64_t sequences){
 	uint64_t i;

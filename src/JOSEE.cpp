@@ -13,7 +13,8 @@ int DEBUG_ACTIVE = 0;
 int HARD_DEBUG_ACTIVE = 0;
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
-    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size);
+    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
+    FILE ** out_blocks, FILE ** out_breakpoints);
 
 int main(int ac, char **av) {
     
@@ -40,8 +41,8 @@ int main(int ac, char **av) {
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILE * frags_file, * lengths_file, * out_file;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size);
+    FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL;
+    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -113,6 +114,14 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     
+    //Write blocks and breakpoints to file
+    if(out_blocks != NULL && out_breakpoints != NULL){
+        begin = clock();
+        ht->write_blocks_and_breakpoints_to_file(out_blocks, out_breakpoints, n_files);
+        end = clock();
+        fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
+    }
+    
     
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
@@ -123,7 +132,7 @@ int main(int ac, char **av) {
     
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, n_files);
+    //detect_evolutionary_event(synteny_block_list, n_files);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
@@ -171,6 +180,13 @@ int main(int ac, char **av) {
     std::free(sequences);
     std::free(loaded_frags);
 
+    fclose(out_file);
+    if(out_blocks != NULL){
+        fclose(out_blocks);
+        fclose(out_breakpoints);
+    }
+    
+
     delete ht;
     delete mp;
 
@@ -180,7 +196,8 @@ int main(int ac, char **av) {
 
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
-    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size){
+    uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
+    FILE ** out_blocks, FILE ** out_breakpoints){
     
     int pNum = 0;
     while(pNum < argc){
@@ -193,6 +210,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
             fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
             fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
+            fprintf(stdout, "           -write_blocks_bps   [Path]\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
@@ -202,6 +220,18 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             strncpy(path_frags, av[pNum+1], strlen(av[pNum+1]));
             path_frags[strlen(av[pNum+1])] = '\0';
             if(multifrags==NULL) terror("Could not open multifrags file");
+        }
+        if(strcmp(av[pNum], "-write_blocks_bps") == 0){
+            char templine[READLINE]; templine[0] = '\0';
+            strcpy(templine, av[pNum+1]);
+            strcat(templine, ".blocks");
+            *out_blocks = fopen64(templine, "wt");
+
+            templine[0] = '\0';
+            strcpy(templine, av[pNum+1]);
+            strcat(templine, ".breakpoints");
+            *out_breakpoints = fopen64(templine, "wt");
+            if(*out_blocks==NULL || *out_breakpoints==NULL) terror("Could not open blocks/breakpoints file");
         }
         if(strcmp(av[pNum], "-out") == 0){
             *out_file = fopen64(av[pNum+1], "wt");
