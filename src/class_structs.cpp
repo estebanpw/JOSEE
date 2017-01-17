@@ -346,7 +346,7 @@ strand_matrix::strand_matrix(uint64_t sequences){
 	if(this->sm == NULL) terror("Could not allocate strand matrix");
 	for(i=0;i<sequences;i++){
 		this->sm[i] = (unsigned char *) std::calloc(sequences, sizeof(unsigned char));
-		if(this->sm == NULL) terror("Could not allocate strand matrix subdimensions");
+		if(this->sm[i] == NULL) terror("Could not allocate strand matrix subdimensions");
 	}
 }
 
@@ -355,15 +355,17 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 	Frags_list * fl;
 	if(sbl != NULL){
 		sb_ptr = sbl->sb;
+		//printf("A block...\n");
 		while(sb_ptr != NULL){
 
 			fl = sb_ptr->b->f_list;
 			while(fl != NULL){
+				//printf("A frag...\n");
 				//TODO
 				//Check if the fragment has to be added or not to the strand matrix
 				//I think all fragments should be added and that the current issues are bugs
 				if(1==1){ //REPLACE: has_to_be_added(sb_ptr->b->)
-					(this->sm[fl->f->seqX][fl->f->seqY] == 'f') ? this->sm[fl->f->seqX][fl->f->seqY] = 0 : this->sm[fl->f->seqX][fl->f->seqY] = 1;
+					(fl->f->strand == 'f') ? this->sm[fl->f->seqX][fl->f->seqY] = FORWARD : this->sm[fl->f->seqX][fl->f->seqY] = REVERSE;
 				}
 
 				fl = fl->next;
@@ -373,12 +375,40 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 			sb_ptr = sb_ptr->next;
 		}
 	}
+	//printf("==========================================\n");
 }
 
+void strand_matrix::print_strand_matrix(){
+	uint64_t i,j;
+	for(i=0;i<n_seqs;i++){
+		for(j=0;j<n_seqs;j++){
+			fprintf(stdout, "%u\t", sm[i][j]);
+		}
+		fprintf(stdout, "\n");
+	}
+}
+
+int strand_matrix::is_block_reversed(uint64_t block_number){
+	uint64_t i, n_rev = 0, n_for = 0;
+	for(i=0; i<block_number; i++){
+		if(this->sm[block_number][i] == FORWARD) n_for++;
+		if(this->sm[block_number][i] == REVERSE) n_rev++;
+	}
+	for(i=block_number+1;i<this->n_seqs;i++){
+		if(this->sm[i][block_number] == FORWARD) n_for++;
+		if(this->sm[i][block_number] == REVERSE) n_rev++;
+	}
+
+	//Now we have to check in case that some are forward because the others are reversed
+	
+
+	return (n_rev > n_for) ? 1 : -1;
+}
 
 strand_matrix::~strand_matrix(){
-	for (uint64_t i = 0; i < this->n_seqs; i++) {
-		free(this->sm[i]);
+	uint64_t i;
+	for (i = 0; i < this->n_seqs; i++) {
+		std::free(this->sm[i]);
 	}
-	free(this->sm);
+	std::free(this->sm);
 }

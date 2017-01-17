@@ -123,7 +123,7 @@ int main(int ac, char **av) {
     
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    //detect_evolutionary_event(synteny_block_list);
+    detect_evolutionary_event(synteny_block_list, n_files);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
@@ -142,14 +142,14 @@ int main(int ac, char **av) {
     printf("Despeerate.: \n");find_fragments_from_maptable(map_table, 208419, 208998, 0, loaded_frags, total_frags);
     getchar();
     */
-    
+    /*
     Bucket * b = ht->get_value_at(208419);
     if(b == NULL) terror("Could not find requested");
 
     Synteny_list * sbl = find_synteny_block_from_block(sbl, &b->b);
     if(sbl != NULL) printSyntenyListNode(sbl);
     getchar();
-    
+    */
 
     if(DEBUG_ACTIVE){
         char write_debug[512];
@@ -165,11 +165,11 @@ int main(int ac, char **av) {
     
     
     for(i=0; i<n_files; i++){
-        free(map_table[i]);
+        std::free(map_table[i]);
     }
-    free(map_table);
-    free(sequences);
-    free(loaded_frags);
+    std::free(map_table);
+    std::free(sequences);
+    std::free(loaded_frags);
 
     delete ht;
     delete mp;

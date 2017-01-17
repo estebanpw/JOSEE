@@ -421,6 +421,7 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 	
 	//Strand matrices
 	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
+	unsigned char ** _tmp;
 	sm_A = new strand_matrix(n_sequences);
 	sm_B = new strand_matrix(n_sequences);
 	sm_C = new strand_matrix(n_sequences);
@@ -458,30 +459,32 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 
 			//5-level
 			if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
-				if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
-				if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
-				if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
-				if(D != NULL) printSyntenyBlock(D->sb);printf("\nNEXT\n");
-				if(E != NULL) printSyntenyBlock(E->sb);printf("\nNEXT\n");
+				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
+				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
+				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
+				if(D != NULL) printSyntenyBlock(D->sb);//sm_D->print_strand_matrix();printf("\nNEXT\n");
+				if(E != NULL) printSyntenyBlock(E->sb);//sm_E->print_strand_matrix();printf("\nNEXT\n");
 
 			}else{
-				if(A != NULL) printSyntenyBlock(A->sb);printf("\nNEXT\n");
-				if(B != NULL) printSyntenyBlock(B->sb);printf("\nNEXT\n");
-				if(C != NULL) printSyntenyBlock(C->sb);printf("\nNEXT\n");
+				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
+				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
+				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
 				
 			}
 
 			// At this point we have the strand matrix generated for the 
-
+			getchar();
 			printf("BREAK\n");
 
 		}
 
 		//Only generate the new strand matrix and pass the others
-		sm_A = sm_B;
-		sm_B = sm_C;
-		sm_C = sm_D;
-		sm_D = sm_E;
+		_tmp = sm_A->sm; // Do not lose pointer to strand matrix
+		sm_A->sm = sm_B->sm;
+		sm_B->sm = sm_C->sm;
+		sm_C->sm = sm_D->sm;
+		sm_D->sm = sm_E->sm;
+		sm_E->sm = _tmp; // Recover strand matrix
 
 		//advance pointers
 		A = B;
@@ -497,7 +500,6 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 		
 
 	}
-
 
 	delete sm_A;
 	delete sm_B;

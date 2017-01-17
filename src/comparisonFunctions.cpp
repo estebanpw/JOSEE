@@ -223,7 +223,7 @@ uint64_t sizeofSequence() {
 }
 
 uint64_t sizeofBlock(){
-    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + sizeof(unsigned char);
+    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + 2*sizeof(unsigned char);
 }
 
 uint64_t sizeofFrags_list(){
@@ -276,7 +276,6 @@ void printBlock(Block * b){
 }
 
 void printFragsFromBlock(Block * b){
-    printBlock(b);
     Frags_list * fl = b->f_list;
     while(fl != NULL){
         printf("\t");printFragment(fl->f);
@@ -293,6 +292,7 @@ void printSyntenyBlock(Synteny_block * b){
     while(ptr != NULL){
         //printBlockWriteMode(ptr->b);
         printBlock(ptr->b);
+        printFragsFromBlock(ptr->b);
         ptr = ptr->next;
     }
 }

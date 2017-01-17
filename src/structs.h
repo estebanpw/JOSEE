@@ -2,7 +2,7 @@
 #define STRUCTS_H
 
 #include <inttypes.h>
-#include <string.h>
+
 
 #pragma pack(push, 1)
 
@@ -17,6 +17,9 @@
 #define OPENFRAG 1
 #define COVERFRAG 2
 #define CLOSEFRAG 3
+
+#define FORWARD 1
+#define REVERSE 2
 
 class memory_pool;
 class hash_table;
@@ -84,6 +87,7 @@ typedef struct block{
     Frags_list * f_list;    //List of fragments that compose it
     Sequence * genome;      //A pointer to the genome to which it belongs
     unsigned char present_in_synteny;   //To tell whether it has already been used in a synteny block
+    unsigned char strand_in_synteny;    //The strand that it has at the synteny block
 } Block;
 
 //A synteny block is a collection of blocks
@@ -153,6 +157,7 @@ private:
     void insert_y_side(struct FragFile * f);
 };
 
+// There will be one strand matrix per synteny block
 class strand_matrix
 {
 
@@ -162,8 +167,10 @@ public:
     uint64_t squared_sequences;
 
     strand_matrix(uint64_t sequences);
-    void reset() { memset(this->sm, 0, squared_sequences); }
+    int is_block_reversed(uint64_t block_number);
+    void reset() { for(uint64_t i=0;i<n_seqs;i++){ for(uint64_t j=0;j<n_seqs;j++){ this->sm[i][j] = 0; } } }
     void add_fragment_strands(Synteny_list * sbl);
+    void print_strand_matrix();
     ~strand_matrix();
 };
 
