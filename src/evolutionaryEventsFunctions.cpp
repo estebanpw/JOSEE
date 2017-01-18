@@ -22,14 +22,13 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 		to = frags[i].xEnd;
 
 		//Map coordinates in frag for seqX, which is always forward
-		for(j=from;j<to;j++){
-			if(j == from) map_table[seq][j] = OPENFRAG;
-			if(j == to) map_table[seq][j] = CLOSEFRAG;
-			
+		map_table[seq][from] = OPENFRAG;
+		for(j=from+1;j<to;j++){
 			if(map_table[seq][j] == NOFRAG){
 				map_table[seq][j] = COVERFRAG;
 			}
 		}
+		map_table[seq][to] = CLOSEFRAG;
 
 		//Map coordinates in frag for seqY, which might be reversed
 		//Remember RAMGECKO coordinates are global respective to forward and with Ystart > Yend when reversed
@@ -45,13 +44,11 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 			to = frags[i].yStart;	
 		}
 
-		for(j=from;j<to;j++){
-			if(map_table[seq][j] == NOFRAG || map_table[seq][j] == COVERFRAG){
-				if(j == from) map_table[seq][j] = OPENFRAG;
-				else if(j == to) map_table[seq][j] = CLOSEFRAG;
-				else map_table[seq][j] = COVERFRAG;
-			}
-		}	
+		map_table[seq][from] = OPENFRAG;
+		for(j=from+1;j<to;j++){
+			if(map_table[seq][j] == NOFRAG) map_table[seq][j] = COVERFRAG;
+		}
+		map_table[seq][to] = CLOSEFRAG;	
 	}
 
 	//At this point all coordinates have been mapped for the current fragments
@@ -107,49 +104,44 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		
 		
 		strand = frags[i].strand;
-		/*
-		if(strand == 'f'){
-			fromY = frags[i].yStart;
-			toY = frags[i].yEnd;	
-		}else{
-			fromY = frags[i].yEnd;	
-			toY = frags[i].yStart;
-		}
-		*/
 		fromY = frags[i].yStart;
-		toY = frags[i].yEnd;	
-		
-		
+		toY = frags[i].yEnd;
 
-		
+		jX = fromX;
+		jY = fromY;	
 
 		seqX = frags[i].seqX; seqY = frags[i].seqY;
 
 		frag_len = frags[i].length;
 		cur_new_len = 1;
-		jX = fromX+1;
-		if(strand == 'f') jY = fromY+1; else jY = fromY-1;
 
-		/*
-		if(seqX == 0 && frags[i].xEnd == 5165){
-			printFragment(&frags[i]);
-			getchar();
-		}
-		*/
+		
 
-		while(jX < toX && jY != toY){
+
+		while((seqX == 0 && seqY == 1) && (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
 			//Check how long until there is a break (by starting or ending of frag)
-			while(cur_new_len < frag_len && jX < sequences[seqX].len && jY < sequences[seqY].len && jY >= 0){
+			//Increase one to skip starting OPENFRAG
+			jX++;
+			if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
 
-				if(map_table[seqX][jX] != COVERFRAG) break;
-				if(map_table[seqY][jY] != COVERFRAG) break;
-
-				cur_new_len++; jX++;
+			while(map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG){
+				jX++;
 				if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
+				cur_new_len++;
 			}
 
 			//At this point, jX and jY hold the ending coordinates of the new fragment
 			//And fromX and fromY hold the starting coordinates
+
+			
+			printf("Diff: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", toX - jX, fromX, toX);
+			
+
+			map_table[seqX][jX] = CLOSEFRAG;
+			if(strand == 'f') map_table[seqY][jY] = CLOSEFRAG; else map_table[seqY][jY] = CLOSEFRAG;
+			map_table[seqX][fromX] = OPENFRAG;
+			if(strand == 'f') map_table[seqY][fromY] = OPENFRAG; else map_table[seqY][fromY] = OPENFRAG;
+
 			if(cur_new_len >= min_len){ //Filtering
 
 				//The fragment must be snipped out and saved
@@ -163,66 +155,12 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 					if(list_new_frags == NULL) terror("Could not realloc fragments on the trimming process");
 				}
 
-				
-
-
-				//And set the mapping grid to the new values
-
-				/*
-				if(seqY == 3 && jY == 209 && fromY == 2){
-					printf("Got it with fromY: %"PRIu64" jY: %"PRIu64" toY: %"PRIu64"\n", fromY, jY, toY);
-					printFragment(&frags[i]);
-				}
-				*/
-
-				//Close where you finished
-				map_table[seqX][jX] = CLOSEFRAG;
-				map_table[seqY][jY] = CLOSEFRAG;
-
-				//Set open for this one
-				
-				map_table[seqX][fromX] = OPENFRAG;
-				map_table[seqY][fromY] = OPENFRAG;
-				
-
-				//Open next if it was cut in between
-				/*
-				if(jX+1 < sequences[seqX].len && jX+1 < toX) map_table[seqX][jX+1] = OPENFRAG;
-				if(strand == 'f'){
-					if(jY+1 < sequences[seqY].len && jY+1 < toY) map_table[seqY][jY+1] = OPENFRAG;	
-				}else{
-					if(jY > 0 && jY-1 < fromY) map_table[seqY][jY-1] = OPENFRAG;
-				}
-				*/
-				//Set the fromX and fromY to 1 (start frag) again in case this is not the first time we split
-
-				/* DEBUG PURPOSES */
-				/*
-				if(frags[i].seqY == 3 && frags[i].yEnd == 5375){
-					printf("Created: "); printFragment(&new_frag);
-					print_maptable_portion(map_table, frags[i].yStart - 20, frags[i].yEnd + 20, 50, frags[i].seqY);
-					getchar();
-				}
-				*/
-
 			}
 			//If you are here, either the fragment was too short, or was written correctly or we are at the end of the frag
 			//Just keep going
 			//Copy frag values
-			
-			/*
-			fromX = jX+1; //One to move from an ending 3 to an opening 1
-			if(strand == 'f') fromY = jY+1; else fromY = jY-1; //Same
-			*/
-			//NEW::::::::
 			fromX = jX;
 			fromY = jY;
-			
-			//And one more to skip the opening 1
-			
-			jX = jX+1;
-			if(strand == 'f') jY = jY+1; else fromY = jY-1; 
-			
 
 			cur_new_len = 1;
 

@@ -6,6 +6,8 @@
 
 #pragma pack(push, 1)
 
+#define SEQ_REALLOC 5000000
+#define INIT_SEQS 20
 #define READLINE 2000
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000

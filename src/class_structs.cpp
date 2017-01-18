@@ -201,13 +201,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 	Bucket * theoretical_position = NULL;
 
 
-	if(bkt_y->b.start == 208576 && bkt_y->b.end == 209155 && f->seqY == 3){
-		if(f->seqX == 0 && f->xStart == 208419 && f->xEnd == 208998){
-			printf("I KNEW IT!!!!!!!!!!!!!!!!!!!!!!!! IT WAS TOLD\n");
-			getchar();
-		}
-	}
-
 	while(ptr != NULL){
 		
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
@@ -273,9 +266,6 @@ void hash_table::insert_y_side(struct FragFile * f){
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
-		if(f->yStart == 7398 && f->yEnd == 7542){
-			printf("im inserting it @ 2222222!!\n"); //BUg here
-		}
 		ptr->b.f_list = frag_pointer;	
 
 	}
@@ -344,7 +334,7 @@ void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * 
 	uint64_t * bps_to = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
 	if(bps_from == NULL || bps_to == NULL) terror("Could not allocate breakpoint coordinates");
 
-	fprintf(out_blocks, "id\seq\torder\tstart\tend\tlength\n");
+	fprintf(out_blocks, "id\tseq\torder\tstart\tend\tlength\n");
 	fprintf(out_breakpoints, "id\tseq\tstart\tend\tlength\n");
 	for(i=0;i<this->ht_size;i++){
 		ptr = this->ht[i];
@@ -352,6 +342,7 @@ void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * 
 			
 			bps_to[ptr->b.genome->id] = ptr->b.start;
 			
+
 			fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
 			block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id], bps_to[ptr->b.genome->id], bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id]);
 			

@@ -110,6 +110,7 @@ int main(int ac, char **av) {
         if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
         ht->insert_block(&loaded_frags[i]);
     }
+
     compute_order_of_blocks(ht, n_files);
     end = clock();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
@@ -137,16 +138,13 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-    /*
-    print_maptable_portion(map_table, 208657, 209236, 60, 1);
-    print_maptable_portion(map_table, 208576, 209155, 60, 3);
-    print_maptable_portion(map_table, 208576, 209155, 60, 2);
-    printf("the not seen\n");
-    print_maptable_portion(map_table, 208419, 208998, 60, 0);
-    print_maptable_portion(map_table, 208657, 209236, 60, 1);
-    getchar();
-    */
+    
+    printf("Supposed breakpoint\n");
+    print_maptable_portion(map_table, 836286, 836702, 60, 0);
+    print_maptable_portion(map_table, 833568  , 833983, 60, 1);
+    print_maptable_portion(map_table, 834344  , 834759, 60, 2);
+    print_maptable_portion(map_table, 834361  , 834776, 60, 3);
+    
     /*
     printf("Despeerate.: \n");find_fragments_from_maptable(map_table, 208419, 208998, 0, loaded_frags, total_frags);
     getchar();
@@ -162,6 +160,7 @@ int main(int ac, char **av) {
 
     if(DEBUG_ACTIVE){
         char write_debug[512];
+        
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);
         write_maptable_to_disk(map_table, n_files, sequences, write_debug);
         
@@ -210,7 +209,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
             fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
             fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
-            fprintf(stdout, "           -write_blocks_bps   [Path]\n");
+            fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
