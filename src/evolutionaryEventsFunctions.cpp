@@ -117,8 +117,8 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 
 		
 
-
-		while((seqX == 0 && seqY == 1) && (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
+		//(seqX == 0 && seqY == 1) &&
+		while( (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
 			//Check how long until there is a break (by starting or ending of frag)
 			//Increase one to skip starting OPENFRAG
 			jX++;
@@ -134,13 +134,32 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			//And fromX and fromY hold the starting coordinates
 
 			
-			printf("Diff: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", toX - jX, fromX, toX);
+			//printf("Diff: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", toX - jX, fromX, toX);
+			/*
+			if(strand == 'r'){
+				printf("(%u - %u) @ [%"PRIu64", %"PRIu64"] aprox: (%"PRIu64")\n", map_table[seqX][jX], map_table[seqY][jY], jX, jY, jX-fromX);
+				printf("BEFORE\n");
+				print_maptable_portion(map_table, fromX, toX, 60, seqX);
+				print_maptable_portion(map_table, toY, fromY+2, 60, seqY);
+			}
+			*/
 			
 
 			map_table[seqX][jX] = CLOSEFRAG;
 			if(strand == 'f') map_table[seqY][jY] = CLOSEFRAG; else map_table[seqY][jY] = CLOSEFRAG;
 			map_table[seqX][fromX] = OPENFRAG;
 			if(strand == 'f') map_table[seqY][fromY] = OPENFRAG; else map_table[seqY][fromY] = OPENFRAG;
+
+			/*
+			if(strand == 'r'){
+				printf("AFter\n");
+				print_maptable_portion(map_table, fromX, toX, 60, seqX);
+				print_maptable_portion(map_table, toY, fromY+2, 60, seqY);
+				getchar();
+			}
+			*/
+			
+
 
 			if(cur_new_len >= min_len){ //Filtering
 

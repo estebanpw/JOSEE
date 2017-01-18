@@ -138,13 +138,13 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    
+    /*
     printf("Supposed breakpoint\n");
     print_maptable_portion(map_table, 836286, 836702, 60, 0);
     print_maptable_portion(map_table, 833568  , 833983, 60, 1);
     print_maptable_portion(map_table, 834344  , 834759, 60, 2);
     print_maptable_portion(map_table, 834361  , 834776, 60, 3);
-    
+    */
     /*
     printf("Despeerate.: \n");find_fragments_from_maptable(map_table, 208419, 208998, 0, loaded_frags, total_frags);
     getchar();
