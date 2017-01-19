@@ -118,6 +118,8 @@ void hash_table::insert_x_side(struct FragFile * f){
 				//If the block already exists for this genome and for this fragment then it is a repetition
 				//(Only varies its y-coordinates)
 				//What do here?
+				//Insert in the fragment list; the block will get inserted on the other coordinate anyway
+				//insert_on_list = 1;
 				
 			}
 			//Exit since the block exists
@@ -213,6 +215,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 				//If the block already exists for this genome and for this fragment then it is a repetition
 				//(Only varies its y-coordinates)
 				//What do here?
+				//insert_on_list = 1;
 				
 			}
 			//Exit since the block exists

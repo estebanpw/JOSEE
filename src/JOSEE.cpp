@@ -84,7 +84,6 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Initial mapping completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
-
     //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     for(i=0;i<N_ITERA;i++){
@@ -127,7 +126,7 @@ int main(int ac, char **av) {
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp);
-    //traverse_synteny_list(synteny_block_list);
+    traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
@@ -137,10 +136,17 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
+
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    ht->print_hash_table(2);
+
+    
+    
+    print_maptable_portion(map_table, 0, 194, 50, 0);
+    print_maptable_portion(map_table, 0, 231, 50, 1);
+    
     /*
-    printf("Supposed breakpoint\n");
-    print_maptable_portion(map_table, 836286, 836702, 60, 0);
     print_maptable_portion(map_table, 833568  , 833983, 60, 1);
     print_maptable_portion(map_table, 834344  , 834759, 60, 2);
     print_maptable_portion(map_table, 834361  , 834776, 60, 3);

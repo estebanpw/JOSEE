@@ -183,7 +183,7 @@ void write_maptable_to_disk(unsigned char ** maptable, uint64_t n_seqs, Sequence
 
         for(j=0; j<sequences[i].len; j++){
             fprintf(out_file, "%u", maptable[i][j]);
-            if(j % 60 == 0) fprintf(out_file, "\n");
+            if(j != 0 && j % 50 == 0) fprintf(out_file, "\n");
         }
         fprintf(out_file, "\n");
 
@@ -198,8 +198,8 @@ void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t t
     fprintf(stdout, "===========(%"PRIu64" -> %"PRIu64")@%"PRIu64"\n", from, to, seq);
     for(i=from;i<to;i++){
         fprintf(stdout, "%u", maptable[seq][i]);
-        acu++;
         if(acu != 0 && acu % rate == 0) fprintf(stdout, "\n");
+        acu++;
     }
     fprintf(stdout, "\n===========CALL: %"PRIu64"\n", CALL);
     CALL++;
