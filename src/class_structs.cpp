@@ -288,7 +288,7 @@ void hash_table::print_hash_table(int print){
 			if(print == 2){
 				printBlock(&ptr->b);
 				had_reversed = 0;
-				block_len_verifier = ptr->b.end - ptr->b.start;
+				block_len_verifier = ptr->b.end - ptr->b.start + 1;
 				fl = ptr->b.f_list;
 				while(fl != NULL){
 					fprintf(stdout, "\t"); printFragment(fl->f);

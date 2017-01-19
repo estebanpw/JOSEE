@@ -272,7 +272,7 @@ void printFragment(struct FragFile * f){
 }
 
 void printBlock(Block * b){
-    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
+    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start+1, b->genome->id);
 }
 
 void printFragsFromBlock(Block * b){
@@ -284,7 +284,7 @@ void printFragsFromBlock(Block * b){
 }
 
 void printBlockWriteMode(Block * b){
-    fprintf(stdout, "%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start, b->genome->id);
+    fprintf(stdout, "%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64";%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start+1, b->genome->id);
 }
 
 void printSyntenyBlock(Synteny_block * b){

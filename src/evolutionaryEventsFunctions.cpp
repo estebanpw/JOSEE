@@ -19,6 +19,7 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 
 	for(i=0;i<n_frags;i++){
 
+		//printFragment(&frags[i]);
 		seq = frags[i].seqX;
 		from = frags[i].xStart;
 		to = frags[i].xEnd;
@@ -99,7 +100,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 	if(list_new_frags == NULL) terror("Could not allocate memory for list of new fragments in trimming");
 
 	//Start trimming process
-	uint64_t i, jX, jY, fromX, fromY, toX, toY, seqX, seqY, frag_len;
+	uint64_t i, jX, jY, fromX, fromY, toX, toY, seqX, seqY;
 	char strand;
 	uint64_t cur_new_len;
 
@@ -107,23 +108,22 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		
 		//Copy frag values
 		fromX = frags[i].xStart; 
-		toX = frags[i].xEnd; 
+		toX = frags[i].xEnd + 1;  //Because coordinates are including [x,y]
 		
 		
 		strand = frags[i].strand;
 		fromY = frags[i].yStart;
 		toY = frags[i].yEnd;
+		if(strand == 'f') toY += 1; else toY -= 1;
 
 		jX = fromX;
 		jY = fromY;	
 
 		seqX = frags[i].seqX; seqY = frags[i].seqY;
-
-		frag_len = frags[i].length;
 		cur_new_len = 1;
 
-		print_maptable_portion(map_table, 0, 194, 50, 0);
-    	print_maptable_portion(map_table, 0, 231, 50, 1);
+		
+		
 		
 
 		//(seqX == 0 && seqY == 1) &&
@@ -131,6 +131,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			//Check how long until there is a break (by starting or ending of frag)
 			//Increase one to skip starting OPENFRAG
 			jX++;
+			cur_new_len++;
 			if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
 
 			while(map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG){
