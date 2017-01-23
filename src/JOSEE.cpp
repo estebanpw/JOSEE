@@ -14,7 +14,7 @@ int HARD_DEBUG_ACTIVE = 0;
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints);
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files);
 
 int main(int ac, char **av) {
     
@@ -36,13 +36,16 @@ int main(int ac, char **av) {
     //Path to the multifrags file
     char multifrags_path[512];
     multifrags_path[0] = '\0';
+    //Path to the fastas
+    char fastas_path[512];
+    fastas_path[0] = '\0';
     //Initial hash table size (divisor of the longest sequence)
     uint64_t ht_size = 100; //Default
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints);
+    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -132,6 +135,20 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
+
+    //Load sequences to run pairwise alignment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    begin = clock();
+    read_dna_sequences(n_files, &fastas_path, &sequences);
+    for(i=0;i<n_files;i++){
+        uint64_t j;
+        for(j=0;j<20;j++){
+            printf("%c", sequences[i].seq[j]);
+        }
+        printf("\n");
+    }
+    end = clock();
+    fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
+
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     //detect_evolutionary_event(synteny_block_list, n_files);
@@ -204,7 +221,7 @@ int main(int ac, char **av) {
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints){
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files){
     
     int pNum = 0;
     while(pNum < argc){
@@ -212,7 +229,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         if(strcmp(av[pNum], "--hdebug") == 0) HARD_DEBUG_ACTIVE = 1;
         if(strcmp(av[pNum], "--help") == 0){
             fprintf(stdout, "USAGE:\n");
-            fprintf(stdout, "           JOSEE -multifrags [query] -out [results]\n");
+            fprintf(stdout, "           JOSEE -multifrags [query] -pathfiles [fastas] -out [results]\n");
             fprintf(stdout, "OPTIONAL:\n");
             fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
             fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
@@ -228,6 +245,10 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             path_frags[strlen(av[pNum+1])] = '\0';
             if(multifrags==NULL) terror("Could not open multifrags file");
         }
+        if(strcmp(av[pNum], "-pathfiles") == 0){
+            strncpy(path_files, av[pNum+1], strlen(av[pNum+1]));
+        }
+
         if(strcmp(av[pNum], "-write_blocks_bps") == 0){
             char templine[READLINE]; templine[0] = '\0';
             strcpy(templine, av[pNum+1]);
@@ -259,6 +280,8 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         pNum++;
     }
     
-    if(*multifrags==NULL || *out_file==NULL) terror("A frags file and an output file must be specified");
+    if(*multifrags==NULL || *out_file==NULL || path_to_files[0] == '\0'){
+        terror("A frags file, a path to the fasta files and an output file must be specified");
+    }
 }
 

@@ -71,6 +71,6 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
 /*
 	Read all dna sequences given the paths to their FASTA sequences
 */
-void read_dna_sequences(uint64_t n_files, const char ** path_to_files, Sequence * sequences);
+void read_dna_sequences(uint64_t n_files, char * path_to_files, Sequence * sequences);
 
 #endif /* COMMON_FUNCTIONS_H */

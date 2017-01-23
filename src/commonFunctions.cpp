@@ -252,7 +252,10 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
     }
 }
 
-void read_dna_sequences(uint64_t n_files, const char ** paths_to_files, Sequence * sequences){
+
+
+//REDOOO
+char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * sequences){
     //Char to hold all sequences
     char ** all_sequences = (char **) std::calloc(n_files, sizeof(char *));
     if(all_sequences == NULL) terror("Could not allocate sequences pointer");
@@ -321,4 +324,6 @@ void read_dna_sequences(uint64_t n_files, const char ** paths_to_files, Sequence
 
     std::free(temp_seq_buffer);
     std::free(n_reallocs);
+
+    return all_sequences;
 }

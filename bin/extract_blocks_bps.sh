@@ -28,6 +28,15 @@ paste -d ':' $OUTDNA $OUTCLASS | shuf | awk -v FS=":" '{ print $1 > "shuffled.dn
 mv shuffled.dna $OUTDNA.shuffled
 mv shuffled.tclass $OUTCLASS.shuffled
 
+echo "Converting nucleotides to numbers"
+sed -i 's/A/1 /g' $OUTDNA.shuffled
+sed -i 's/C/2 /g' $OUTDNA.shuffled
+sed -i 's/G/3 /g' $OUTDNA.shuffled
+sed -i 's/T/4 /g' $OUTDNA.shuffled
+sed -i 's/N/5 /g' $OUTDNA.shuffled
+sed -i 's/ $//g' $OUTDNA.shuffled
+
+
 
 
 
