@@ -253,9 +253,36 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
 }
 
 
-
-//REDOOO
 char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * sequences){
+    
+    uint64_t i;
+    
+    FILE * lf = fopen64(paths_to_files, "rt");
+    if(lf == NULL) terror("Could not open list of genomic files");
+
+
+    char ** all_sequences_names = (char **) std::malloc (n_files*sizeof(char *));
+    for(i=0;i<n_files;i++){
+        all_sequences_names[i] = (char *) std::malloc(READLINE*sizeof(char));
+        if(all_sequences_names[i] == NULL) terror("Could not allocate paths to files");
+    }
+
+
+    i = 0;
+    while(!feof(lf)){
+        if(fgets(all_sequences_names[i], READLINE, lf) > 0){
+            if(all_sequences_names[i][0] != '\0' && all_sequences_names[i][0] != '\n'){
+                all_sequences_names[i][strlen(all_sequences_names[i])-1] = '\0';
+                i++;
+            }
+        }
+    }
+    if(i != n_files) { printf("%"PRIu64"\n", i);terror("Something went wrong. Incorrect number of files"); }
+
+    fclose(lf);
+    
+    
+    
     //Char to hold all sequences
     char ** all_sequences = (char **) std::calloc(n_files, sizeof(char *));
     if(all_sequences == NULL) terror("Could not allocate sequences pointer");
@@ -265,7 +292,7 @@ char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * s
     if(n_reallocs == NULL) terror("Could not allocate realloc count vector");
 
     //Read using buffered fgetc
-    uint64_t idx = 0, r = 0, i, curr_pos;
+    uint64_t idx = 0, r = 0, curr_pos;
     char * temp_seq_buffer = NULL;
     if ((temp_seq_buffer = (char *) std::calloc(READBUF, sizeof(char))) == NULL) {
         terror("Could not allocate memory for read buffer");
@@ -279,7 +306,7 @@ char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * s
 
     //Read sequences and load into array
     for(i=0;i<n_files;i++){
-        current = fopen64(paths_to_files[i], "rt");
+        current = fopen64(all_sequences_names[i], "rt");
         all_sequences[i] = (char *) std::calloc(SEQ_REALLOC, sizeof(char));
         if(all_sequences[i] == NULL) terror("Could not allocate genome sequence");
         if(current == NULL) terror("Could not open fasta file");
@@ -324,6 +351,11 @@ char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * s
 
     std::free(temp_seq_buffer);
     std::free(n_reallocs);
+
+    for(i=0;i<n_files;i++){
+        std::free(all_sequences_names[i]);
+    }
+    std::free(all_sequences_names);
 
     return all_sequences;
 }

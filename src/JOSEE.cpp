@@ -138,14 +138,7 @@ int main(int ac, char **av) {
 
     //Load sequences to run pairwise alignment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    read_dna_sequences(n_files, &fastas_path, &sequences);
-    for(i=0;i<n_files;i++){
-        uint64_t j;
-        for(j=0;j<20;j++){
-            printf("%c", sequences[i].seq[j]);
-        }
-        printf("\n");
-    }
+    read_dna_sequences(n_files, fastas_path, sequences);
     end = clock();
     fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -199,6 +192,7 @@ int main(int ac, char **av) {
     
     for(i=0; i<n_files; i++){
         std::free(map_table[i]);
+        std::free(sequences[i].seq);
     }
     std::free(map_table);
     std::free(sequences);
@@ -280,7 +274,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         pNum++;
     }
     
-    if(*multifrags==NULL || *out_file==NULL || path_to_files[0] == '\0'){
+    if(*multifrags==NULL || *out_file==NULL || path_files[0] == '\0'){
         terror("A frags file, a path to the fasta files and an output file must be specified");
     }
 }
