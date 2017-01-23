@@ -74,6 +74,7 @@ typedef struct sequence{
     uint64_t len;   //Length in nucleotides of the sequence
     uint64_t acum;  //Accumulated length from the sequences found before in the file (if any)
     uint32_t coverage; //The percentage of bases covered by fragments of a minimum length
+    char * seq; //DNA sequence
 } Sequence;
 
 typedef struct frags_list{

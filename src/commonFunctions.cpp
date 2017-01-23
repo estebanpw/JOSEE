@@ -251,3 +251,74 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
         i++;
     }
 }
+
+void read_dna_sequences(uint64_t n_files, const char ** paths_to_files, Sequence * sequences){
+    //Char to hold all sequences
+    char ** all_sequences = (char **) std::calloc(n_files, sizeof(char *));
+    if(all_sequences == NULL) terror("Could not allocate sequences pointer");
+
+    //Vector to tell for sequence reallocs
+    uint64_t * n_reallocs = (uint64_t *) std::calloc(n_files, sizeof(uint64_t));
+    if(n_reallocs == NULL) terror("Could not allocate realloc count vector");
+
+    //Read using buffered fgetc
+    uint64_t idx = 0, r = 0, i, curr_pos;
+    char * temp_seq_buffer = NULL;
+    if ((temp_seq_buffer = (char *) std::calloc(READBUF, sizeof(char))) == NULL) {
+        terror("Could not allocate memory for read buffer");
+    }
+    //To force reading from the buffer
+    idx = READBUF + 1;
+    char c;
+    
+    
+    FILE * current; 
+
+    //Read sequences and load into array
+    for(i=0;i<n_files;i++){
+        current = fopen64(paths_to_files[i], "rt");
+        all_sequences[i] = (char *) std::calloc(SEQ_REALLOC, sizeof(char));
+        if(all_sequences[i] == NULL) terror("Could not allocate genome sequence");
+        if(current == NULL) terror("Could not open fasta file");
+
+        curr_pos = 0;
+        idx = READBUF + 1;
+        r = 0;
+
+        c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+        while((!feof(current) || (feof(current) && idx < r))){
+
+            if(c == '>'){
+                while(c != '\n') c = buffered_fgetc(temp_seq_buffer, &idx, &r, current); //Skip id
+
+                while(c != '>' && (!feof(current) || (feof(current) && idx < r))){ //Until next id
+                    c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+                    c = toupper(c);
+                    if(c >= 'A' && c <= 'Z'){
+                        all_sequences[i][curr_pos++] = c;
+                        if(curr_pos >= SEQ_REALLOC*n_reallocs[i]){
+                            n_reallocs[i]++;
+                            all_sequences[i] = (char *) std::realloc(all_sequences[i], n_reallocs[i]*SEQ_REALLOC);
+                            if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+                        }
+                    }
+                }
+                curr_pos++; //one for the *
+
+            }else{
+                c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+            }
+            
+        }
+        //Realloc final size
+        all_sequences[i] = (char *) std::realloc(all_sequences[i], curr_pos);
+        if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+        sequences[i].seq = all_sequences[i]; //Assign the current sequence to its correspondent
+
+
+        fclose(current);
+    }
+
+    std::free(temp_seq_buffer);
+    std::free(n_reallocs);
+}

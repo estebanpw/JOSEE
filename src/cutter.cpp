@@ -48,8 +48,8 @@ char ** read_all_vs_all_files(char * list_of_files, uint64_t * n_files, uint64_t
 
 
 int main(int ac, char **av) {
-    if (ac < 6) {
-        terror("USE: cutter <path_list> <out_dna> <out_class> <file_blocks_breakpoints> <min_len_filter>");
+    if (ac < 7) {
+        terror("USE: cutter <path_list> <out_dna> <out_class> <file_blocks_breakpoints> <min_len_filter> <w_mode [0/1]>\nUse working mode = 0 for classic output; 1 to output blocks from middle point and breakpoints from endings of blocks.");
     }
 
     //Iterators
@@ -58,7 +58,7 @@ int main(int ac, char **av) {
     //Load files to compare
     char ** paths_to_files = read_all_vs_all_files(av[1], &n_files, &t_alloc);
     if(n_files < 2) terror("At least two files need to be loaded");
-    for(uint64_t k=0;k<n_files;k++){ fprintf(stdout, "File %"PRIu64": %s\n", k, paths_to_files[k]);}
+    for(uint64_t k=0;k<n_files;k++){ fprintf(stdout, "[INFO] File %"PRIu64": %s\n", k, paths_to_files[k]);}
 
     //Files to write results
     FILE * dna_out = fopen64(av[2], "wt"); if(dna_out == NULL) terror("Could not open output dna file");
@@ -77,6 +77,9 @@ int main(int ac, char **av) {
     //Min length to write blocks and breakpoints
     uint64_t min_len_filter = (uint64_t) atoi(av[5]);
 
+    //Working mode
+    int w_mode = atoi(av[6]);
+
     //The file that will open all sequence files
     FILE * current;
 
@@ -87,6 +90,10 @@ int main(int ac, char **av) {
     //Char to hold all sequences
     char ** all_sequences = (char **) std::calloc(n_files, sizeof(char *));
     if(all_sequences == NULL) terror("Could not allocate sequences pointer");
+
+    //Sizes for each sequence
+    uint64_t * seq_sizes = (uint64_t *) std::calloc(n_files, sizeof(uint64_t));
+    if(seq_sizes == NULL) terror("Could not allocate sequence sizes");
 
     //Read using buffered fgetc
     uint64_t idx = 0, r = 0;
@@ -133,7 +140,7 @@ int main(int ac, char **av) {
             }
             
         }
-
+        seq_sizes[i] = curr_pos;
         fclose(current);
     }
 
@@ -159,19 +166,37 @@ int main(int ac, char **av) {
         //Read a line i.e. a block
         if(6 == fscanf(blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"", &b_number, &b_sequence, &b_order, &b_start, &b_end, &b_len)){
             //Check that the region fits in vector
-            if((b_end - b_start +1) >= seq_region_reallocs*SEQ_REALLOC){
+            if(b_len >= seq_region_reallocs*SEQ_REALLOC){
                 seq_region_reallocs++;
                 seq_region = (char *) std::realloc(seq_region, seq_region_reallocs*SEQ_REALLOC);
                 if(seq_region == NULL) terror("Could not realloc region sequence");
             }
-            if(b_end - b_start >= min_len_filter){//Only if it is long enough
-                //Copy the region to buffer
-                if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On block %"PRIu64"\n", b_number);
-                memcpy(&seq_region[0], all_sequences[b_sequence]+b_start, b_end-b_start);
-                seq_region[b_end-b_start+1] = '\0';
-                fprintf(dna_out, "%s\n", seq_region);
-                fprintf(dna_class, "1\n"); //Its a block
-            }   
+
+            switch(w_mode){
+                case 1:
+                {
+                    //if the block is longer than 2 times the minimum filter
+                    if(b_len >= 2*min_len_filter){
+                        uint64_t mid_point = (b_end - b_start)/2;
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start+mid_point-min_len_filter, 2*min_len_filter);
+                        seq_region[2*min_len_filter] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "1\n"); //Its a block
+                    }
+                }
+                break;
+                default:
+                {
+                    if(b_len >= min_len_filter){//Only if it is long enough
+                        //Copy the region to buffer
+                        if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On block %"PRIu64"\n", b_number);
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start, b_len);
+                        seq_region[b_end-b_start+1] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "1\n"); //Its a block
+                    }  
+                }
+            } 
         }
     }
     //Repeat for breakpoints
@@ -182,19 +207,39 @@ int main(int ac, char **av) {
         
         if(5 == fscanf(breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"", &b_number, &b_sequence, &b_start, &b_end, &b_len)){
             //Check that the region fits in vector
-            if((b_end - b_start +1) >= seq_region_reallocs*SEQ_REALLOC){
+            if(b_len >= seq_region_reallocs*SEQ_REALLOC){
                 seq_region_reallocs++;
                 seq_region = (char *) std::realloc(seq_region, seq_region_reallocs*SEQ_REALLOC);
                 if(seq_region == NULL) terror("Could not realloc region sequence");
             }
-            if(b_end - b_start >= min_len_filter){ //Only if it is long enough
-                //Copy the region to buffer
-                if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On breakpoint %"PRIu64"\n", b_number);
-                memcpy(&seq_region[0], all_sequences[b_sequence]+b_start, b_end-b_start);
-                seq_region[b_end-b_start+1] = '\0';
-                fprintf(dna_out, "%s\n", seq_region);
-                fprintf(dna_class, "2\n"); //Its a breakpoint
+
+            switch(w_mode){
+                case 1:
+                {
+                    //If the start of the breakpoint is MIN_LEN bases away from seq begin
+                    //and the start + MIN_LEN i
+                    if(b_start > min_len_filter && (b_start + min_len_filter) < seq_sizes[b_sequence]){
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start-min_len_filter, 2*min_len_filter);
+                        seq_region[2*min_len_filter] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "2\n"); //Its a breakpoint
+                    }
+                }
+                break;
+                default:
+                {
+                    if(b_len >= min_len_filter){ //Only if it is long enough
+                        //Copy the region to buffer
+                        if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On breakpoint %"PRIu64"\n", b_number);
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start, b_len);
+                        seq_region[b_end-b_start+1] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "2\n"); //Its a breakpoint
+                    }
+                }
             }
+
+            
         }
         //printf("%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", b_number, b_sequence, b_start, b_end, b_len);
         //getchar();
@@ -209,6 +254,7 @@ int main(int ac, char **av) {
     std::free(all_sequences);
     std::free(n_reallocs);
     std::free(seq_region);
+    std::free(seq_sizes);
 
     fclose(dna_class);
     fclose(dna_out);

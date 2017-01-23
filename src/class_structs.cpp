@@ -345,12 +345,15 @@ void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * 
 			
 			bps_to[ptr->b.genome->id] = ptr->b.start;
 			
-
-			fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
-			block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id], bps_to[ptr->b.genome->id], bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id]);
+			//If there actually is a breakpoint
+			if(bps_to[ptr->b.genome->id] > bps_from[ptr->b.genome->id]+1){
+				fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+				block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id] + 1);
+			}
+			
 			
 			fprintf(out_blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
-			block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start);
+			block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start + 1);
 			
 			bps_from[ptr->b.genome->id] = ptr->b.end;
 

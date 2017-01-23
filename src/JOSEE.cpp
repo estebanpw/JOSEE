@@ -86,7 +86,9 @@ int main(int ac, char **av) {
 
     //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
+    uint64_t ratio_itera = N_ITERA/5;
     for(i=0;i<N_ITERA;i++){
+        if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
         aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len, sequences);
         free(loaded_frags); //A new list is being allocated in the function
         loaded_frags = aux_pointer;

@@ -34,7 +34,7 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 		}
 		map_table[seq][to] = CLOSEFRAG;
 		
-
+		//printFragment(&frags[i]);
 		//Map coordinates in frag for seqY, which might be reversed
 		//Remember RAMGECKO coordinates are global respective to forward and with Ystart > Yend when reversed
 		//So reversed should only be switched
@@ -70,15 +70,6 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
 
 	destination->yStart = yStart;
     destination->yEnd = yEnd;	
-	/*
-    if(source->strand == 'f'){
-		destination->yStart = yStart;
-    	destination->yEnd = yEnd;		
-	}else{
-		destination->yStart = yEnd;
-    	destination->yEnd = yStart;
-	}
-	*/
 
     destination->length = len;
     destination->seqX = source->seqX;
@@ -87,6 +78,11 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
 }
 
 struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences){
+
+	//For debug only
+	static int64_t itera = -1;
+	itera++;
+	uint64_t t_len = 0;
 
 	struct FragFile new_frag;
 	struct FragFile * list_new_frags;
@@ -106,6 +102,9 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 
 	for(i=0; i<*n_frags; i++){
 		
+		
+		//printf("Working on frag: %"PRIu64"\n", i);
+
 		//Copy frag values
 		fromX = frags[i].xStart; 
 		toX = frags[i].xEnd + 1;  //Because coordinates are including [x,y]
@@ -114,7 +113,11 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		strand = frags[i].strand;
 		fromY = frags[i].yStart;
 		toY = frags[i].yEnd;
-		if(strand == 'f') toY += 1; else toY -= 1;
+		if(strand == 'f'){
+			toY += 1; 
+		}else{
+			if(toY > 0) toY -= 1;
+		}
 
 		jX = fromX;
 		jY = fromY;	
@@ -134,7 +137,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			cur_new_len++;
 			if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
 
-			while(map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG){
+			while(map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG && (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
 				jX++;
 				if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
 				cur_new_len++;
@@ -143,23 +146,29 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			//At this point, jX and jY hold the ending coordinates of the new fragment
 			//And fromX and fromY hold the starting coordinates
 
-			
-			//printf("Diff: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", toX - jX, fromX, toX);
+			/*
+			printf("jX: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", jX, fromX, toX);
+			printf("jY: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", jY, fromY, toY);
+			getchar();
+			*/
 
 			
 			
+			
 			/*
-			printFragment(&frags[i]);			
-			if(strand == 'r'){
-				printf("(%u - %u) %c@ [%"PRIu64", %"PRIu64"] up to [%"PRIu64", %"PRIu64"] aprox: (%"PRIu64") Frag: %"PRIu64"\n", map_table[seqX][jX], map_table[seqY][jY], strand, jX, jY, toX, toY, jX-fromX, frags[i].diag);
-				printf("BEFORE\n");
-				print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
-				print_maptable_portion(map_table, toY, fromY+2, 50, seqY);
-			}else{
-				printf("(%u - %u) %c@ [%"PRIu64", %"PRIu64"] up to [%"PRIu64", %"PRIu64"] aprox: (%"PRIu64") Frag: %"PRIu64"\n", map_table[seqX][jX], map_table[seqY][jY], strand, jX, jY, toX, toY, jX-fromX, frags[i].diag);
-				printf("BEFORE\n");
-				print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
-				print_maptable_portion(map_table, fromY, toY+2, 50, seqY);
+			if(itera == 8){
+				printFragment(&frags[i]);			
+				if(strand == 'r'){
+					printf("(%u - %u) %c@ [%"PRIu64", %"PRIu64"] up to [%"PRIu64", %"PRIu64"] aprox: (%"PRIu64") Frag: %"PRIu64"\n", map_table[seqX][jX], map_table[seqY][jY], strand, jX, jY, toX, toY, jX-fromX, frags[i].diag);
+					printf("BEFORE\n");
+					print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
+					print_maptable_portion(map_table, toY, fromY+2, 50, seqY);
+				}else{
+					printf("(%u - %u) %c@ [%"PRIu64", %"PRIu64"] up to [%"PRIu64", %"PRIu64"] aprox: (%"PRIu64") Frag: %"PRIu64"\n", map_table[seqX][jX], map_table[seqY][jY], strand, jX, jY, toX, toY, jX-fromX, frags[i].diag);
+					printf("BEFORE\n");
+					print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
+					print_maptable_portion(map_table, fromY, toY+2, 50, seqY);
+				}
 			}
 			*/
 			
@@ -171,29 +180,45 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			if(strand == 'f') map_table[seqY][fromY] = OPENFRAG; else map_table[seqY][fromY] = OPENFRAG;
 
 			/*
-			if(strand == 'r'){
-				printf("AFter\n");
-				print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
-				print_maptable_portion(map_table, toY, fromY+2, 50, seqY);
-				getchar();
-			}
-			
-			else{
-				printf("AFter\n");
-				print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
-				print_maptable_portion(map_table, fromY, toY+2, 50, seqY);
-				getchar();
+			if(itera == 8){
+				if(strand == 'r'){
+					printf("AFter\n");
+					print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
+					print_maptable_portion(map_table, toY, fromY+2, 50, seqY);
+					getchar();
+				}
+				
+				else{
+					printf("AFter\n");
+					print_maptable_portion(map_table, fromX, toX+2, 50, seqX);
+					print_maptable_portion(map_table, fromY, toY+2, 50, seqY);
+					getchar();
+				}
 			}
 			*/
 			
-			
-
-
 			if(cur_new_len >= min_len){ //Filtering
 
+				//DEBUG
+				t_len += cur_new_len;
+				
+				
 				//The fragment must be snipped out and saved
 				copyFragWithNewCoordinates(&new_frag, &frags[i], fromX, fromY, jX, jY, cur_new_len);
 				memcpy(&list_new_frags[new_frags_number], &new_frag, size_fragment);
+				/*
+				if(frags[i].length < cur_new_len){
+					printf("See this???\n"); 
+					printFragment(&list_new_frags[new_frags_number]);
+					printFragment(&frags[i]);
+					printf("It was supposed to be: \n");
+					printf("jX: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", jX, fromX, toX);
+					printf("jY: %"PRIu64"; from: %"PRIu64", to: %"PRIu64"\n", jY, fromY, toY);
+					getchar();
+
+				}
+				*/
+
 				new_frags_number++;
 				//Check if we need to realloc the list of new frags
 				if(new_frags_number == list_reallocs*INIT_TRIM_FRAGS){
@@ -217,7 +242,7 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 
 	}
 
-	
+	//printf("f avg: %"PRIu64" t_len: %"PRIu64"\n", t_len/new_frags_number, t_len);
 
 	*n_frags = new_frags_number;
 
