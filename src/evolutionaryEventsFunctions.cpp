@@ -113,11 +113,13 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		strand = frags[i].strand;
 		fromY = frags[i].yStart;
 		toY = frags[i].yEnd;
+		/*
 		if(strand == 'f'){
 			toY += 1; 
 		}else{
 			if(toY > 0) toY -= 1;
 		}
+		*/
 
 		jX = fromX;
 		jY = fromY;	
@@ -125,23 +127,26 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 		seqX = frags[i].seqX; seqY = frags[i].seqY;
 		cur_new_len = 1;
 
-		
+
 		
 		
 
 		//(seqX == 0 && seqY == 1) &&
-		while( (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
+		while((jX <= toX && ( (strand == 'f' && jY <= toY) || (strand == 'r' && jY >= toY)))){
 			//Check how long until there is a break (by starting or ending of frag)
 			//Increase one to skip starting OPENFRAG
+			
 			jX++;
 			cur_new_len++;
 			if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
-
-			while(map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG && (jX < toX && ( (strand == 'f' && jY < toY) || (strand == 'r' && jY > toY)))){
+			
+			//while((jX <= toX && ( (strand == 'f' && jY <= toY) || (strand == 'r' && jY >= toY))) && map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG){
+			while((jX <= toX && ( (strand == 'f' && jY <= toY) || (strand == 'r' && jY >= toY))) && map_table[seqX][jX] == COVERFRAG && map_table[seqY][jY] == COVERFRAG){
 				jX++;
 				if(strand == 'f'){ jY++; }else{ if(jY > 0) jY--; else break;} //To scape the buffer overflow of uints64
 				cur_new_len++;
 			}
+			
 
 			//At this point, jX and jY hold the ending coordinates of the new fragment
 			//And fromX and fromY hold the starting coordinates
@@ -172,12 +177,13 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 			}
 			*/
 			
-			
 
 			map_table[seqX][jX] = CLOSEFRAG;
 			if(strand == 'f') map_table[seqY][jY] = CLOSEFRAG; else map_table[seqY][jY] = CLOSEFRAG;
 			map_table[seqX][fromX] = OPENFRAG;
 			if(strand == 'f') map_table[seqY][fromY] = OPENFRAG; else map_table[seqY][fromY] = OPENFRAG;
+
+			
 
 			/*
 			if(itera == 8){
@@ -228,6 +234,8 @@ struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct Frag
 				}
 
 			}
+			
+
 			//If you are here, either the fragment was too short, or was written correctly or we are at the end of the frag
 			//Just keep going
 			//Copy frag values

@@ -10,38 +10,46 @@
 
 #define PRINT_RATE 1000
 
+uint64_t getNumberOfSequences(FILE * f){
+    uint64_t t_seqs = 0;
+    char c = 'Z';
+    while(!feof(f)){
+        if(c=='\n') t_seqs++;
+        c=fgetc(f);
+    }
+    //Rewind
+    fseeko64(f, 0L, SEEK_SET);
+    return t_seqs;
+}
+
 //Function to read all files from a text list
-char ** read_all_vs_all_files(char * list_of_files, uint64_t * n_files, uint64_t * t_alloc){
+char ** read_all_vs_all_files(char * list_of_files, uint64_t * n_files){
 
     FILE * lf = fopen64(list_of_files, "rt");
     if(lf == NULL) terror("Could not open list of genomic files");
 
-    *t_alloc = 1;
-    *n_files = 0;
+    *n_files = getNumberOfSequences(lf);
     uint64_t i;
 
-    char ** all_sequences = (char **) std::malloc (INIT_SEQS*sizeof(char *));
-    for(i=0;i<INIT_SEQS;i++){
+    char ** all_sequences = (char **) std::malloc (*n_files*sizeof(char *));
+    for(i=0;i<*n_files;i++){
         all_sequences[i] = (char *) std::malloc(READLINE*sizeof(char));
         if(all_sequences[i] == NULL) terror("Could not allocate paths to files");
     }
 
 
-
-    while(!feof(lf)){
-        if(fgets(all_sequences[*n_files], READLINE, lf) > 0){
-            if(all_sequences[*n_files][0] != '\0' && all_sequences[*n_files][0] != '\n'){
-                all_sequences[*n_files][strlen(all_sequences[*n_files])-1] = '\0';
-                (*n_files)++;
+    i = 0;
+    while(i < *n_files && !feof(lf)){
+        if(fgets(all_sequences[i], READLINE, lf) > 0){
+            if(all_sequences[i][0] != '\0' && all_sequences[i][0] != '\n'){
+                all_sequences[i][strlen(all_sequences[i])-1] = '\0';
+        
+                i++;
             }
         }
-        if(*n_files == INIT_SEQS*(*t_alloc)){
-            (*t_alloc)++;
-            all_sequences = (char **) std::realloc(all_sequences, (*t_alloc)*INIT_SEQS);
-            if(all_sequences == NULL) terror("Could not re-allocate paths to files");
-        }
+        
     }
-
+    *n_files = i;
     fclose(lf);
     return all_sequences;
 }
@@ -53,10 +61,10 @@ int main(int ac, char **av) {
     }
 
     //Iterators
-    uint64_t i, n_files, t_alloc, curr_pos;
+    uint64_t i, n_files, curr_pos;
 
     //Load files to compare
-    char ** paths_to_files = read_all_vs_all_files(av[1], &n_files, &t_alloc);
+    char ** paths_to_files = read_all_vs_all_files(av[1], &n_files);
     if(n_files < 2) terror("At least two files need to be loaded");
     for(uint64_t k=0;k<n_files;k++){ fprintf(stdout, "[INFO] File %"PRIu64": %s\n", k, paths_to_files[k]);}
 
@@ -147,7 +155,7 @@ int main(int ac, char **av) {
 
     std::free(temp_seq_buffer);
 
-    for(i=0;i<t_alloc;i++){
+    for(i=0;i<n_files;i++){
         std::free(paths_to_files[i]);
     }
     std::free(paths_to_files);
@@ -160,6 +168,12 @@ int main(int ac, char **av) {
     if(seq_region == NULL) terror("Could not allocate sequence region to output");
     uint64_t seq_region_reallocs = 1;
 
+    //Number of breakpoints counted
+    uint64_t n_breakpoints = 0, n_blocks = 0;
+
+
+
+    //Blocks later to have the ratio, since there are more breakpoints on average
     //Skip header
     if(NULL == fgets(header, READLINE, blocks)) terror("No header was read or empty blocks file");
     while(!feof(blocks)){
@@ -176,12 +190,18 @@ int main(int ac, char **av) {
                 case 1:
                 {
                     //if the block is longer than 2 times the minimum filter
-                    if(b_len >= 2*min_len_filter){
-                        uint64_t mid_point = (b_end - b_start)/2;
-                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start+mid_point-min_len_filter, 2*min_len_filter);
+                    //We want the same number of breakpoints and blocks
+                    while(b_len >= 2*min_len_filter){
+                        //Copy 2 times len filter
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start+(2*min_len_filter), 2*min_len_filter);
                         seq_region[2*min_len_filter] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "1\n"); //Its a block
+                        n_blocks++;
+                        //And change coordinates
+                        b_len -= 2*min_len_filter;
+                        b_start = b_start + 2*min_len_filter;
+                        b_end = b_end + 2*min_len_filter;
                     }
                 }
                 break;
@@ -194,12 +214,20 @@ int main(int ac, char **av) {
                         seq_region[b_end-b_start+1] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "1\n"); //Its a block
+                        n_blocks++;
                     }  
                 }
             } 
         }
     }
-    //Repeat for breakpoints
+
+
+
+
+
+
+
+    //Do breakpoints first
     //Skip header
     if(NULL == fgets(header, READLINE, breakpoints)) terror("No header was read or empty breakpoints file");
     while(!feof(breakpoints)){
@@ -218,11 +246,12 @@ int main(int ac, char **av) {
                 {
                     //If the start of the breakpoint is MIN_LEN bases away from seq begin
                     //and the start + MIN_LEN i
-                    if(b_start > min_len_filter && (b_start + min_len_filter) < seq_sizes[b_sequence]){
+                    if(n_breakpoints < n_blocks && b_start > min_len_filter && (b_start + min_len_filter) < seq_sizes[b_sequence]){
                         memcpy(&seq_region[0], all_sequences[b_sequence]+b_start-min_len_filter, 2*min_len_filter);
                         seq_region[2*min_len_filter] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "2\n"); //Its a breakpoint
+                        n_breakpoints++;
                     }
                 }
                 break;
@@ -235,6 +264,7 @@ int main(int ac, char **av) {
                         seq_region[b_end-b_start+1] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "2\n"); //Its a breakpoint
+                        n_breakpoints++;
                     }
                 }
             }
@@ -246,6 +276,9 @@ int main(int ac, char **av) {
         
         
     }
+
+    
+    
 
 
     for(i=0;i<n_files;i++){

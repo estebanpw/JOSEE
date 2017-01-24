@@ -55,6 +55,7 @@ hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence
 	this->ht_size = init_size;
 	this->ht = (Bucket **) this->mp->request_bytes(init_size*sizeof(Bucket *));
 	this->sequences = sequences;
+	this->n_buckets = init_size;
 
 	uint64_t i;
 	for(i=0;i<init_size;i++) this->ht[i] = NULL;

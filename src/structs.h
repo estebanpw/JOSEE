@@ -135,7 +135,7 @@ class hash_table
 private:
 	Bucket ** ht; // the table itself
 	memory_pool * mp;
-    uint64_t ht_size; //Size for the hash table
+    uint64_t ht_size; //Size for the hash table //Init size
     uint64_t n_buckets; //To compute the load factor
     uint64_t n_entries; //Used up entries
     double key_factor; //To partitionate the space by the largest genome
@@ -149,7 +149,7 @@ public:
     Bucket * get_key_at(uint64_t pos){ if(pos < ht_size && pos >= 0) return ht[pos]; else return NULL; } //Returns a reference to the key by absolute position
     Bucket * get_value_at(uint64_t pos); //Returns a reference to the key computed from the hash of x_pos
     Block * get_block_from_frag(struct FragFile * f, int x_or_y);
-    double get_load_factor(){ return (double)ht_size/n_buckets;}
+    //double get_load_factor(){ return (double)ht_size/n_buckets;}
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);
     Bucket * get_iterator(){ return ht[0];}

@@ -253,7 +253,7 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
 }
 
 
-char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * sequences){
+void read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * sequences){
     
     uint64_t i;
     
@@ -269,7 +269,7 @@ char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * s
 
 
     i = 0;
-    while(!feof(lf)){
+    while(i < n_files && !feof(lf)){
         if(fgets(all_sequences_names[i], READLINE, lf) > 0){
             if(all_sequences_names[i][0] != '\0' && all_sequences_names[i][0] != '\n'){
                 all_sequences_names[i][strlen(all_sequences_names[i])-1] = '\0';
@@ -356,6 +356,5 @@ char ** read_dna_sequences(uint64_t n_files, char * paths_to_files, Sequence * s
         std::free(all_sequences_names[i]);
     }
     std::free(all_sequences_names);
-
-    return all_sequences;
+    std::free(all_sequences); //But not the individual pointers, which are pointed by SEQUENCEs
 }

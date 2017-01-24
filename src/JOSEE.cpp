@@ -117,7 +117,8 @@ int main(int ac, char **av) {
 
     compute_order_of_blocks(ht, n_files);
     end = clock();
-    fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
+    //fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
+    fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
     //Write blocks and breakpoints to file
     if(out_blocks != NULL && out_breakpoints != NULL){
@@ -241,6 +242,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         }
         if(strcmp(av[pNum], "-pathfiles") == 0){
             strncpy(path_files, av[pNum+1], strlen(av[pNum+1]));
+            path_files[strlen(av[pNum+1])] = '\0';
         }
 
         if(strcmp(av[pNum], "-write_blocks_bps") == 0){
