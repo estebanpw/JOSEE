@@ -195,6 +195,21 @@ int main(int ac, char **av) {
             }
 
             switch(w_mode){
+                
+                case 2: //Center cutting
+                {
+                    if(b_len >= min_len_filter){//Only if it is long enough
+                        //Copy the region to buffer
+                        if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On block %"PRIu64"\n", b_number);
+                        uint64_t midpoint = b_start + b_len/2;
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+midpoint-min_len_filter, 2*min_len_filter);
+                        seq_region[2*min_len_filter+1] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "1\n"); //Its a block
+                        n_blocks++;
+                    }  
+                }
+                break;
                 case 1:
                 {
                     //if the block is longer than 2 times the minimum filter
@@ -249,11 +264,16 @@ int main(int ac, char **av) {
             }
 
             switch(w_mode){
+
+                //Center cutting
                 case 2:
                 {
-                    if(n_breakpoints < n_blocks && b_start > min_len_filter && (b_start + min_len_filter) < seq_sizes[b_sequence]){
-                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start-min_len_filter, 2*min_len_filter);
-                        seq_region[2*min_len_filter] = '\0';
+                    if(b_len >= min_len_filter){ //Only if it is long enough
+                        //Copy the region to buffer
+                        if(b_number % PRINT_RATE == 0) fprintf(stdout, "[INFO] On breakpoint %"PRIu64"\n", b_number);
+                        uint64_t midpoint = b_start + b_len/2;
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+midpoint-min_len_filter, 2*min_len_filter);
+                        seq_region[2*min_len_filter+1] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "2\n"); //Its a breakpoint
                         n_breakpoints++;
