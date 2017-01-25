@@ -297,13 +297,13 @@ void hash_table::print_hash_table(int print){
 					if(fl->f->strand == 'r') had_reversed = 1;
 					fl = fl->next;
 				}
-				//getchar();
+				getchar();
 			}
 			bck_counter++; ptr = ptr->next; 
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			if(had_reversed == 1) getchar();
+			//if(had_reversed == 1) getchar();
 		}
 		total_buckets += bck_counter;
 	}

@@ -11,7 +11,7 @@
 
 
 
-void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags){
+void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, Sequence * sequences){
 
 	uint64_t i, j, from, to, seq;
 	//For all frags
@@ -24,6 +24,7 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 		from = frags[i].xStart;
 		to = frags[i].xEnd;
 
+		sequences[seq].n_frags++;
 
 		//Map coordinates in frag for seqX, which is always forward
 		map_table[seq][from] = OPENFRAG;
@@ -39,15 +40,16 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 		//Remember RAMGECKO coordinates are global respective to forward and with Ystart > Yend when reversed
 		//So reversed should only be switched
 
+		seq = frags[i].seqY;
 		if(frags[i].strand == 'f'){
-			seq = frags[i].seqY;
 			from = frags[i].yStart;
 			to = frags[i].yEnd;
-		}else{
-			seq = frags[i].seqY;
+		}else{			
 			from = frags[i].yEnd;
 			to = frags[i].yStart;	
 		}
+
+		sequences[seq].n_frags++;
 
 		map_table[seq][from] = OPENFRAG;
 		for(j=from+1;j<to;j++){

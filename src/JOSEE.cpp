@@ -80,7 +80,7 @@ int main(int ac, char **av) {
         map_table[i] = (unsigned char *) std::calloc(sequences[i].len, sizeof(unsigned char)); 
         if(map_table[i] == NULL) terror("Could not allocate map table"); 
     }
-    map_frags_to_genomes(map_table, loaded_frags, total_frags);
+    map_frags_to_genomes(map_table, loaded_frags, total_frags, sequences);
     //Compute initial coverage
     get_coverage_from_genome_grid(map_table, sequences, n_files, min_len);
     print_sequences_data(sequences, n_files);

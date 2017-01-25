@@ -11,7 +11,7 @@
 
 	Important: The input to this function should have global coordinates already removed
 */
-void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags);
+void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, Sequence * sequences);
 
 /*
 	Copy frags properties to new snipped fragment

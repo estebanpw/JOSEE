@@ -10,6 +10,14 @@
 
 #define PRINT_RATE 1000
 
+
+/*
+    Case 0 is default (output all)
+    Case 1 is overlapping
+    Case 2 is centered +- N bases
+
+*/
+
 uint64_t getNumberOfSequences(FILE * f){
     uint64_t t_seqs = 0;
     char c = 'Z';
@@ -191,7 +199,8 @@ int main(int ac, char **av) {
                 {
                     //if the block is longer than 2 times the minimum filter
                     //We want the same number of breakpoints and blocks
-                    while(b_len >= 2*min_len_filter){
+                    //OVERLAPPING
+                    while(b_end - b_start >= 2*min_len_filter){
                         //Copy 2 times len filter
                         memcpy(&seq_region[0], all_sequences[b_sequence]+b_start+(2*min_len_filter), 2*min_len_filter);
                         seq_region[2*min_len_filter] = '\0';
@@ -199,9 +208,7 @@ int main(int ac, char **av) {
                         fprintf(dna_class, "1\n"); //Its a block
                         n_blocks++;
                         //And change coordinates
-                        b_len -= 2*min_len_filter;
                         b_start = b_start + 2*min_len_filter;
-                        b_end = b_end + 2*min_len_filter;
                     }
                 }
                 break;
@@ -242,16 +249,28 @@ int main(int ac, char **av) {
             }
 
             switch(w_mode){
-                case 1:
+                case 2:
                 {
-                    //If the start of the breakpoint is MIN_LEN bases away from seq begin
-                    //and the start + MIN_LEN i
                     if(n_breakpoints < n_blocks && b_start > min_len_filter && (b_start + min_len_filter) < seq_sizes[b_sequence]){
                         memcpy(&seq_region[0], all_sequences[b_sequence]+b_start-min_len_filter, 2*min_len_filter);
                         seq_region[2*min_len_filter] = '\0';
                         fprintf(dna_out, "%s\n", seq_region);
                         fprintf(dna_class, "2\n"); //Its a breakpoint
                         n_breakpoints++;
+                    }
+                }
+                case 1:
+                {
+                    //If the start of the breakpoint is MIN_LEN bases away from seq begin
+                    //and the start + MIN_LEN i
+                    //OVERLAPPING
+                    while(n_breakpoints < n_blocks && (b_start + 2*min_len_filter) < seq_sizes[b_sequence]){
+                        memcpy(&seq_region[0], all_sequences[b_sequence]+b_start, 2*min_len_filter);
+                        seq_region[2*min_len_filter] = '\0';
+                        fprintf(dna_out, "%s\n", seq_region);
+                        fprintf(dna_class, "2\n"); //Its a breakpoint
+                        n_breakpoints++;
+                        b_start = b_start + 2*min_len_filter;
                     }
                 }
                 break;

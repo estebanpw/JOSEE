@@ -164,7 +164,7 @@ void print_sequences_data(Sequence * sequences, uint64_t n_seqs){
     uint64_t i;
     fprintf(stdout, "[INFO] Sequences data:\n");
     for(i=0;i<n_seqs;i++){
-        fprintf(stdout, "\t(%"PRIu64")\tL:%"PRIu64"\tC:%"PRIu32"\n", i, sequences[i].len, sequences[i].coverage);
+        fprintf(stdout, "\t(%"PRIu64")\tL:%"PRIu64"\tC:%"PRIu32"\tF:%"PRIu64"\n", i, sequences[i].len, sequences[i].coverage, sequences[i].n_frags);
     }
 }
 
