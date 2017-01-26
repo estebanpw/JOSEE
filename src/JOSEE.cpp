@@ -14,7 +14,7 @@ int HARD_DEBUG_ACTIVE = 0;
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files);
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations);
 
 int main(int ac, char **av) {
     
@@ -41,13 +41,16 @@ int main(int ac, char **av) {
     //Path to the fastas
     char fastas_path[512];
     fastas_path[0] = '\0';
+    //Path to annotations
+    char path_annotations[512];
+    path_annotations[0] = '\0';
     //Initial hash table size (divisor of the longest sequence)
     uint64_t ht_size = 100; //Default
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path);
+    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -57,6 +60,9 @@ int main(int ac, char **av) {
     lengths_file = fopen64(path_lengths, "rb");
     if(lengths_file == NULL) terror("Could not open input lengths file");
 
+
+    //Set path to annotations (if given)
+    if(path_annotations[0] != '\0') seq_manager->set_path_annotations(path_annotations);
 
     //Load lengths and substract accumulated length %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
@@ -142,9 +148,8 @@ int main(int ac, char **av) {
     //Load sequences to run pairwise alignment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     seq_manager->read_dna_sequences(fastas_path);
-    /*for(i=0;i<20;i++){
-        printf("%c", seq_manager->get_sequence_by_label(0)->seq[i]);
-    }*/
+    //And load annotations if provided
+    if(seq_manager->get_path_annotations() != NULL) seq_manager->read_annotations();
     end = clock();
     fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -154,6 +159,8 @@ int main(int ac, char **av) {
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
+
+
 
     // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -220,7 +227,7 @@ int main(int ac, char **av) {
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files){
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations){
     
     int pNum = 0;
     while(pNum < argc){
@@ -234,6 +241,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
             fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
             fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");
+            fprintf(stdout, "           -annotations        [Path without format extension]\n");
             fprintf(stdout, "           --debug     Turns debug on\n");
             fprintf(stdout, "           --help      Shows the help for program usage\n");
             exit(1);
@@ -248,7 +256,10 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             strncpy(path_files, av[pNum+1], strlen(av[pNum+1]));
             path_files[strlen(av[pNum+1])] = '\0';
         }
-
+        if(strcmp(av[pNum], "-annotations") == 0){
+            strncpy(path_annotations, av[pNum+1], strlen(av[pNum+1]));
+            path_annotations[strlen(av[pNum+1])] = '\0';
+        }
         if(strcmp(av[pNum], "-write_blocks_bps") == 0){
             char templine[READLINE]; templine[0] = '\0';
             strcpy(templine, av[pNum+1]);

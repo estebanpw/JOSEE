@@ -607,6 +607,68 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
     std::free(all_sequences); //But not the individual pointers, which are pointed by SEQUENCEs
 }
 
+void sequence_manager::read_annotations(){
+	if(this->path_annotations == NULL){
+		return;
+	}
+	FILE * gbconcat = fopen64(this->path_annotations, "rt");
+	if(gbconcat == NULL) terror("Could not open annotations file");
+
+	//Buffer line
+	char line[READLINE], nullString[READLINE];
+	if(0 == fgets(line, READLINE, gbconcat)) terror("Could not read annotations file first line");
+
+	//Current label for genome
+	int64_t current_label = -1;
+
+	//Temporary variables
+	uint64_t r1, r2, r3, r4;
+	char strand;
+
+	//Read gene annotations file
+	while(!feof(gbconcat)){
+		while(!strncmp(line, "VERSION", 7) == 0){ //Until finding a version
+			if(0 == fgets(line, READLINE, gbconcat)) break;
+		}
+		current_label++; //Annotation file corresponding to label
+		if(0 == fgets(line, READLINE, gbconcat)) break;
+
+		//Now until finding another "VERSION"
+		while(!strncmp(line, "VERSION", 7) == 0){ 
+			if(0 == fgets(line, READLINE, gbconcat)) break;
+
+			if(strncmp(line, "     gene", 9) == 0){
+				//Fill gene positions
+				if(strstr(line, "join") != NULL){
+					//gene            join(839406..839615,1..1215)
+					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64",%"PRIu64"%[.>]%"PRIu64")", nullString, &r1, nullString, &r2, &r3, nullString, &r4);
+					strand = 'f';
+					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64", %"PRIu64", %"PRIu64") %c", r1, r2, r3, r4, strand);
+
+				}else if(strstr(line, "complement") != NULL){
+					//Its complemented
+					//     gene            complement(16694..16957)
+				
+					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64")", nullString, &r1, nullString, &r2);
+					strand = 'r';
+					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c", r1, r2, strand);
+				}else{
+					//Straight
+					//     gene            1..1392
+					sscanf(line, "%s%"PRIu64"%[.>]%"PRIu64"", nullString, &r1, nullString, &r2);
+					strand = 'f';
+					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c", r1, r2, strand);
+				}
+
+				//Store in memory
+				getchar();
+			}
+		}
+	}
+
+	fclose(gbconcat);
+}
+
 sequence_manager::~sequence_manager(){
 	uint64_t i;
 	for(i=0;i<this->n_sequences;i++){

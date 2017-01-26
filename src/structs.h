@@ -141,16 +141,20 @@ class sequence_manager
 private:
     Sequence * sequences;   //A pointer to the sequences
     uint64_t n_sequences;   //Number of sequences
+    char * path_annotations;
     memory_pool * mp;
 
 public:
     sequence_manager(memory_pool * mp);
+    void set_path_annotations(char * p){ path_annotations = p; }
+    char * get_path_annotations(){ return this->path_annotations; }
     uint64_t load_sequences_descriptors(FILE * lengths_file);
     Sequence * get_sequence_by_label(uint64_t label);
     uint64_t get_maximum_length();
     uint64_t get_number_of_sequences() { return n_sequences; }
     void print_sequences_data();
     void read_dna_sequences(char * paths_to_files);
+    void read_annotations();
     ~sequence_manager();
 };
 
