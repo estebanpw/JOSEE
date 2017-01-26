@@ -11,7 +11,7 @@
 
 
 
-void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, Sequence * sequences){
+void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, sequence_manager * seq_manager){
 
 	uint64_t i, j, from, to, seq;
 	//For all frags
@@ -24,7 +24,7 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 		from = frags[i].xStart;
 		to = frags[i].xEnd;
 
-		sequences[seq].n_frags++;
+		seq_manager->get_sequence_by_label(seq)->n_frags++;
 
 		//Map coordinates in frag for seqX, which is always forward
 		map_table[seq][from] = OPENFRAG;
@@ -49,7 +49,7 @@ void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, u
 			to = frags[i].yStart;	
 		}
 
-		sequences[seq].n_frags++;
+		seq_manager->get_sequence_by_label(seq)->n_frags++;
 
 		map_table[seq][from] = OPENFRAG;
 		for(j=from+1;j<to;j++){
@@ -79,7 +79,7 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
     destination->strand = source->strand;
 }
 
-struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences){
+struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len){
 
 	//For debug only
 	static int64_t itera = -1;

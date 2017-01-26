@@ -11,7 +11,7 @@
 
 	Important: The input to this function should have global coordinates already removed
 */
-void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, Sequence * sequences);
+void map_frags_to_genomes(unsigned char ** map_table, struct FragFile * frags, uint64_t n_frags, sequence_manager * seq_manager);
 
 /*
 	Copy frags properties to new snipped fragment
@@ -23,7 +23,7 @@ inline void copyFragWithNewCoordinates(struct FragFile * destination, struct Fra
 	This function cuts frags into more if there are other frags that overlap partially
 	min_len acts as a filter to remove short fragments
 */
-struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len, Sequence * sequences);
+struct FragFile * trim_fragments_and_map(unsigned char ** map_table, struct FragFile * frags, uint64_t * n_frags, uint64_t min_len);
 
 /*
 	Iterates through the keys in the hash table and computes and stores the

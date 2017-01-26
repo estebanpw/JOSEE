@@ -129,6 +129,31 @@ typedef struct bucket {
 	struct bucket * next;
 } Bucket;
 
+typedef struct annotation{
+    uint64_t start;
+    uint64_t end;
+    char strand;
+    char * product;
+} Annotation;
+
+class sequence_manager
+{
+private:
+    Sequence * sequences;   //A pointer to the sequences
+    uint64_t n_sequences;   //Number of sequences
+    memory_pool * mp;
+
+public:
+    sequence_manager(memory_pool * mp);
+    uint64_t load_sequences_descriptors(FILE * lengths_file);
+    Sequence * get_sequence_by_label(uint64_t label);
+    uint64_t get_maximum_length();
+    uint64_t get_number_of_sequences() { return n_sequences; }
+    void print_sequences_data();
+    void read_dna_sequences(char * paths_to_files);
+    ~sequence_manager();
+};
+
 //Hash-table class for Blocks
 class hash_table
 {
@@ -142,10 +167,10 @@ private:
     double key_factor; //To partitionate the space by the largest genome
     uint64_t computed_sizeof_block; //Avoid overcomputing
     uint64_t computed_sizeof_frags_list; //Avoid overcomputing
-    Sequence * sequences;
+    sequence_manager * sequences;
 
 public:
-    hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key);
+    hash_table(memory_pool * main_mem_pool, uint64_t init_size, sequence_manager * sequences, uint64_t highest_key);
 	void insert_block(struct FragFile * f);
     Bucket * get_key_at(uint64_t pos){ if(pos < ht_size && pos >= 0) return ht[pos]; else return NULL; } //Returns a reference to the key by absolute position
     Bucket * get_value_at(uint64_t pos); //Returns a reference to the key computed from the hash of x_pos
@@ -154,7 +179,7 @@ public:
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);
     Bucket * get_iterator(){ return ht[0];}
-    void write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints, uint64_t n_sequences);
+    void write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints);
 
 private:
 	uint64_t compute_hash(uint64_t key);

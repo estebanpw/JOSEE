@@ -9,7 +9,7 @@ JOSEE: JOSEE.cpp
 	$(CXX) $(CFLAGS) commonFunctions.cpp -lm comparisonFunctions.cpp evolutionaryEventsFunctions.cpp class_structs.cpp JOSEE.cpp -lpthread -o $(BIN)/JOSEE
 
 cutter: cutter.cpp
-	$(CXX) $(CFLAGS) commonFunctions.cpp -lm comparisonFunctions.cpp cutter.cpp -lpthread -o $(BIN)/cutter
+	$(CXX) $(CFLAGS) commonFunctions.cpp -lm comparisonFunctions.cpp class_structs.cpp cutter.cpp -lpthread -o $(BIN)/cutter
 
 clean:
 	rm -rf $(BIN)/JOSEE $(BIN)/cutter

@@ -29,8 +29,10 @@ int main(int ac, char **av) {
     clock_t begin, end;
     //Minimum length to fragment to accept a trimming
     uint64_t min_len = 100; //Default
-    //The genome descriptor 
-    Sequence * sequences = NULL;
+    //Memory pool for the sequences
+    memory_pool * sm_mem_pool = new memory_pool(MAX_MEM_POOLS);
+    //The sequences manager to store ids, lengths, etc
+    sequence_manager * seq_manager = new sequence_manager(sm_mem_pool);
     //The number of iterations to trimm
     uint64_t N_ITERA = 4; //Default
     //Path to the multifrags file
@@ -58,7 +60,7 @@ int main(int ac, char **av) {
 
     //Load lengths and substract accumulated length %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    n_files = load_sequences_descriptors(&sequences, lengths_file);
+    n_files =  seq_manager->load_sequences_descriptors(lengths_file);
     end = clock();
     fprintf(stdout, "[INFO] Loaded sequence descriptors. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     fclose(lengths_file);
@@ -66,7 +68,7 @@ int main(int ac, char **av) {
 
     //Load fragments into array %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    load_fragments_local(frags_file, &total_frags, sequences, &loaded_frags);
+    load_fragments_local(frags_file, &total_frags, &loaded_frags);
     end = clock();
     fprintf(stdout, "[INFO] Loaded fragments into memory. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     fclose(frags_file); 
@@ -77,13 +79,13 @@ int main(int ac, char **av) {
     unsigned char ** map_table = (unsigned char **) std::calloc(n_files, sizeof(unsigned char *));
     //Allocate map table
     for(i=0; i<n_files; i++){ 
-        map_table[i] = (unsigned char *) std::calloc(sequences[i].len, sizeof(unsigned char)); 
+        map_table[i] = (unsigned char *) std::calloc(seq_manager->get_sequence_by_label(i)->len, sizeof(unsigned char)); 
         if(map_table[i] == NULL) terror("Could not allocate map table"); 
     }
-    map_frags_to_genomes(map_table, loaded_frags, total_frags, sequences);
+    map_frags_to_genomes(map_table, loaded_frags, total_frags, seq_manager);
     //Compute initial coverage
-    get_coverage_from_genome_grid(map_table, sequences, n_files, min_len);
-    print_sequences_data(sequences, n_files);
+    get_coverage_from_genome_grid(map_table, seq_manager, n_files, min_len);
+    seq_manager->print_sequences_data();
     end = clock();
     fprintf(stdout, "[INFO] Initial mapping completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -92,13 +94,13 @@ int main(int ac, char **av) {
     uint64_t ratio_itera = N_ITERA/5;
     for(i=0;i<N_ITERA;i++){
         if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
-        aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len, sequences);
+        aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len);
         free(loaded_frags); //A new list is being allocated in the function
         loaded_frags = aux_pointer;
     }
     //Compute final coverage
-    get_coverage_from_genome_grid(map_table, sequences, n_files, min_len);
-    print_sequences_data(sequences, n_files);
+    get_coverage_from_genome_grid(map_table, seq_manager, n_files, min_len);
+    seq_manager->print_sequences_data();
     end = clock();
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -106,9 +108,9 @@ int main(int ac, char **av) {
     //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
-    uint64_t max_len_sequence = get_maximum_length(sequences, n_files);
+    uint64_t max_len_sequence = seq_manager->get_maximum_length();
     uint64_t coord_aux;
-    hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, sequences, max_len_sequence);
+    hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, seq_manager, max_len_sequence);
     for(i=0;i<total_frags;i++){
         //Switch coordinates of reversed fragments. This can only be done at the end of trimming and not meanwhile!
         if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
@@ -123,7 +125,7 @@ int main(int ac, char **av) {
     //Write blocks and breakpoints to file
     if(out_blocks != NULL && out_breakpoints != NULL){
         begin = clock();
-        ht->write_blocks_and_breakpoints_to_file(out_blocks, out_breakpoints, n_files);
+        ht->write_blocks_and_breakpoints_to_file(out_blocks, out_breakpoints);
         end = clock();
         fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     }
@@ -139,7 +141,10 @@ int main(int ac, char **av) {
 
     //Load sequences to run pairwise alignment %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    read_dna_sequences(n_files, fastas_path, sequences);
+    seq_manager->read_dna_sequences(fastas_path);
+    /*for(i=0;i<20;i++){
+        printf("%c", seq_manager->get_sequence_by_label(0)->seq[i]);
+    }*/
     end = clock();
     fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -181,7 +186,7 @@ int main(int ac, char **av) {
         char write_debug[512];
         
         sprintf(write_debug, "%s_%"PRIu64"_%"PRIu64".trim.csv", multifrags_path, N_ITERA, min_len);
-        write_maptable_to_disk(map_table, n_files, sequences, write_debug);
+        write_maptable_to_disk(map_table, seq_manager, write_debug);
         
     }
     if(HARD_DEBUG_ACTIVE){
@@ -193,10 +198,8 @@ int main(int ac, char **av) {
     
     for(i=0; i<n_files; i++){
         std::free(map_table[i]);
-        std::free(sequences[i].seq);
     }
     std::free(map_table);
-    std::free(sequences);
     std::free(loaded_frags);
 
     fclose(out_file);
@@ -208,6 +211,7 @@ int main(int ac, char **av) {
 
     delete ht;
     delete mp;
+    delete seq_manager;
 
     
     return 0;

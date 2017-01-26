@@ -1,5 +1,7 @@
 #include <stdio.h>
 #include <cstdlib>
+#include <string.h>
+#include <ctype.h>
 #include "structs.h"
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
@@ -50,7 +52,7 @@ memory_pool::~memory_pool()
 }
 
 
-hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, Sequence * sequences, uint64_t highest_key){
+hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, sequence_manager * sequences, uint64_t highest_key){
 	this->mp = main_mem_pool;
 	this->ht_size = init_size;
 	this->ht = (Bucket **) this->mp->request_bytes(init_size*sizeof(Bucket *));
@@ -100,7 +102,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 	bkt_x->b.start = f->xStart;
 	bkt_x->b.end = f->xEnd;
 	bkt_x->b.order = 0; //Order will be assigned later
-	bkt_x->b.genome = &this->sequences[f->seqX];
+	bkt_x->b.genome = this->sequences->get_sequence_by_label(f->seqX);
 
 	//Insertions
 	Bucket * ptr = ht[hash_x];
@@ -197,7 +199,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	bkt_y->b.start = f->yStart;
 	bkt_y->b.end = f->yEnd;
 	bkt_y->b.order = 0; //Order will be assigned later
-	bkt_y->b.genome = &this->sequences[f->seqY];
+	bkt_y->b.genome = this->sequences->get_sequence_by_label(f->seqY);
 
 	//Insertions
 	Bucket * ptr = ht[hash_y];
@@ -331,11 +333,11 @@ Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
 	return NULL;
 }
 
-void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints, uint64_t n_sequences){
+void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints){
 	uint64_t i, block_counts = 0;
 	Bucket * ptr;
-	uint64_t * bps_from = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
-	uint64_t * bps_to = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
+	uint64_t * bps_from = (uint64_t *) std::calloc(this->sequences->get_number_of_sequences(), sizeof(uint64_t));
+	uint64_t * bps_to = (uint64_t *) std::calloc(this->sequences->get_number_of_sequences(), sizeof(uint64_t));
 	if(bps_from == NULL || bps_to == NULL) terror("Could not allocate breakpoint coordinates");
 
 	fprintf(out_blocks, "id\tseq\torder\tstart\tend\tlength\n");
@@ -440,4 +442,175 @@ strand_matrix::~strand_matrix(){
 		std::free(this->sm[i]);
 	}
 	std::free(this->sm);
+}
+
+sequence_manager::sequence_manager(memory_pool * mp){
+	this->mp = mp;
+}
+
+uint64_t sequence_manager::load_sequences_descriptors(FILE * lengths_file){
+
+
+    //Calculate number of sequences according to size of lengths file
+    fseeko(lengths_file, 0L, SEEK_END);
+    this->n_sequences = ftello(lengths_file)/sizeof(uint64_t);
+    fseeko(lengths_file, 0L, SEEK_SET);
+
+    
+    //Allocate heap for sequences struct to hold lengths and ids
+    this->sequences = (Sequence *) this->mp->request_bytes(n_sequences*sizeofSequence());
+
+
+    if(this->sequences == NULL) terror("Could not allocate memory for sequence descriptors");
+
+    //Load sequence data into sequences descriptors
+    uint64_t i=0, acum = 0;
+    while(i<this->n_sequences){
+        this->sequences[i].id = i;
+        this->sequences[i].acum = acum;
+        if(1 != fread(&this->sequences[i].len, sizeof(uint64_t), 1, lengths_file)) terror("Wrong number of sequences or sequence file corrupted");
+        acum += this->sequences[i].len;
+        //fprintf(stdout, "[INFO] Sequence %"PRIu64" has length %"PRIu64"\n", i, st[i].len);
+        i++;
+    }
+
+	return this->n_sequences;
+}
+
+uint64_t sequence_manager::get_maximum_length(){
+    uint64_t i;
+    uint64_t m_len = 0;
+    for(i=0;i<this->n_sequences;i++){
+        if(m_len < this->get_sequence_by_label(i)->len){
+            m_len = this->get_sequence_by_label(i)->len;
+        }
+    }
+    return m_len;
+}
+
+
+void sequence_manager::print_sequences_data(){
+    uint64_t i;
+    fprintf(stdout, "[INFO] Sequences data:\n");
+    for(i=0;i<this->n_sequences;i++){
+        fprintf(stdout, "\t(%"PRIu64")\tL:%"PRIu64"\tC:%"PRIu32"\tF:%"PRIu64"\n", i, this->sequences[i].len, this->sequences[i].coverage, this->sequences[i].n_frags);
+    }
+}
+
+Sequence * sequence_manager::get_sequence_by_label(uint64_t label){
+	if(label < this->n_sequences) return &this->sequences[label]; else return NULL;
+}
+
+void sequence_manager::read_dna_sequences(char * paths_to_files){
+    
+    uint64_t i;
+    
+    FILE * lf = fopen64(paths_to_files, "rt");
+    if(lf == NULL) terror("Could not open list of genomic files");
+
+
+    char ** all_sequences_names = (char **) std::malloc (this->n_sequences*sizeof(char *));
+    for(i=0;i<this->n_sequences;i++){
+        all_sequences_names[i] = (char *) std::malloc(READLINE*sizeof(char));
+        if(all_sequences_names[i] == NULL) terror("Could not allocate paths to files");
+    }
+
+
+    i = 0;
+    while(i < this->n_sequences && !feof(lf)){
+        if(fgets(all_sequences_names[i], READLINE, lf) > 0){
+            if(all_sequences_names[i][0] != '\0' && all_sequences_names[i][0] != '\n'){
+                all_sequences_names[i][strlen(all_sequences_names[i])-1] = '\0';
+                i++;
+            }
+        }
+    }
+    if(i != this->n_sequences) { printf("%"PRIu64"\n", i);terror("Something went wrong. Incorrect number of files"); }
+
+    fclose(lf);
+    
+    
+    
+    //Char to hold all sequences
+    char ** all_sequences = (char **) std::calloc(this->n_sequences, sizeof(char *));
+    if(all_sequences == NULL) terror("Could not allocate sequences pointer");
+
+    //Vector to tell for sequence reallocs
+    uint64_t * n_reallocs = (uint64_t *) std::calloc(this->n_sequences, sizeof(uint64_t));
+    if(n_reallocs == NULL) terror("Could not allocate realloc count vector");
+
+    //Read using buffered fgetc
+    uint64_t idx = 0, r = 0, curr_pos;
+    char * temp_seq_buffer = NULL;
+    if ((temp_seq_buffer = (char *) std::calloc(READBUF, sizeof(char))) == NULL) {
+        terror("Could not allocate memory for read buffer");
+    }
+    //To force reading from the buffer
+    idx = READBUF + 1;
+    char c;
+    
+    
+    FILE * current; 
+
+    //Read sequences and load into array
+    for(i=0;i<this->n_sequences;i++){
+        current = fopen64(all_sequences_names[i], "rt");
+        all_sequences[i] = (char *) std::calloc(SEQ_REALLOC, sizeof(char));
+        if(all_sequences[i] == NULL) terror("Could not allocate genome sequence");
+        if(current == NULL) terror("Could not open fasta file");
+
+        curr_pos = 0;
+        idx = READBUF + 1;
+        r = 0;
+
+        c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+        while((!feof(current) || (feof(current) && idx < r))){
+
+            if(c == '>'){
+                while(c != '\n') c = buffered_fgetc(temp_seq_buffer, &idx, &r, current); //Skip id
+
+                while(c != '>' && (!feof(current) || (feof(current) && idx < r))){ //Until next id
+                    c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+                    c = toupper(c);
+                    if(c >= 'A' && c <= 'Z'){
+                        all_sequences[i][curr_pos++] = c;
+                        if(curr_pos >= SEQ_REALLOC*n_reallocs[i]){
+                            n_reallocs[i]++;
+                            all_sequences[i] = (char *) std::realloc(all_sequences[i], n_reallocs[i]*SEQ_REALLOC);
+                            if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+                        }
+                    }
+                }
+                curr_pos++; //one for the *
+
+            }else{
+                c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
+            }
+            
+        }
+        //Realloc final size
+        all_sequences[i] = (char *) std::realloc(all_sequences[i], curr_pos);
+        if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+        this->sequences[i].seq = all_sequences[i]; //Assign the current sequence to its correspondent
+
+
+        fclose(current);
+    }
+
+    std::free(temp_seq_buffer);
+    std::free(n_reallocs);
+
+    for(i=0;i<this->n_sequences;i++){
+        std::free(all_sequences_names[i]);
+    }
+    std::free(all_sequences_names);
+    std::free(all_sequences); //But not the individual pointers, which are pointed by SEQUENCEs
+}
+
+sequence_manager::~sequence_manager(){
+	uint64_t i;
+	for(i=0;i<this->n_sequences;i++){
+		if(this->sequences[i].seq != NULL) std::free(this->sequences[i].seq);
+	}
+	delete this->mp;
 }
