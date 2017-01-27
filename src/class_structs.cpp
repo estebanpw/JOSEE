@@ -340,8 +340,13 @@ void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * 
 	uint64_t * bps_to = (uint64_t *) std::calloc(this->sequences->get_number_of_sequences(), sizeof(uint64_t));
 	if(bps_from == NULL || bps_to == NULL) terror("Could not allocate breakpoint coordinates");
 
+
+	unsigned char print_only_noncoding = 1;
+
 	fprintf(out_blocks, "id\tseq\torder\tstart\tend\tlength\n");
 	fprintf(out_breakpoints, "id\tseq\tstart\tend\tlength\n");
+
+
 	for(i=0;i<this->ht_size;i++){
 		ptr = this->ht[i];
 		while(ptr != NULL){ 
@@ -350,13 +355,49 @@ void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * 
 			
 			//If there actually is a breakpoint
 			if(bps_to[ptr->b.genome->id] > bps_from[ptr->b.genome->id]+1){
-				fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
-				block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id] + 1);
+				
+				switch(print_only_noncoding){
+					
+					case 1:
+					{
+						//Only if there is no matching gene
+						/*
+						Annotation * az = binary_search_annotations(bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, this->sequences->get_annotation_list(ptr->b.genome->id), this->sequences->get_annotations_number_in_list(ptr->b.genome->id) - 1);
+						if(az == NULL) {
+							printf("%"PRIu64", %"PRIu64" in %"PRIu64"--> \n", bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, ptr->b.genome->id);
+							getchar();
+						}
+						*/
+						
+						
+						
+
+						if(NULL == binary_search_annotations(bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, this->sequences->get_annotation_list(ptr->b.genome->id), this->sequences->get_annotations_number_in_list(ptr->b.genome->id) - 1)){
+							fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+							block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id] + 1);
+						}
+					}
+					break;
+					default: fprintf(out_breakpoints, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+							block_counts, ptr->b.genome->id, bps_from[ptr->b.genome->id]+1, bps_to[ptr->b.genome->id]-1, bps_to[ptr->b.genome->id] - bps_from[ptr->b.genome->id] + 1);
+				}				
+			}
+			
+			switch(print_only_noncoding){
+				case 1:
+				{
+					if(NULL == binary_search_annotations(ptr->b.start, ptr->b.end, this->sequences->get_annotation_list(ptr->b.genome->id), this->sequences->get_annotations_number_in_list(ptr->b.genome->id)-1)){
+						fprintf(out_blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+						block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start + 1);
+					}
+				}
+				break;
+				default: fprintf(out_blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
+			block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start + 1);
+
 			}
 			
 			
-			fprintf(out_blocks, "%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\t%"PRIu64"\n", 
-			block_counts, ptr->b.genome->id, ptr->b.order, ptr->b.start, ptr->b.end, ptr->b.end-ptr->b.start + 1);
 			
 			bps_from[ptr->b.genome->id] = ptr->b.end;
 
@@ -715,7 +756,6 @@ void sequence_manager::read_annotations(){
 		quick_sort_annotations(this->annotation_lists[current_label], 0, this->n_annotations[current_label]-1);
 	}
 
-	this->print_annotations();
 	std::free(n_reallocs);
 	fclose(gbconcat);
 }

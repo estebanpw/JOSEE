@@ -125,14 +125,7 @@ int main(int ac, char **av) {
     end = clock();
     //fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
-    
-    //Write blocks and breakpoints to file
-    if(out_blocks != NULL && out_breakpoints != NULL){
-        begin = clock();
-        ht->write_blocks_and_breakpoints_to_file(out_blocks, out_breakpoints);
-        end = clock();
-        fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
-    }
+     
     
     
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -150,6 +143,15 @@ int main(int ac, char **av) {
     if(seq_manager->get_path_annotations() != NULL) seq_manager->read_annotations();
     end = clock();
     fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
+
+    //Write blocks and breakpoints to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    if(out_blocks != NULL && out_breakpoints != NULL){
+        begin = clock();
+        ht->write_blocks_and_breakpoints_to_file(out_blocks, out_breakpoints);
+        end = clock();
+        fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
+    }
+
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();

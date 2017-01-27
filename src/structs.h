@@ -158,6 +158,8 @@ public:
     uint64_t get_number_of_sequences() { return n_sequences; }
     void print_sequences_data();
     void print_annotations();
+    Annotation * get_annotation_list(uint64_t label){ return this->annotation_lists[label]; }
+    uint64_t get_annotations_number_in_list(uint64_t label){ return this->n_annotations[label]; }
     void read_dna_sequences(char * paths_to_files);
     void read_annotations();
     ~sequence_manager();
