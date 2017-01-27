@@ -203,4 +203,62 @@ void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uin
     }
 }
 
+int compare_ranges(Annotation * a, Annotation * b){
+    if(a->start <= b->end && b->start <= a->end) return 0; //Overlap
+    if(a->start < b->start) return -1;
+    return 1;
+}
 
+int compare_two_annotations(Annotation * a, Annotation * b){
+    if(a->start == b->start) return 0;
+    if(a->start < b->start) return -1;
+    return 1;
+}
+
+Annotation * binary_search_annotations(uint64_t start, uint64_t end, Annotation * anot, uint64_t n_annots){
+
+   uint64_t first = 0;
+   uint64_t last = n_annots - 1;
+   uint64_t middle = (first+last)/2;
+   int compare;
+   Annotation aux;
+   aux.start = start;
+   aux.end = end;
+   
+   while (first <= last) {
+
+       compare = compare_ranges(&aux, &anot[middle]);
+       if (compare == 0) return &anot[middle];
+       if (compare<0) last = middle - 1;
+       else first = middle + 1;
+       middle = (first + last)/2;
+   }
+   return NULL; // Not found
+}
+
+void quick_sort_annotations(Annotation * array, uint64_t x, uint64_t y) {
+
+    Annotation pivot, aux;
+    uint64_t x1, y1;
+
+    memcpy(&pivot, &array[(x+y)/2], sizeofAnnotation());
+    x1 = x;
+    y1 = y;
+
+    do{
+
+        while (compare_two_annotations(&pivot, &array[x1]) > 0) x1++;
+        while (compare_two_annotations(&pivot, &array[y1]) < 0) y1--;
+        if (x1 < y1) { 
+            memcpy(&aux, &array[x1], sizeofAnnotation());
+            memcpy(&array[x1], &array[y1], sizeofAnnotation());
+            memcpy(&array[y1], &aux, sizeofAnnotation());
+            x1++;
+            y1--;
+        }
+        else if (x1 == y1) x1++;
+    } while (x1 <= y1);
+
+    if (x < y1) quick_sort_annotations(array, x, y1);
+    if (x1 < y) quick_sort_annotations(array, x1, y);
+}

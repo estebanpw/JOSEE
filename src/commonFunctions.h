@@ -53,5 +53,24 @@ Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b);
 */
 void find_fragments_from_maptable(unsigned char ** maptable, uint64_t start, uint64_t end, uint64_t seq, struct FragFile * frags, uint64_t n_frags);
 
+/*
+	Compares the range of two annotations
+*/
+int compare_ranges(Annotation * a, Annotation * b);
+
+/*
+	Compares two annotations by starting coordinates
+*/
+int compare_two_annotations(Annotation * a, Annotation * b);
+
+/*
+	Binary searches an annotation array looking for ranges that overlap
+*/
+Annotation * binary_search_annotations(uint64_t start, uint64_t end, Annotation * anot, uint64_t n_annots);
+
+/*
+	Sorts an array of of annotations
+*/
+void quick_sort_annotations(Annotation * array, uint64_t x, uint64_t y);
 
 #endif /* COMMON_FUNCTIONS_H */

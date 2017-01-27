@@ -29,10 +29,8 @@ int main(int ac, char **av) {
     clock_t begin, end;
     //Minimum length to fragment to accept a trimming
     uint64_t min_len = 100; //Default
-    //Memory pool for the sequences
-    memory_pool * sm_mem_pool = new memory_pool(MAX_MEM_POOLS);
     //The sequences manager to store ids, lengths, etc
-    sequence_manager * seq_manager = new sequence_manager(sm_mem_pool);
+    sequence_manager * seq_manager = new sequence_manager();
     //The number of iterations to trimm
     uint64_t N_ITERA = 4; //Default
     //Path to the multifrags file

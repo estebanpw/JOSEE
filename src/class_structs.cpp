@@ -444,8 +444,10 @@ strand_matrix::~strand_matrix(){
 	std::free(this->sm);
 }
 
-sequence_manager::sequence_manager(memory_pool * mp){
-	this->mp = mp;
+sequence_manager::sequence_manager(){
+	this->annotation_lists = NULL;
+	this->n_annotations = NULL;
+	this->n_sequences = 0;
 }
 
 uint64_t sequence_manager::load_sequences_descriptors(FILE * lengths_file){
@@ -458,7 +460,7 @@ uint64_t sequence_manager::load_sequences_descriptors(FILE * lengths_file){
 
     
     //Allocate heap for sequences struct to hold lengths and ids
-    this->sequences = (Sequence *) this->mp->request_bytes(n_sequences*sizeofSequence());
+	this->sequences = (Sequence *) std::malloc(n_sequences*sizeofSequence());
 
 
     if(this->sequences == NULL) terror("Could not allocate memory for sequence descriptors");
@@ -608,11 +610,21 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
 }
 
 void sequence_manager::read_annotations(){
+	//Only if a path was given
 	if(this->path_annotations == NULL){
-		return;
+		terror("Requested to load annotations but no annotation file was given");
 	}
+
+	//Open file
 	FILE * gbconcat = fopen64(this->path_annotations, "rt");
 	if(gbconcat == NULL) terror("Could not open annotations file");
+
+	//Allocate in memory pool space for annotations
+	this->annotation_lists = (Annotation **) std::malloc(this->n_sequences*sizeof(Annotation *));
+	this->n_annotations = (uint64_t *) std::calloc(this->n_sequences, sizeof(uint64_t));
+	if(this->n_annotations == NULL) terror("Could not allocate annotations number");
+	uint64_t * n_reallocs = (uint64_t *) std::malloc(this->n_sequences * sizeof(uint64_t));
+	if(n_reallocs == NULL) terror("Could not allocate realloc annotations number");
 
 	//Buffer line
 	char line[READLINE], nullString[READLINE];
@@ -621,9 +633,8 @@ void sequence_manager::read_annotations(){
 	//Current label for genome
 	int64_t current_label = -1;
 
-	//Temporary variables
-	uint64_t r1, r2, r3, r4;
-	char strand;
+	//Temporary annotations
+	Annotation an1, an2;
 
 	//Read gene annotations file
 	while(!feof(gbconcat)){
@@ -631,42 +642,91 @@ void sequence_manager::read_annotations(){
 			if(0 == fgets(line, READLINE, gbconcat)) break;
 		}
 		current_label++; //Annotation file corresponding to label
+
+		this->annotation_lists[current_label] = (Annotation *) std::malloc(INIT_ANNOTS*sizeofAnnotation());
+		if(this->annotation_lists[current_label] == NULL) terror("Could not allocate annotation sublists");
+		n_reallocs[current_label] = 1;
+
 		if(0 == fgets(line, READLINE, gbconcat)) break;
 
 		//Now until finding another "VERSION"
-		while(!strncmp(line, "VERSION", 7) == 0){ 
+		while(!strncmp(line, "VERSION", 7) == 0){
 			if(0 == fgets(line, READLINE, gbconcat)) break;
 
 			if(strncmp(line, "     gene", 9) == 0){
 				//Fill gene positions
 				if(strstr(line, "join") != NULL){
 					//gene            join(839406..839615,1..1215)
-					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64",%"PRIu64"%[.>]%"PRIu64")", nullString, &r1, nullString, &r2, &r3, nullString, &r4);
-					strand = 'f';
-					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64", %"PRIu64", %"PRIu64") %c", r1, r2, r3, r4, strand);
+					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64",%"PRIu64"%[.>]%"PRIu64")", nullString, &an1.start, nullString, &an1.end, &an2.start, nullString, &an2.end);
+					an1.strand = 'f';
+					an2.strand = 'f';
+					an1.product = NULL;
+					an2.product = NULL;
+
+					//See if it still has space to add the two annotations
+					if(this->n_annotations[current_label]+2 >= n_reallocs[current_label]*INIT_ANNOTS){
+						n_reallocs[current_label]++;
+						this->annotation_lists[current_label] = (Annotation *) std::realloc(this->annotation_lists[current_label], n_reallocs[current_label]*INIT_ANNOTS);
+						if(this->annotation_lists == NULL) terror("Could not realloc list of annotations");
+					}
+					memcpy(&this->annotation_lists[current_label][this->n_annotations[current_label]], &an1, sizeofAnnotation()); 
+					this->n_annotations[current_label]++;
+					
+					memcpy(&this->annotation_lists[current_label][this->n_annotations[current_label]], &an2, sizeofAnnotation()); 
+					this->n_annotations[current_label]++;
+					
 
 				}else if(strstr(line, "complement") != NULL){
 					//Its complemented
 					//     gene            complement(16694..16957)
 				
-					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64")", nullString, &r1, nullString, &r2);
-					strand = 'r';
-					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c", r1, r2, strand);
+					sscanf(line, "%[^(](%"PRIu64"%[.>]%"PRIu64")", nullString, &an1.start, nullString, &an1.end);
+					an1.strand = 'r';
+					an1.product = NULL;
+					//See if it still has space to add the annotation
+					if(this->n_annotations[current_label] == n_reallocs[current_label]*INIT_ANNOTS){
+						n_reallocs[current_label]++;
+						this->annotation_lists[current_label] = (Annotation *) std::realloc(this->annotation_lists[current_label], n_reallocs[current_label]*INIT_ANNOTS);
+						if(this->annotation_lists == NULL) terror("Could not realloc list of annotations");
+					}
+					memcpy(&this->annotation_lists[current_label][this->n_annotations[current_label]], &an1, sizeofAnnotation()); 
+					this->n_annotations[current_label]++;
+
+
 				}else{
 					//Straight
 					//     gene            1..1392
-					sscanf(line, "%s%"PRIu64"%[.>]%"PRIu64"", nullString, &r1, nullString, &r2);
-					strand = 'f';
-					fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c", r1, r2, strand);
+					sscanf(line, "%s%"PRIu64"%[.>]%"PRIu64"", nullString, &an1.start, nullString, &an1.end);
+					an1.strand = 'f';
+					
+					//See if it still has space to add the annotation
+					if(this->n_annotations[current_label] == n_reallocs[current_label]*INIT_ANNOTS){
+						n_reallocs[current_label]++;
+						this->annotation_lists[current_label] = (Annotation *) std::realloc(this->annotation_lists[current_label], n_reallocs[current_label]*INIT_ANNOTS);
+						if(this->annotation_lists == NULL) terror("Could not realloc list of annotations");
+					}
+					memcpy(&this->annotation_lists[current_label][this->n_annotations[current_label]], &an1, sizeofAnnotation()); 
+					this->n_annotations[current_label]++;
+
 				}
 
-				//Store in memory
-				getchar();
 			}
 		}
+		quick_sort_annotations(this->annotation_lists[current_label], 0, this->n_annotations[current_label]-1);
 	}
 
+	this->print_annotations();
+	std::free(n_reallocs);
 	fclose(gbconcat);
+}
+
+void sequence_manager::print_annotations(){
+	uint64_t i, j;
+	for(i=0;i<this->n_sequences;i++){
+		for(j=0;j<this->n_annotations[i];j++){
+			printAnnotation(&this->annotation_lists[i][j]);
+		}
+	}
 }
 
 sequence_manager::~sequence_manager(){
@@ -674,5 +734,11 @@ sequence_manager::~sequence_manager(){
 	for(i=0;i<this->n_sequences;i++){
 		if(this->sequences[i].seq != NULL) std::free(this->sequences[i].seq);
 	}
-	delete this->mp;
+	if(this->n_annotations != NULL) std::free(this->n_annotations);
+	if(this->annotation_lists != NULL){
+		for(i=0;i<this->n_sequences;i++){
+			std::free(this->annotation_lists[i]);
+		}
+		std::free(this->annotation_lists);
+	}
 }

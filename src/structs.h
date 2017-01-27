@@ -8,6 +8,7 @@
 
 #define SEQ_REALLOC 5000000
 #define INIT_SEQS 20
+#define INIT_ANNOTS 5000
 #define READLINE 2000
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000
@@ -25,6 +26,7 @@
 
 class memory_pool;
 class hash_table;
+class sequence_manager;
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -133,8 +135,9 @@ typedef struct annotation{
     uint64_t start;
     uint64_t end;
     char strand;
-    char * product;
+    char * product; //Requires hard copy
 } Annotation;
+
 
 class sequence_manager
 {
@@ -142,10 +145,11 @@ private:
     Sequence * sequences;   //A pointer to the sequences
     uint64_t n_sequences;   //Number of sequences
     char * path_annotations;
-    memory_pool * mp;
+    Annotation ** annotation_lists;
+    uint64_t * n_annotations;
 
 public:
-    sequence_manager(memory_pool * mp);
+    sequence_manager();
     void set_path_annotations(char * p){ path_annotations = p; }
     char * get_path_annotations(){ return this->path_annotations; }
     uint64_t load_sequences_descriptors(FILE * lengths_file);
@@ -153,6 +157,7 @@ public:
     uint64_t get_maximum_length();
     uint64_t get_number_of_sequences() { return n_sequences; }
     void print_sequences_data();
+    void print_annotations();
     void read_dna_sequences(char * paths_to_files);
     void read_annotations();
     ~sequence_manager();

@@ -242,6 +242,10 @@ uint64_t sizeofSyntenyList(){
     return sizeof(Synteny_block *) + sizeof(Synteny_list *) + sizeof(uint64_t);
 }
 
+uint64_t sizeofAnnotation(){
+    return 2*sizeof(uint64_t) + sizeof(char) + sizeof(char *);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;
@@ -304,4 +308,8 @@ void printSyntenyListNode(Synteny_list * sbl){
         sb_ptr = sb_ptr->next;
     }
     getchar();
+}
+
+void printAnnotation(Annotation * a){
+    fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c : %s\n", a->start, a->end, a->strand, a->product);
 }

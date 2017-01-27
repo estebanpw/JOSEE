@@ -60,6 +60,10 @@ uint64_t sizeofSyntenyBlock();
 uint64_t sizeofSyntenyList();
 
 /*
+	To compute sizeof Annotation list when not using padding
+*/
+uint64_t sizeofAnnotation();
+/*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b);
@@ -104,5 +108,10 @@ void printSyntenyBlock(Synteny_block * b);
 	for all synteny blocks in a synteny node
 */
 void printSyntenyListNode(Synteny_list * sbl);
+
+/*
+	Prints an annotation
+*/
+void printAnnotation(Annotation * a);
 
 #endif /* COMPARISON_FUNCTIONS_H */
