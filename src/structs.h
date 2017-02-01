@@ -85,6 +85,11 @@ typedef struct frags_list{
     struct frags_list * next;
 } Frags_list;
 
+typedef struct linked_list_pos{
+    uint64_t pos;
+    struct linked_list_pos * next;
+} llpos;
+
 //A block that belongs to a genome and that has some synteny level (conserved block)
 typedef struct block{
     uint64_t start;     //Starting coordinate
@@ -95,6 +100,12 @@ typedef struct block{
     unsigned char present_in_synteny;   //To tell whether it has already been used in a synteny block
     unsigned char strand_in_synteny;    //The strand that it has at the synteny block
 } Block;
+
+typedef struct word{
+    uint64_t hash;
+    uint64_t pos;
+    Sequence * genome;
+} Word;
 
 //A synteny block is a collection of blocks
 typedef struct synteny_block{
@@ -130,6 +141,11 @@ typedef struct bucket {
 	Block b;
 	struct bucket * next;
 } Bucket;
+
+typedef struct wordbucket{
+    Word w;
+    struct wordbucket * next;
+} Wordbucket;
 
 typedef struct annotation{
     uint64_t start;
@@ -198,6 +214,27 @@ private:
     void insert_y_side(struct FragFile * f);
 };
 
+class dictionary_hash{
+private:
+    Wordbucket * words;
+    uint64_t k_size;
+    memory_pool * mp;
+public:
+    dictionary_hash(uint64_t k_size);
+    Wordbucket * put_and_hit(unsigned char * kmer, uint64_t position, Sequence * genome);
+private:
+    uint64_t compute_hash(unsigned char * kmer);
+};
+
+
+
+
+
+
+
+
+
+//DEPRECATED
 // There will be one strand matrix per synteny block
 class strand_matrix
 {
