@@ -60,9 +60,18 @@ uint64_t sizeofSyntenyBlock();
 uint64_t sizeofSyntenyList();
 
 /*
-	To compute sizeof Annotation list when not using padding
+	To compute sizeof Annotation when not using padding
 */
 uint64_t sizeofAnnotation();
+
+/*
+	To compute sizeof Word when not using padding
+*/
+uint64_t sizeofWord();
+/*
+	To compute sizeof Wordbucket when not using padding
+*/
+uint64_t sizeofWordbucket();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */

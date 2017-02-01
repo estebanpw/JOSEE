@@ -246,6 +246,14 @@ uint64_t sizeofAnnotation(){
     return 2*sizeof(uint64_t) + sizeof(char) + sizeof(char *);
 }
 
+uint64_t sizeofWord(){
+    return 2*sizeof(uint64_t) + sizeof(Sequence *);
+}
+
+uint64_t sizeofWordbucket(){
+    return sizeofWord() + sizeof(Wordbucket *);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;

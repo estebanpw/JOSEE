@@ -73,4 +73,19 @@ Annotation * binary_search_annotations(uint64_t start, uint64_t end, Annotation 
 */
 void quick_sort_annotations(Annotation * array, uint64_t x, uint64_t y);
 
+/**
+ *	Compute the power of n to for with a lookup table
+ */
+uint64_t quick_pow4(uint32_t n);
+
+/*
+ *	Compute the power of 0,1,2,3 to the power of n quickly by lookup table
+*/
+uint64_t quick_pow4byLetter(uint32_t n, const char c);
+
+/**
+ *	Compute the hash of a word of letters of length k (in ascii)
+ */
+uint64_t hashOfWord(const char * word, uint32_t k);
+
 #endif /* COMMON_FUNCTIONS_H */

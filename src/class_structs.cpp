@@ -782,3 +782,25 @@ sequence_manager::~sequence_manager(){
 		std::free(this->annotation_lists);
 	}
 }
+
+dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
+	this->words = (Wordbucket *) std::calloc(init_size, sizeofWordbucket());
+	this->ht_size = init_size;
+	this->kmer_size = kmer_size;
+
+	//Just in case the init size is larger than the highest genome
+	if(init_size < highest_key){
+		this->key_factor = (double)(init_size)/(highest_key);
+	}else{
+		this->key_factor = 1.0;
+	}
+}
+
+
+uint64_t dictionary_hash::compute_hash(char * kmer){
+	return hashOfWord(kmer, this->kmer_size);
+}
+
+dictionary_hash::~dictionary_hash(){
+	std::free(this->words);
+}

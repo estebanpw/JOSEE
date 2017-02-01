@@ -217,13 +217,16 @@ private:
 class dictionary_hash{
 private:
     Wordbucket * words;
-    uint64_t k_size;
+    uint64_t ht_size;
+    uint32_t kmer_size;
+    double key_factor;
     memory_pool * mp;
 public:
-    dictionary_hash(uint64_t k_size);
+    dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size);
     Wordbucket * put_and_hit(unsigned char * kmer, uint64_t position, Sequence * genome);
+    ~dictionary_hash();
 private:
-    uint64_t compute_hash(unsigned char * kmer);
+    uint64_t compute_hash(char * kmer);
 };
 
 
