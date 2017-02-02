@@ -440,9 +440,9 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 }
 
 
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
 	
-	dictionary_hash * words_dictionary = new dictionary_hash(uint64_t init_size, seq_man->get_maximum_length(), uint32_t kmer_size);
+	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
 
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;

@@ -88,4 +88,26 @@ uint64_t quick_pow4byLetter(uint32_t n, const char c);
  */
 uint64_t hashOfWord(const char * word, uint32_t k);
 
+/**
+ *	Compares two nucleotides and returns either POINT or -POINT
+ */
+inline int64_t compare_letters(char a, char b);
+
+/**
+ *	Checks if two regions are overlapped
+ */
+int overlapped_words(uint64_t xstart, uint64_t xend, uint64_t ystart, uint64_t yend);
+
+/**
+ *	Ungapped alignment in hit from words a and b
+ */
+void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size);
+
+/*
+	Produces the dictionary and aligns the blocks in a synteny block
+	The qfmat stores the best fragments
+*/
+void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state);
+
+
 #endif /* COMMON_FUNCTIONS_H */

@@ -51,4 +51,4 @@ void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size);

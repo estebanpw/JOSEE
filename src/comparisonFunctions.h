@@ -72,6 +72,11 @@ uint64_t sizeofWord();
 	To compute sizeof Wordbucket when not using padding
 */
 uint64_t sizeofWordbucket();
+
+/*
+	To compute sizeof quickfrag when not using padding
+*/
+uint64_t sizeofQuickfrag();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */

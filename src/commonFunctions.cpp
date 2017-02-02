@@ -301,3 +301,201 @@ uint64_t hashOfWord(const char * word, uint32_t k){
     return value;
     
 }
+
+inline int64_t compare_letters(char a, char b){
+    if(a != 'N') return (a == b) ? POINT : -POINT;
+    return -POINT;
+}
+
+int overlapped_words(uint64_t xstart, uint64_t xend, uint64_t ystart, uint64_t yend){
+    if(xstart <= yend && ystart <= xend) return 0; //Overlap
+    if(xstart < ystart) return -1;
+    return 1;
+}
+
+void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size){
+
+    //@Important: a->pos and b->pos should be ending of the hit + 1
+
+    int64_t curr_pos_a = (int64_t) a->pos;
+    int64_t curr_pos_b = (int64_t) b->pos;
+    int64_t final_end_a = (int64_t) a->pos - 1, final_start_a = final_end_a - kmer_size + 1, final_start_b = curr_pos_b - kmer_size;
+    int64_t score_right = (int64_t) kmer_size * POINT;
+    int64_t score_left = score_right;
+    int64_t high_left = score_left, high_right = score_right;
+    qf->t_len = kmer_size;
+    uint64_t idents = kmer_size;
+
+    int keep_going = 1;
+
+    //Forward search
+    while(keep_going == 1){
+        
+        
+        if(score_right > 0 && curr_pos_a < (int64_t)a->genome->len && curr_pos_b < (int64_t)b->genome->len){
+            if(curr_pos_a  > (int64_t)a->genome->len ||  curr_pos_b > (int64_t)b->genome->len) break;
+            if(compare_letters(a->genome->seq[curr_pos_a], b->genome->seq[curr_pos_b]) == POINT){ score_right+=POINT; idents++; }else{ score_right-=POINT;}
+            if(high_right <= score_right){
+                final_end_a = curr_pos_a;
+                high_right = score_right;
+            }
+            curr_pos_a++;
+            curr_pos_b++;
+        }else{
+            keep_going = 0;
+        }
+    }
+
+    keep_going = 1;
+    curr_pos_a = a->pos - kmer_size - 1;
+    curr_pos_b = b->pos - kmer_size - 1;
+
+    score_left = high_right;
+
+    //Backward search
+    while(keep_going == 1){
+        
+        if(score_left > 0 && curr_pos_a >= 0 && curr_pos_b >= 0){
+            if(curr_pos_a < 0 || curr_pos_b < 0 ) break;
+            if(compare_letters(a->genome->seq[curr_pos_a], b->genome->seq[curr_pos_b]) == POINT){ score_left+=POINT; idents++; }else{ score_left-=POINT;}
+            if(high_left <= score_left){
+                final_start_a = curr_pos_a;
+                final_start_b = curr_pos_b;
+                high_left = score_left;
+            }
+            curr_pos_a--;
+            curr_pos_b--;
+        }else{
+            keep_going = 0;
+        }
+    }
+
+    qf->t_len = final_end_a - final_start_a;
+    qf->identities = ((long double)idents/(long double)qf->t_len);
+    qf->x_start = final_start_a;
+    qf->y_start = final_start_b;
+    qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
+
+}
+
+
+
+void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state){
+
+    //@Important: A single hit between two sequences should be enough to align two blocks
+
+    //Erase what we had for previous alignments
+    dhw->clear();
+    uint64_t i,j;
+    for(i=0;i<sbl->synteny_level;i++){
+        for(j=0;j<sbl->synteny_level;j++) qfmat_state[i][j] = 0;
+    }
+    Synteny_list * sbl_ptr = sbl;
+    //To keep track of where we were
+    uint64_t head_readers[sbl->synteny_level];
+    uint64_t advanced_steps = 1;
+
+    //Kmer reading
+    char curr_kmer[kmer_size];
+    uint64_t kmer_index = 0;
+    char c;
+
+    //Set head readers to zero to keep track of where hits are
+    for(i=0;i<sbl->synteny_level;i++) head_readers[i] = 0;
+
+    //To make things clearer
+    Sequence * saux;
+    Quickfrag * qf;
+    Quickfrag aligned_qf;
+    int64_t curr_diag;
+    Word align_word;
+
+    //And to speed things up
+    uint64_t precomputed_sizeofQuickfrag = sizeofQuickfrag();
+    Wordbucket * hit;
+
+    while(advanced_steps > 0){
+
+        advanced_steps = 0; //To tell when we are done
+        //Restart pointing
+        sbl_ptr = sbl;
+        while(sbl_ptr != NULL){
+
+            saux = sbl_ptr->sb->b->genome; //In the sake of clarity
+            //Get next word of current block
+            while(kmer_index < kmer_size && head_readers[saux->id] < saux->len){
+
+                //Get nucleotide
+                c = saux->seq[head_readers[saux->id]];
+                head_readers[saux->id]++;
+                advanced_steps++;
+
+                if(c == 'A' || c == 'C' || c == 'T' || c == 'G'){
+                    curr_kmer[kmer_index] = c;
+                    kmer_index++;
+                }else{
+                    kmer_index = 0;
+                }
+            }
+
+            //Check if we have a kmer big enough
+            if(kmer_index >= kmer_size){
+
+                //Insert word in dictionary 
+                hit = dhw->put_and_hit(curr_kmer, 'f', head_readers[saux->id], saux);
+
+                if(hit != NULL){
+
+                    //In the sake of clarity
+                    qf = &qfmat[saux->id][hit->w.genome->id];
+
+                    //We have a hit we should try an alignment
+                    //only if the hit is not overlapping
+                    //or it is overlapping but on different diagonal
+                    if(qfmat_state[saux->id][hit->w.genome->id] == 0){
+                        //There is no frag yet, so try first one
+                        align_word.pos = head_readers[saux->id];
+                        align_word.strand = 'f';
+                        align_word.genome = saux;
+                        alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+
+                        qfmat_state[saux->id][hit->w.genome->id] = 1;
+                        memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
+                        memcpy(&qfmat[hit->w.genome->id][saux->id], &aligned_qf, precomputed_sizeofQuickfrag);
+
+                    }else{
+                        //There is already a frag, check for overlapping and diagonal
+                        if(overlapped_words(qf->x_start, qf->x_start+qf->t_len, head_readers[saux->id]-kmer_size-1, head_readers[saux->id]-1) != 0){
+                            //If it is not overlapped 
+                            curr_diag = (int64_t) head_readers[saux->id] - (int64_t) hit->w.pos;
+                            if(curr_diag != qf->diag){
+                                //We can try new alignment
+                                align_word.pos = head_readers[saux->id];
+                                align_word.strand = 'f';
+                                align_word.genome = saux;
+                                alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                                
+                                //Only copy if new alignment is better 
+                                if(aligned_qf.identities > qf->identities){
+                                    memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
+                                    memcpy(&qfmat[hit->w.genome->id][saux->id], &aligned_qf, precomputed_sizeofQuickfrag);
+                                }
+                            }
+                        }
+                    }
+                    
+                }
+
+                //Insert reversed word in dictionary
+
+
+            }
+
+            //Advance
+            sbl_ptr = sbl_ptr->next;
+            kmer_index = 0;
+        }
+    }
+    
+}
+

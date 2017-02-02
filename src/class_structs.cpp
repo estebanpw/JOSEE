@@ -625,7 +625,13 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
                     c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
                     c = toupper(c);
                     if(c >= 'A' && c <= 'Z'){
-                        all_sequences[i][curr_pos++] = c;
+                        
+						if(c != 'A' && c != 'C' && c != 'G' && c != 'T'){
+							all_sequences[i][curr_pos++] = 'N';
+						}else{
+							all_sequences[i][curr_pos++] = c;
+						}
+
                         if(curr_pos >= SEQ_REALLOC*n_reallocs[i]){
                             n_reallocs[i]++;
                             all_sequences[i] = (char *) std::realloc(all_sequences[i], n_reallocs[i]*SEQ_REALLOC);
@@ -812,7 +818,7 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 	}
 }
 
-Wordbucket * dictionary_hash::put_and_hit(char * kmer, uint64_t position, Sequence * genome){
+Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome){
 	uint64_t hash = compute_hash(kmer);
 
 	//Insert new word in hash table
@@ -822,6 +828,7 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, uint64_t position, Sequen
 		ptr->w.hash = hash;
 		ptr->w.pos = position;
 		ptr->w.genome = genome;
+		ptr->w.strand = strand;
 		ptr->next = ptr->next;
 		ptr->next = NULL;
 		return NULL;
@@ -836,6 +843,7 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, uint64_t position, Sequen
 			new_word->w.hash = hash;
 			new_word->w.pos = position;
 			new_word->w.genome = genome;
+			new_word->w.strand = strand;
 			new_word->next = ptr->next;
 			ptr->next = new_word;
 			return ptr;
@@ -849,6 +857,7 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, uint64_t position, Sequen
 	new_word->w.hash = hash;
 	new_word->w.pos = position;
 	new_word->w.genome = genome;
+	new_word->w.strand = strand;
 	new_word->next = ptr->next;
 	ptr->next = new_word;
 

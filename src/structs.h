@@ -12,6 +12,7 @@
 #define READLINE 2000
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000
+#define TABLE_RATE 100 //hash table lengh divisor
 
 #define MAX_MEM_POOLS 256
 #define POOL_SIZE 1024*1024*128 //128 MB
@@ -23,6 +24,8 @@
 
 #define FORWARD 1
 #define REVERSE 2
+
+#define POINT 4
 
 class memory_pool;
 class hash_table;
@@ -70,6 +73,14 @@ struct FragFile {
     long double evalue;
 };
 
+typedef struct quickfrag{
+    uint64_t x_start;
+    uint64_t y_start;
+    uint64_t t_len;
+    int64_t diag;
+    long double identities;
+} Quickfrag;
+
 //Sequence descriptor
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
@@ -104,6 +115,7 @@ typedef struct block{
 typedef struct word{
     uint64_t hash;
     uint64_t pos;
+    char strand;
     Sequence * genome;
 } Word;
 
@@ -226,7 +238,7 @@ private:
     memory_pool * mp;
 public:
     dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size);
-    Wordbucket * put_and_hit(char * kmer, uint64_t position, Sequence * genome);
+    Wordbucket * put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome);
     void clear();
     ~dictionary_hash();
 private:
