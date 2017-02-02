@@ -861,7 +861,7 @@ void dictionary_hash::clear(){
 }
 
 uint64_t dictionary_hash::compute_hash(char * kmer){
-	return hashOfWord(kmer, this->kmer_size);
+	return this->key_factor * hashOfWord(kmer, this->kmer_size);
 }
 
 dictionary_hash::~dictionary_hash(){
