@@ -370,11 +370,23 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfra
         }
     }
 
+    
+
     qf->t_len = final_end_a - final_start_a;
     qf->identities = ((long double)idents/(long double)qf->t_len);
     qf->x_start = final_start_a;
     qf->y_start = final_start_b;
     qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
+
+    if(qf->t_len < 60){
+        printf("From hits\n");
+        seq_man->print_sequence_region(a->genome->id, a->pos - kmer_size, a->pos);
+        seq_man->print_sequence_region(b->genome->id, b->pos - kmer_size, b->pos);
+        printf("Aligned\n");
+        seq_man->print_sequence_region(a->genome->id, final_start_a, final_end_a);
+        seq_man->print_sequence_region(b->genome->id, final_start_b, final_start_b+qf->t_len);
+        getchar();
+    }
 
 }
 
@@ -436,7 +448,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
             //Check if we have a kmer big enough
             if(kmer_index >= kmer_size){
 
-                printf("Putting %s at %"PRIu64"\n", curr_kmer, advanced_steps);
+                //printf("Putting %s at %"PRIu64"\n", curr_kmer, advanced_steps);
 
                 //Insert word in dictionary 
                 hit = dhw->put_and_hit(curr_kmer, 'f', advanced_steps, saux);
@@ -444,7 +456,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
 
                 if(hit != NULL){
                     printf("Got hit\n");
-                    getchar();
+                    //getchar();
                     //In the sake of clarity
                     qf = &qfmat[saux->id][hit->w.genome->id];
 
@@ -453,6 +465,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                     //or it is overlapping but on different diagonal
                     if(qfmat_state[saux->id][hit->w.genome->id] == 0){
                         printf("BINGO!!!!!!!!!!!!!\n");
+                        //getchar();
                         //There is no frag yet, so try first one
                         align_word.pos = advanced_steps;
                         align_word.strand = 'f';
@@ -465,6 +478,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
 
                     }else{
                         printf("on the else track\n");
+                        //getchar();
                         //There is already a frag, check for overlapping and diagonal
                         if(overlapped_words(qf->x_start, qf->x_start+qf->t_len, advanced_steps-kmer_size-1, advanced_steps-1) != 0){
                             //If it is not overlapped 
@@ -476,6 +490,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                                 align_word.genome = saux;
                                 alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
                                 printf("MEGA BING$$$$$$$$$\n");
+                                //getchar();
 
                                 //Only copy if new alignment is better 
 

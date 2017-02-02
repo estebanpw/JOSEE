@@ -785,6 +785,14 @@ void sequence_manager::print_annotations(){
 	}
 }
 
+void sequence_manager::print_sequence_region(uint64_t label, uint64_t from, uint64_t to){
+	uint64_t i;
+	for(i=from;i<to;i++){
+		printf("%c", this->sequences[label].seq[i]);
+	}
+	printf("\n");
+}
+
 sequence_manager::~sequence_manager(){
 	uint64_t i;
 	for(i=0;i<this->n_sequences;i++){
@@ -827,15 +835,13 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 	Wordbucket * ptr = this->words[hash];
 
 	if(ptr == NULL){ //Insert at head
-		Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
-		ptr = new_word;
-		ptr->w.hash = hash;
-		ptr->w.pos = position;
-		ptr->w.genome = genome;
-		ptr->w.strand = strand;
-		ptr->next = ptr->next;
-		ptr->next = NULL;
-		//printf("U see? its null\n");
+		this->words[hash] = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+		this->words[hash]->w.hash = hash;
+		this->words[hash]->w.pos = position;
+		this->words[hash]->w.genome = genome;
+		this->words[hash]->w.strand = strand;
+		this->words[hash]->next = NULL;
+		printf("U see? its null\n");
 		return NULL;
 	}
 
@@ -849,25 +855,26 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 			new_word->w.pos = position;
 			new_word->w.genome = genome;
 			new_word->w.strand = strand;
-			new_word->next = ptr->next;
-			ptr->next = new_word;
-			//printf("not here\n");
+			new_word->next = this->words[hash];
+			this->words[hash] = new_word;
+
+			printf("not here\n");
 			return ptr;
 		}
 		ptr = ptr->next;
 	}
 	
 	//If we did not return here there is are other words but no matches.
-	//Insert at end
+	//Insert at head
 	Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
 	new_word->w.hash = hash;
 	new_word->w.pos = position;
 	new_word->w.genome = genome;
 	new_word->w.strand = strand;
-	new_word->next = ptr->next;
-	ptr->next = new_word;
+	new_word->next = this->words[hash];
+	this->words[hash] = new_word;
 
-	//printf("so whats the last message?\n");
+	printf("so whats the last message?\n");
 	//No hit found and inserted correctly
 	return NULL;
 }

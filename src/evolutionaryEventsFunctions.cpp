@@ -503,8 +503,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				
 			}
 
-			getchar();
-			printf("BREAK\n");
+			//getchar();
 
 		}
 
