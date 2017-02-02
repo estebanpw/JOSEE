@@ -521,6 +521,7 @@ uint64_t sequence_manager::load_sequences_descriptors(FILE * lengths_file){
         this->sequences[i].id = i;
         this->sequences[i].acum = acum;
         if(1 != fread(&this->sequences[i].len, sizeof(uint64_t), 1, lengths_file)) terror("Wrong number of sequences or sequence file corrupted");
+		this->sequences[i].len = this->sequences[i].len + 1;
         acum += this->sequences[i].len;
         //fprintf(stdout, "[INFO] Sequence %"PRIu64" has length %"PRIu64"\n", i, st[i].len);
         i++;
@@ -821,16 +822,20 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome){
 	uint64_t hash = compute_hash(kmer);
 
+	//printf("welcome my hash is %"PRIu64" and I have %"PRIu64"\n", hash, this->ht_size);
 	//Insert new word in hash table
 	Wordbucket * ptr = this->words[hash];
 
 	if(ptr == NULL){ //Insert at head
+		Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+		ptr = new_word;
 		ptr->w.hash = hash;
 		ptr->w.pos = position;
 		ptr->w.genome = genome;
 		ptr->w.strand = strand;
 		ptr->next = ptr->next;
 		ptr->next = NULL;
+		//printf("U see? its null\n");
 		return NULL;
 	}
 
@@ -846,6 +851,7 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 			new_word->w.strand = strand;
 			new_word->next = ptr->next;
 			ptr->next = new_word;
+			//printf("not here\n");
 			return ptr;
 		}
 		ptr = ptr->next;
@@ -861,6 +867,7 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 	new_word->next = ptr->next;
 	ptr->next = new_word;
 
+	//printf("so whats the last message?\n");
 	//No hit found and inserted correctly
 	return NULL;
 }
@@ -870,7 +877,7 @@ void dictionary_hash::clear(){
 }
 
 uint64_t dictionary_hash::compute_hash(char * kmer){
-	return this->key_factor * hashOfWord(kmer, this->kmer_size);
+	return hashOfWord(kmer, this->kmer_size) % this->ht_size;
 }
 
 dictionary_hash::~dictionary_hash(){

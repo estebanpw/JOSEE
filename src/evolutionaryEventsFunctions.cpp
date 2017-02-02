@@ -443,6 +443,16 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
 	
 	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
+	Quickfrag ** qfmat = (Quickfrag **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(Quickfrag *));
+	unsigned char ** qfmat_state = (unsigned char **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(unsigned char *));
+	if(qfmat == NULL || qfmat_state == NULL) terror("Could not allocate pairwise alignment matrix (1)");
+	uint64_t i;
+	for(i=0;i<seq_man->get_number_of_sequences();i++){
+		qfmat[i] = (Quickfrag *) std::malloc(seq_man->get_number_of_sequences()*sizeofQuickfrag());
+		qfmat_state[i] = (unsigned char *) std::malloc(seq_man->get_number_of_sequences()*sizeof(unsigned char));
+		if(qfmat[i] == NULL || qfmat_state[i] == NULL) terror("Could not allocate pairwsie alignment matrix (2)");
+	}
+
 
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
@@ -467,20 +477,32 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 			//5-level
 			if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
+
+				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
+				//Lets say we pass list C as argument since its the one in the middle
+				read_words_from_synteny_block_and_align(seq_man, C, kmer_size, words_dictionary, qfmat, qfmat_state);
+
+				/*
 				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
 				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
 				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
 				if(D != NULL) printSyntenyBlock(D->sb);//sm_D->print_strand_matrix();printf("\nNEXT\n");
 				if(E != NULL) printSyntenyBlock(E->sb);//sm_E->print_strand_matrix();printf("\nNEXT\n");
+				*/
 
 			}else{
+
+				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
+				read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+
+				/*
 				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
 				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
 				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
+				*/
 				
 			}
 
-			// At this point we have the strand matrix generated for the 
 			getchar();
 			printf("BREAK\n");
 
@@ -496,6 +518,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(E != NULL) E = E->next;
 
 	}
+
+	for(i=0;i<seq_man->get_number_of_sequences();i++){
+		free(qfmat[i]);
+		free(qfmat_state[i]);
+	}
+	free(qfmat);
+	free(qfmat_state);
 
 	delete words_dictionary;
 }

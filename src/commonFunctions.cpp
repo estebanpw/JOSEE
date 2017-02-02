@@ -391,17 +391,14 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
         for(j=0;j<sbl->synteny_level;j++) qfmat_state[i][j] = 0;
     }
     Synteny_list * sbl_ptr = sbl;
-    //To keep track of where we were
-    uint64_t head_readers[sbl->synteny_level];
-    uint64_t advanced_steps = 1;
+    Synteny_block * sb_ptr;
+    //To keep track of where we are
+    uint64_t advanced_steps;
 
     //Kmer reading
     char curr_kmer[kmer_size];
     uint64_t kmer_index = 0;
     char c;
-
-    //Set head readers to zero to keep track of where hits are
-    for(i=0;i<sbl->synteny_level;i++) head_readers[i] = 0;
 
     //To make things clearer
     Sequence * saux;
@@ -414,38 +411,40 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     uint64_t precomputed_sizeofQuickfrag = sizeofQuickfrag();
     Wordbucket * hit;
 
-    while(advanced_steps > 0){
+    
+    sb_ptr = sbl_ptr->sb;
 
-        advanced_steps = 0; //To tell when we are done
-        //Restart pointing
-        sbl_ptr = sbl;
-        while(sbl_ptr != NULL){
+    //For all blocks in the synteny
+    while(sb_ptr != NULL){
 
-            saux = sbl_ptr->sb->b->genome; //In the sake of clarity
-            //Get next word of current block
-            while(kmer_index < kmer_size && head_readers[saux->id] < saux->len){
+        saux = sb_ptr->b->genome; //In the sake of clarity
+        //Get next word of current block
+        advanced_steps = sb_ptr->b->start;
+        while(advanced_steps < sb_ptr->b->end){
 
-                //Get nucleotide
-                c = saux->seq[head_readers[saux->id]];
-                head_readers[saux->id]++;
-                advanced_steps++;
+            //Get nucleotide
+            c = saux->seq[advanced_steps];
+            advanced_steps++;
 
-                if(c == 'A' || c == 'C' || c == 'T' || c == 'G'){
-                    curr_kmer[kmer_index] = c;
-                    kmer_index++;
-                }else{
-                    kmer_index = 0;
-                }
+            if(c == 'A' || c == 'C' || c == 'T' || c == 'G'){
+                curr_kmer[kmer_index] = c;
+                kmer_index++;
+            }else{
+                kmer_index = 0;
             }
 
             //Check if we have a kmer big enough
             if(kmer_index >= kmer_size){
 
+                printf("Putting %s at %"PRIu64"\n", curr_kmer, advanced_steps);
+
                 //Insert word in dictionary 
-                hit = dhw->put_and_hit(curr_kmer, 'f', head_readers[saux->id], saux);
+                hit = dhw->put_and_hit(curr_kmer, 'f', advanced_steps, saux);
+
 
                 if(hit != NULL){
-
+                    printf("Got hit\n");
+                    getchar();
                     //In the sake of clarity
                     qf = &qfmat[saux->id][hit->w.genome->id];
 
@@ -453,8 +452,9 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                     //only if the hit is not overlapping
                     //or it is overlapping but on different diagonal
                     if(qfmat_state[saux->id][hit->w.genome->id] == 0){
+                        printf("BINGO!!!!!!!!!!!!!\n");
                         //There is no frag yet, so try first one
-                        align_word.pos = head_readers[saux->id];
+                        align_word.pos = advanced_steps;
                         align_word.strand = 'f';
                         align_word.genome = saux;
                         alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
@@ -464,18 +464,21 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                         memcpy(&qfmat[hit->w.genome->id][saux->id], &aligned_qf, precomputed_sizeofQuickfrag);
 
                     }else{
+                        printf("on the else track\n");
                         //There is already a frag, check for overlapping and diagonal
-                        if(overlapped_words(qf->x_start, qf->x_start+qf->t_len, head_readers[saux->id]-kmer_size-1, head_readers[saux->id]-1) != 0){
+                        if(overlapped_words(qf->x_start, qf->x_start+qf->t_len, advanced_steps-kmer_size-1, advanced_steps-1) != 0){
                             //If it is not overlapped 
-                            curr_diag = (int64_t) head_readers[saux->id] - (int64_t) hit->w.pos;
+                            curr_diag = (int64_t) advanced_steps - (int64_t) hit->w.pos;
                             if(curr_diag != qf->diag){
                                 //We can try new alignment
-                                align_word.pos = head_readers[saux->id];
+                                align_word.pos = advanced_steps;
                                 align_word.strand = 'f';
                                 align_word.genome = saux;
                                 alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
-                                
+                                printf("MEGA BING$$$$$$$$$\n");
+
                                 //Only copy if new alignment is better 
+
                                 if(aligned_qf.identities > qf->identities){
                                     memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
                                     memcpy(&qfmat[hit->w.genome->id][saux->id], &aligned_qf, precomputed_sizeofQuickfrag);
@@ -488,13 +491,16 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
 
                 //Insert reversed word in dictionary
 
-
+                //Displace 
+                memmove(&curr_kmer[0], &curr_kmer[1], kmer_size-1);
+                kmer_index--;
             }
 
-            //Advance
-            sbl_ptr = sbl_ptr->next;
-            kmer_index = 0;
         }
+
+        //Advance block
+        sb_ptr = sb_ptr->next;
+        kmer_index = 0;
     }
     
 }
