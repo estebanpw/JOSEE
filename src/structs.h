@@ -14,7 +14,7 @@
 #define INIT_TRIM_FRAGS 10000
 
 #define MAX_MEM_POOLS 256
-#define POOL_SIZE 1024*1024*256 //256 MB
+#define POOL_SIZE 1024*1024*128 //128 MB
 
 #define NOFRAG 0
 #define OPENFRAG 1
@@ -128,11 +128,13 @@ private:
     uint64_t * base;
     uint64_t current_pool;
     uint64_t max_pools;
+    uint64_t pool_size;
 
 public:
-    memory_pool(uint64_t max_pools);
+    memory_pool(uint64_t max_pools, uint64_t pool_size);
     void * request_bytes(uint64_t bytes);
     void reset_n_bytes(uint64_t bytes);
+    void full_reset();
     ~memory_pool();
 };
 
@@ -216,14 +218,16 @@ private:
 
 class dictionary_hash{
 private:
-    Wordbucket * words;
+    Wordbucket ** words;
     uint64_t ht_size;
     uint32_t kmer_size;
+    uint64_t computed_sizeofwordbucket;
     double key_factor;
     memory_pool * mp;
 public:
     dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size);
-    Wordbucket * put_and_hit(unsigned char * kmer, uint64_t position, Sequence * genome);
+    Wordbucket * put_and_hit(char * kmer, uint64_t position, Sequence * genome);
+    void clear();
     ~dictionary_hash();
 private:
     uint64_t compute_hash(char * kmer);

@@ -6,7 +6,8 @@
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
 
-memory_pool::memory_pool(uint64_t max_pools)
+
+memory_pool::memory_pool(uint64_t max_pools, uint64_t pool_size)
 {
 	this->current_pool = 0;
 	this->max_pools = max_pools;
@@ -14,17 +15,19 @@ memory_pool::memory_pool(uint64_t max_pools)
 	this->base = (uint64_t *) std::malloc(max_pools * sizeof(uint64_t));
 	this->base[0] = 0;
 	if (this->mem_pool == NULL) terror("Could not allocate memory pools");
-	this->mem_pool[0] = (char *) std::calloc(POOL_SIZE, sizeof(char));
+	this->mem_pool[0] = (char *) std::calloc(pool_size, sizeof(char));
 	if (this->mem_pool[0] == NULL) terror("Could not allocate initial memory pool");
+
+	this->pool_size = pool_size;
 }
 
 void * memory_pool::request_bytes(uint64_t n_bytes)
 {
 	void * ptr;
-	if (this->base[this->current_pool] + n_bytes >= POOL_SIZE) {
+	if (this->base[this->current_pool] + n_bytes >= this->pool_size) {
 		this->current_pool++;
 		if(this->current_pool == this->max_pools) terror("Reached maximum number of pools. Exiting.");
-		this->mem_pool[this->current_pool] = (char *) std::calloc(POOL_SIZE, sizeof(char));
+		this->mem_pool[this->current_pool] = (char *) std::calloc(this->pool_size, sizeof(char));
 		if (this->mem_pool[this->current_pool] == NULL) terror("Could not allocate memory pool");
 		this->base[this->current_pool] = 0;
 	}
@@ -39,6 +42,12 @@ void memory_pool::reset_n_bytes(uint64_t bytes){
 	//Makes no checks, assuming you allocated some a priori
 	if(bytes >= this->base[current_pool]){
 		this->base[current_pool] = this->base[current_pool] - bytes;
+	}
+}
+
+void memory_pool::full_reset(){
+	for (uint64_t i = 0; i <= this->current_pool; i++) {
+		memset(this->mem_pool[i], 0, this->pool_size);
 	}
 }
 
@@ -784,10 +793,17 @@ sequence_manager::~sequence_manager(){
 }
 
 dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
-	this->words = (Wordbucket *) std::calloc(init_size, sizeofWordbucket());
 	this->ht_size = init_size;
 	this->kmer_size = kmer_size;
+	this->mp = new memory_pool(MAX_MEM_POOLS, (init_size * sizeofWordbucket()));
 
+	this->words = (Wordbucket **) this->mp->request_bytes(init_size * sizeof(Wordbucket *));
+
+	uint64_t i;
+	for(i=0;i<init_size;i++) this->words[i] = NULL;
+
+
+	this->computed_sizeofwordbucket = sizeofWordbucket();
 	//Just in case the init size is larger than the highest genome
 	if(init_size < highest_key){
 		this->key_factor = (double)(init_size)/(highest_key);
@@ -796,11 +812,58 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 	}
 }
 
+Wordbucket * dictionary_hash::put_and_hit(char * kmer, uint64_t position, Sequence * genome){
+	uint64_t hash = compute_hash(kmer);
+
+	//Insert new word in hash table
+	Wordbucket * ptr = this->words[hash];
+
+	if(ptr == NULL){ //Insert at head
+		ptr->w.hash = hash;
+		ptr->w.pos = position;
+		ptr->w.genome = genome;
+		ptr->next = ptr->next;
+		ptr->next = NULL;
+		return NULL;
+	}
+
+	//Else there is already some word 
+	while(ptr != NULL){
+		if(hash == ptr->w.hash && ptr->w.genome->id != genome->id){
+			//Same hash and different sequences -> its a hit
+			//Insert and return 
+			Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+			new_word->w.hash = hash;
+			new_word->w.pos = position;
+			new_word->w.genome = genome;
+			new_word->next = ptr->next;
+			ptr->next = new_word;
+			return ptr;
+		}
+		ptr = ptr->next;
+	}
+	
+	//If we did not return here there is are other words but no matches.
+	//Insert at end
+	Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+	new_word->w.hash = hash;
+	new_word->w.pos = position;
+	new_word->w.genome = genome;
+	new_word->next = ptr->next;
+	ptr->next = new_word;
+
+	//No hit found and inserted correctly
+	return NULL;
+}
+
+void dictionary_hash::clear(){
+	this->mp->full_reset();
+}
 
 uint64_t dictionary_hash::compute_hash(char * kmer){
 	return hashOfWord(kmer, this->kmer_size);
 }
 
 dictionary_hash::~dictionary_hash(){
-	std::free(this->words);
+	delete this->mp;
 }

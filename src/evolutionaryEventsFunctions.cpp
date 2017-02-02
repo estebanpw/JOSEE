@@ -440,17 +440,9 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 }
 
 
-void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man){
 	
-	//Strand matrices
-	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
-	unsigned char ** _tmp;
-	sm_A = new strand_matrix(n_sequences);
-	sm_B = new strand_matrix(n_sequences);
-	sm_C = new strand_matrix(n_sequences);
-	sm_D = new strand_matrix(n_sequences);
-	sm_E = new strand_matrix(n_sequences);
-
+	dictionary_hash * words_dictionary = new dictionary_hash(uint64_t init_size, seq_man->get_maximum_length(), uint32_t kmer_size);
 
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
@@ -461,13 +453,6 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 	if(B != NULL) C = B->next; else return; //Three at least
 	if(C != NULL) D = C->next;
 	if(D != NULL) E = D->next;
-
-	//Generate their strand matrices
-	sm_A->add_fragment_strands(A);
-	sm_A->add_fragment_strands(B);
-	sm_A->add_fragment_strands(C);
-	sm_A->add_fragment_strands(D);
-	sm_A->add_fragment_strands(E);
 
 	while(A != NULL && B != NULL && C != NULL){ // AT least three
 
@@ -501,14 +486,6 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 
 		}
 
-		//Only generate the new strand matrix and pass the others
-		_tmp = sm_A->sm; // Do not lose pointer to strand matrix
-		sm_A->sm = sm_B->sm;
-		sm_B->sm = sm_C->sm;
-		sm_C->sm = sm_D->sm;
-		sm_D->sm = sm_E->sm;
-		sm_E->sm = _tmp; // Recover strand matrix
-
 		//advance pointers
 		A = B;
 		B = C;	
@@ -517,18 +494,9 @@ void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences){
 
 		//next iteration
 		if(E != NULL) E = E->next;
-		//And generate new strand matrix
-		sm_E->reset(); //Need hard reset to not use fragments from last synteny
-		sm_E->add_fragment_strands(E);
-		
 
 	}
 
-	delete sm_A;
-	delete sm_B;
-	delete sm_C;
-	delete sm_D;
-	delete sm_E;
-
+	delete words_dictionary;
 }
 

@@ -49,6 +49,6 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 
 /*
-	Detects if a reversion took place
+	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, uint64_t n_sequences);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man);

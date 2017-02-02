@@ -113,7 +113,7 @@ int main(int ac, char **av) {
     
     //Frags to blocks conversion %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    memory_pool * mp = new memory_pool(MAX_MEM_POOLS);
+    memory_pool * mp = new memory_pool(MAX_MEM_POOLS, POOL_SIZE);
     uint64_t max_len_sequence = seq_manager->get_maximum_length();
     uint64_t coord_aux;
     hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, seq_manager, max_len_sequence);
@@ -157,7 +157,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    //detect_evolutionary_event(synteny_block_list, n_files);
+    detect_evolutionary_event(synteny_block_list, seq_manager);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
