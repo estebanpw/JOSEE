@@ -478,7 +478,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			//5-level
 			if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
 
-				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
+				//if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
 				//Lets say we pass list C as argument since its the one in the middle
 				read_words_from_synteny_block_and_align(seq_man, C, kmer_size, words_dictionary, qfmat, qfmat_state);
 
@@ -492,7 +492,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 			}else{
 
-				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
+				//if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
 				read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 
 				/*

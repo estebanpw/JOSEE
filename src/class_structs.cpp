@@ -314,7 +314,7 @@ void hash_table::print_hash_table(int print){
 		}
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
-			//if(had_reversed == 1) getchar();
+			if(had_reversed == 1) getchar();
 		}
 		total_buckets += bck_counter;
 	}
@@ -812,8 +812,11 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 	this->kmer_size = kmer_size;
 	this->mp = new memory_pool(MAX_MEM_POOLS, (init_size * sizeofWordbucket()));
 
-	this->words = (Wordbucket **) this->mp->request_bytes(init_size * sizeof(Wordbucket *));
+	this->list_allocs = 1;
+	this->list = (Wordbucket **) std::malloc(INIT_CANDIDATES_ALIGN * sizeof(Wordbucket *));
+	if(this->list == NULL) terror("Could not allocate list for candidate hits");
 
+	this->words = (Wordbucket **) this->mp->request_bytes(init_size * sizeof(Wordbucket *));
 	uint64_t i;
 	for(i=0;i<init_size;i++) this->words[i] = NULL;
 
@@ -827,9 +830,12 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 	}
 }
 
-Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome){
+Wordbucket ** dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Block * b){
 	uint64_t hash = compute_hash(kmer);
 	uint64_t h_pos = hash %  this->ht_size;
+	this->n_list_pointers = 0;
+	bool inserted = false;
+
 
 	//printf("welcome my hash is %"PRIu64" and I have %"PRIu64"\n", hash, this->ht_size);
 	//Insert new word in hash table
@@ -839,44 +845,61 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 		this->words[h_pos] = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
 		this->words[h_pos]->w.hash = hash;
 		this->words[h_pos]->w.pos = position;
-		this->words[h_pos]->w.genome = genome;
+		this->words[h_pos]->w.b = b;
 		this->words[h_pos]->w.strand = strand;
 		this->words[h_pos]->next = NULL;
-		printf("U see? its null\n");
+		//printf("U see? its null\n");
 		return NULL;
 	}
 
 	//Else there is already some word 
 	while(ptr != NULL){
-		if(hash == ptr->w.hash && ptr->w.genome->id != genome->id){
+		if(hash == ptr->w.hash && ptr->w.b->genome->id != b->genome->id){
 			//Same hash and different sequences -> its a hit
-			//Insert and return 
-			Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
-			new_word->w.hash = hash;
-			new_word->w.pos = position;
-			new_word->w.genome = genome;
-			new_word->w.strand = strand;
-			new_word->next = this->words[h_pos];
-			this->words[h_pos] = new_word;
+			
+			if(inserted == false){
+				Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+				new_word->w.hash = hash;
+				new_word->w.pos = position;
+				new_word->w.b = b;
+				new_word->w.strand = strand;
+				new_word->next = this->words[h_pos];
+				this->words[h_pos] = new_word;
+				inserted = true;
+			}
+			
+			//Put in list of candidates
 
-			printf("not here\n");
-			return ptr;
+			//First check that there is room
+			if(this->n_list_pointers == this->list_allocs * INIT_CANDIDATES_ALIGN){
+				this->list_allocs++;
+				this->list = (Wordbucket **) std::realloc(this->list, this->list_allocs*INIT_CANDIDATES_ALIGN*sizeof(Wordbucket *));
+				if(this->list == NULL) terror("Could not realloc candidate hits for alignment");
+			}
+			//Insert 
+			this->list[this->n_list_pointers] = ptr;
+			this->n_list_pointers++;
+
+			//printf("not here\n");
 		}
 		ptr = ptr->next;
 	}
 	
-	//If we did not return here there is are other words but no matches.
-	//Insert at head
-	Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
-	new_word->w.hash = hash;
-	new_word->w.pos = position;
-	new_word->w.genome = genome;
-	new_word->w.strand = strand;
-	new_word->next = this->words[h_pos];
-	this->words[h_pos] = new_word;
 
-	printf("so whats the last message?\n");
-	//No hit found and inserted correctly
+	if(this->n_list_pointers == 0){
+		//There are words but no hit, insert
+		//Insert at head
+		Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+		new_word->w.hash = hash;
+		new_word->w.pos = position;
+		new_word->w.b = b;
+		new_word->w.strand = strand;
+		new_word->next = this->words[h_pos];
+		this->words[h_pos] = new_word;
+	}else{
+		return list;
+	}
+
 	return NULL;
 }
 

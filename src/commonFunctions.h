@@ -101,7 +101,7 @@ int overlapped_words(uint64_t xstart, uint64_t xend, uint64_t ystart, uint64_t y
 /**
  *	Ungapped alignment in hit from words a and b
  */
-void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size);
+void alignment_from_hit(sequence_manager * seq_man, Word * a, uint64_t start_block_a, uint64_t end_block_a, Word * b, uint64_t start_block_b, uint64_t end_block_b, Quickfrag * qf, uint64_t kmer_size);
 
 /*
 	Produces the dictionary and aligns the blocks in a synteny block

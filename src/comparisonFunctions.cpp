@@ -247,7 +247,7 @@ uint64_t sizeofAnnotation(){
 }
 
 uint64_t sizeofWord(){
-    return 2*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(char);
+    return 2*sizeof(uint64_t) + sizeof(Block *) + sizeof(char);
 }
 
 uint64_t sizeofWordbucket(){
@@ -324,4 +324,29 @@ void printSyntenyListNode(Synteny_list * sbl){
 
 void printAnnotation(Annotation * a){
     fprintf(stdout, "GENE: (%"PRIu64", %"PRIu64") %c : %s\n", a->start, a->end, a->strand, a->product);
+}
+
+void printQuickfrag(Quickfrag * qf){
+    printf("[%"PRIu64", %"PRIu64"] l:%"PRIu64", s:%Le, d=%"PRId64"\n",qf->x_start, qf->y_start, qf->t_len, qf->sim, qf->diag);
+}
+
+void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint64_t n_seqs){
+    uint64_t i,j;
+    printf(" \t");
+    for(i=0;i<n_seqs;i++){
+        printf(" %"PRIu64"  ", i);
+    }
+    printf("\n");
+    for(i=0;i<n_seqs;i++){
+        printf("%"PRIu64"\t", i);
+        for(j=0;j<n_seqs;j++){
+            if(qfmat_state[i][j] == 1){
+                printf("[%.1f] ", (float)qfmat[i][j].sim);
+            }else{
+                printf("[ ** ] ");
+            }
+            
+        }
+        printf("\n");
+    }
 }

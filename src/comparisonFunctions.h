@@ -128,4 +128,13 @@ void printSyntenyListNode(Synteny_list * sbl);
 */
 void printAnnotation(Annotation * a);
 
+/*
+	Print a quickfrag
+*/
+void printQuickfrag(Quickfrag * qf);
+/*
+	Prints the symmetric quickfrag matrix after a synteny block is aligned
+*/
+void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint64_t n_seqs);
+
 #endif /* COMPARISON_FUNCTIONS_H */

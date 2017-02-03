@@ -13,6 +13,7 @@
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000
 #define TABLE_RATE 100 //hash table lengh divisor
+#define INIT_CANDIDATES_ALIGN 100 //For wordbucket list
 
 #define MAX_MEM_POOLS 256
 #define POOL_SIZE 1024*1024*128 //128 MB
@@ -78,7 +79,7 @@ typedef struct quickfrag{
     uint64_t y_start;
     uint64_t t_len;
     int64_t diag;
-    long double identities;
+    long double sim;
 } Quickfrag;
 
 //Sequence descriptor
@@ -116,7 +117,7 @@ typedef struct word{
     uint64_t hash;
     uint64_t pos;
     char strand;
-    Sequence * genome;
+    Block * b;
 } Word;
 
 //A synteny block is a collection of blocks
@@ -160,6 +161,8 @@ typedef struct wordbucket{
     Word w;
     struct wordbucket * next;
 } Wordbucket;
+
+
 
 typedef struct annotation{
     uint64_t start;
@@ -232,6 +235,9 @@ private:
 class dictionary_hash{
 private:
     Wordbucket ** words;
+    Wordbucket ** list; //To retrieve all possible sequences to align with
+    uint64_t list_allocs; //how many times the list was reallocated
+    uint64_t n_list_pointers; //The number of pointers in the current list
     uint64_t ht_size;
     uint32_t kmer_size;
     uint64_t computed_sizeofwordbucket;
@@ -239,7 +245,8 @@ private:
     memory_pool * mp;
 public:
     dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size);
-    Wordbucket * put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome);
+    Wordbucket ** put_and_hit(char * kmer, char strand, uint64_t position, Block * b);
+    uint64_t get_candidates_number(){ return this->n_list_pointers;}
     void clear();
     ~dictionary_hash();
 private:
