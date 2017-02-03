@@ -317,6 +317,10 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfra
 
     //@Important: a->pos and b->pos should be ending of the hit + 1
 
+    printf("From hits\n");
+    seq_man->print_sequence_region(a->genome->id, a->pos - kmer_size, a->pos);
+    seq_man->print_sequence_region(b->genome->id, b->pos - kmer_size, b->pos);
+
     int64_t curr_pos_a = (int64_t) a->pos;
     int64_t curr_pos_b = (int64_t) b->pos;
     int64_t final_end_a = (int64_t) a->pos - 1, final_start_a = final_end_a - kmer_size + 1, final_start_b = curr_pos_b - kmer_size;
@@ -378,15 +382,12 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfra
     qf->y_start = final_start_b;
     qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
 
-    if(qf->t_len < 60){
-        printf("From hits\n");
-        seq_man->print_sequence_region(a->genome->id, a->pos - kmer_size, a->pos);
-        seq_man->print_sequence_region(b->genome->id, b->pos - kmer_size, b->pos);
-        printf("Aligned\n");
-        seq_man->print_sequence_region(a->genome->id, final_start_a, final_end_a);
-        seq_man->print_sequence_region(b->genome->id, final_start_b, final_start_b+qf->t_len);
-        getchar();
-    }
+    /*
+    printf("Aligned\n");
+    seq_man->print_sequence_region(a->genome->id, final_start_a, final_end_a);
+    seq_man->print_sequence_region(b->genome->id, final_start_b, final_start_b+qf->t_len);
+    getchar();
+    */
 
 }
 
@@ -446,7 +447,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
             }
 
             //Check if we have a kmer big enough
-            if(kmer_index >= kmer_size){
+            if(kmer_index == kmer_size){
 
                 //printf("Putting %s at %"PRIu64"\n", curr_kmer, advanced_steps);
 

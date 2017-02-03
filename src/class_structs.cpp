@@ -829,18 +829,19 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 
 Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Sequence * genome){
 	uint64_t hash = compute_hash(kmer);
+	uint64_t h_pos = hash %  this->ht_size;
 
 	//printf("welcome my hash is %"PRIu64" and I have %"PRIu64"\n", hash, this->ht_size);
 	//Insert new word in hash table
-	Wordbucket * ptr = this->words[hash];
+	Wordbucket * ptr = this->words[h_pos];
 
 	if(ptr == NULL){ //Insert at head
-		this->words[hash] = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
-		this->words[hash]->w.hash = hash;
-		this->words[hash]->w.pos = position;
-		this->words[hash]->w.genome = genome;
-		this->words[hash]->w.strand = strand;
-		this->words[hash]->next = NULL;
+		this->words[h_pos] = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+		this->words[h_pos]->w.hash = hash;
+		this->words[h_pos]->w.pos = position;
+		this->words[h_pos]->w.genome = genome;
+		this->words[h_pos]->w.strand = strand;
+		this->words[h_pos]->next = NULL;
 		printf("U see? its null\n");
 		return NULL;
 	}
@@ -855,8 +856,8 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 			new_word->w.pos = position;
 			new_word->w.genome = genome;
 			new_word->w.strand = strand;
-			new_word->next = this->words[hash];
-			this->words[hash] = new_word;
+			new_word->next = this->words[h_pos];
+			this->words[h_pos] = new_word;
 
 			printf("not here\n");
 			return ptr;
@@ -871,8 +872,8 @@ Wordbucket * dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t pos
 	new_word->w.pos = position;
 	new_word->w.genome = genome;
 	new_word->w.strand = strand;
-	new_word->next = this->words[hash];
-	this->words[hash] = new_word;
+	new_word->next = this->words[h_pos];
+	this->words[h_pos] = new_word;
 
 	printf("so whats the last message?\n");
 	//No hit found and inserted correctly
@@ -884,7 +885,7 @@ void dictionary_hash::clear(){
 }
 
 uint64_t dictionary_hash::compute_hash(char * kmer){
-	return hashOfWord(kmer, this->kmer_size) % this->ht_size;
+	return hashOfWord(kmer, this->kmer_size);
 }
 
 dictionary_hash::~dictionary_hash(){
