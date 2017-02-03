@@ -897,7 +897,7 @@ Wordbucket ** dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t po
 		new_word->next = this->words[h_pos];
 		this->words[h_pos] = new_word;
 	}else{
-		return list;
+		return this->list;
 	}
 
 	return NULL;
@@ -913,4 +913,5 @@ uint64_t dictionary_hash::compute_hash(char * kmer){
 
 dictionary_hash::~dictionary_hash(){
 	delete this->mp;
+	std::free(this->list);
 }

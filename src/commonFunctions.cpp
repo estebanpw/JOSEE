@@ -401,6 +401,146 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfra
 }
 
 
+inline char complement(char c){
+    
+    switch(c){
+    case ('A'): return 'T';
+    break;
+    case ('C'): return 'G';
+    break;
+    case ('G'): return 'C';
+    break;
+    case ('T'): return 'A';
+    break;
+    }
+    terror("Unrecognized nucleotide in hit");
+    return 0; //I know it will never get here, but the compiler des not.
+
+}
+
+
+void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size){
+
+    //@Important: a->pos and b->pos should be ending of the hit + 1
+    //@Important: a will be reversed
+    //@Important: Everything is the same except how the access is done
+
+    /*
+    printf("From hits\n");
+    seq_man->print_sequence_region(a->genome->id, a->pos - kmer_size, a->pos);
+    seq_man->print_sequence_region(b->genome->id, b->pos - kmer_size, b->pos);
+    */
+
+    int64_t curr_pos_a = (int64_t) a->pos - kmer_size - 1;
+    int64_t curr_pos_b = (int64_t) b->pos;
+    int64_t final_end_a = (int64_t) curr_pos_a, final_start_a = a->pos - 1, final_start_b = curr_pos_b - kmer_size;
+    int64_t score_right = (int64_t) kmer_size * POINT;
+    int64_t score_left = score_right;
+    int64_t high_left = score_left, high_right = score_right;
+    int64_t start_block_a = (int64_t) a->b->start;
+    int64_t end_block_a = (int64_t) a->b->end;
+    int64_t start_block_b = (int64_t) b->b->start;
+    int64_t end_block_b = (int64_t) b->b->end;
+    qf->t_len = kmer_size;
+    uint64_t idents = kmer_size;
+    uint64_t final_idents = 0;
+
+    int keep_going = 1;
+
+
+    //printf("From: %"PRId64" to %"PRId64"\n", start_block_a, end_block_a);
+    //printf("currspos. %"PRId64"\n", curr_pos_a);
+    //getchar();
+
+    //Forward search
+    while(keep_going == 1){
+        
+        
+        if(score_right > 0 && curr_pos_a >= start_block_a && curr_pos_b < end_block_b){
+            if(curr_pos_a  < start_block_a ||  curr_pos_b > end_block_b) break;
+            if(compare_letters(complement(a->b->genome->seq[curr_pos_a]), b->b->genome->seq[curr_pos_b]) == POINT){ score_right+=POINT; idents++; }else{ score_right-=POINT;}
+            if(high_right <= score_right){
+                final_end_a = curr_pos_a;
+                high_right = score_right;
+                final_idents = idents;
+            }
+            curr_pos_a--;
+            curr_pos_b++;
+        }else{
+            keep_going = 0;
+        }
+    }
+
+    keep_going = 1;
+    curr_pos_a = a->pos;
+    curr_pos_b = b->pos - kmer_size - 1;
+
+    score_left = high_right;
+
+    //printf("From: %"PRId64" to %"PRId64"\n", start_block_a, end_block_a);
+    //printf("currspos. %"PRId64"\n", curr_pos_a);
+    //printf("Aktuelle: %"PRId64" and %"PRId64"\n", final_start_a, final_end_a);
+    //getchar();
+
+    //Backward search
+    while(keep_going == 1){
+        
+        if(score_left > 0 && curr_pos_a < end_block_a && curr_pos_b >= start_block_b){
+            if(curr_pos_a >= end_block_a || curr_pos_b < start_block_b ) break;
+            if(compare_letters(complement(a->b->genome->seq[curr_pos_a]), b->b->genome->seq[curr_pos_b]) == POINT){ score_left+=POINT; idents++; }else{ score_left-=POINT;}
+            if(high_left <= score_left){
+                final_start_a = curr_pos_a;
+                final_start_b = curr_pos_b;
+                high_left = score_left;
+                final_idents = idents;
+            }
+            curr_pos_a++;
+            curr_pos_b--;
+        }else{
+            keep_going = 0;
+        }
+    }
+
+    //printf("Ending\n");
+    //printf("Aktuelle: %"PRId64" and %"PRId64"\n", final_start_a, final_end_a);
+    //getchar();
+
+    qf->t_len = final_start_a - final_end_a + 1;
+    qf->sim = (final_idents / (long double) qf->t_len)*100;
+    qf->x_start = final_end_a;
+    qf->y_start = final_start_b;
+    qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
+
+    /*
+    printf("Aligned\n");
+    seq_man->print_sequence_region(a->genome->id, final_start_a, final_end_a);
+    seq_man->print_sequence_region(b->genome->id, final_start_b, final_start_b+qf->t_len);
+    getchar();
+    */
+
+}
+
+
+
+inline void strrev(char *p, char *d, uint32_t k){
+    uint32_t i;
+    char c;
+    for(i=0;i<k;i++){
+    	c = p[k-i-1];
+    	switch(c){
+    	case ('A'): c=('T');
+    	break;
+    	case ('C'): c=('G');
+    	break;
+    	case ('G'): c=('C');
+    	break;
+    	case ('T'): c=('A');
+    	break;
+    	}
+        d[i] = c; 
+    }
+  
+}
 
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state){
 
@@ -418,7 +558,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     uint64_t advanced_steps;
 
     //Kmer reading
-    char curr_kmer[kmer_size];
+    char curr_kmer[kmer_size], rev_kmer[kmer_size];
     uint64_t kmer_index = 0;
     char c;
 
@@ -483,8 +623,13 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                             align_word.pos = advanced_steps;
                             align_word.strand = 'f';
                             align_word.b = sb_ptr->b;
-                            alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
-                            printQuickfrag(&aligned_qf);
+                            if(hit->w.strand == 'f'){
+                                alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                            }else{
+                                alignment_from_hit_reverse(seq_man, &hit->w, &align_word, &aligned_qf, kmer_size);
+                            }
+                            
+                            //printQuickfrag(&aligned_qf);
                             qfmat_state[sb_ptr->b->genome->id][hit->w.b->genome->id] = 1;
                             qfmat_state[hit->w.b->genome->id][sb_ptr->b->genome->id] = 1;
                             memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
@@ -502,8 +647,12 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                                     align_word.pos = advanced_steps;
                                     align_word.strand = 'f';
                                     align_word.b->genome = sb_ptr->b->genome;
-                                    alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
-                                    printQuickfrag(&aligned_qf);
+                                    if(hit->w.strand == 'f'){
+                                        alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                                    }else{
+                                        alignment_from_hit_reverse(seq_man, &hit->w, &align_word, &aligned_qf, kmer_size);
+                                    }
+                                    //printQuickfrag(&aligned_qf);
                                     //printf("HAPPENS AS WELL\n");
                                     //getchar();
                                     //getchar();
@@ -524,9 +673,77 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
                 
 
                 //Insert reversed word in dictionary
+                strrev(curr_kmer, rev_kmer, kmer_size);
+
+                hit_list = dhw->put_and_hit(rev_kmer, 'r', advanced_steps, sb_ptr->b);
+
+                for(i=0;i<dhw->get_candidates_number();i++){
+                    //For every hit candidate
+                    hit = hit_list[i];
+
+                    if(hit->w.strand == 'r') continue; //Skip since a 'r' - 'r' word is the same as 'f' - 'f'
+
+                    if(hit != NULL){
+                        //printf("Got hit and the state is %u. The synteny level is %"PRIu64"\n", (int)qfmat_state[sb_ptr->b->genome->id][hit->w.b->genome->id], sbl->synteny_level);
+                        //printf("saux_id: %"PRIu64" and hit genome id: %"PRIu64"\n", sb_ptr->b->genome->id, hit->w.b->genome->id);
+                        //getchar();
+                        //In the sake of clarity
+                        qf = &qfmat[sb_ptr->b->genome->id][hit->w.b->genome->id];
+
+                        //We have a hit we should try an alignment
+                        //only if the hit is not overlapping
+                        //or it is overlapping but on different diagonal
+                        if(qfmat_state[sb_ptr->b->genome->id][hit->w.b->genome->id] == 0){
+                            //printf("BINGO!!!!!!!!!!!!!\n");
+                            
+                            //There is no frag yet, so try first one
+                            align_word.pos = advanced_steps;
+                            align_word.strand = 'r';
+                            align_word.b = sb_ptr->b;
+                            alignment_from_hit_reverse(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                            //printQuickfrag(&aligned_qf);
+                            qfmat_state[sb_ptr->b->genome->id][hit->w.b->genome->id] = 1;
+                            qfmat_state[hit->w.b->genome->id][sb_ptr->b->genome->id] = 1;
+                            memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
+                            memcpy(&qfmat[hit->w.b->genome->id][sb_ptr->b->genome->id], &aligned_qf, precomputed_sizeofQuickfrag);
+
+                        }else{
+                            //printf("on the else track\n");
+                            //getchar();
+                            //There is already a frag, check for overlapping and diagonal
+                            if(overlapped_words(qf->x_start, qf->x_start+qf->t_len, advanced_steps-kmer_size-1, advanced_steps-1) != 0){
+                                //If it is not overlapped 
+                                curr_diag = (int64_t) advanced_steps - (int64_t) hit->w.pos;
+                                if(curr_diag != qf->diag){
+                                    //We can try new alignment
+                                    align_word.pos = advanced_steps;
+                                    align_word.strand = 'r';
+                                    align_word.b->genome = sb_ptr->b->genome;
+                                    alignment_from_hit_reverse(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                                    //printQuickfrag(&aligned_qf);
+                                    //printf("HAPPENS AS WELL\n");
+                                    //getchar();
+                                    //getchar();
+
+                                    //Only copy if new alignment is better 
+
+                                    if(aligned_qf.sim > qf->sim){
+                                        memcpy(qf, &aligned_qf, precomputed_sizeofQuickfrag);
+                                        memcpy(&qfmat[hit->w.b->genome->id][sb_ptr->b->genome->id], &aligned_qf, precomputed_sizeofQuickfrag);
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+
+
+
 
                 //Displace 
                 memmove(&curr_kmer[0], &curr_kmer[1], kmer_size-1);
+                memmove(&rev_kmer[0], &rev_kmer[1], kmer_size-1);
                 kmer_index--;
             }
 
@@ -538,7 +755,6 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     }
     printSyntenyBlock(sbl->sb);
     printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
-    getchar();
+    //getchar();
     
 }
-

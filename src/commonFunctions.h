@@ -103,11 +103,24 @@ int overlapped_words(uint64_t xstart, uint64_t xend, uint64_t ystart, uint64_t y
  */
 void alignment_from_hit(sequence_manager * seq_man, Word * a, uint64_t start_block_a, uint64_t end_block_a, Word * b, uint64_t start_block_b, uint64_t end_block_b, Quickfrag * qf, uint64_t kmer_size);
 
+/**
+ *	Ungapped alignment in hit from words a (REVERSED) and b
+ */
+void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size);
 /*
 	Produces the dictionary and aligns the blocks in a synteny block
 	The qfmat stores the best fragments
 */
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state);
 
+/*
+	Complements a nucleotide 
+*/
+inline char complement(char c);
+
+/*
+	Computes the reverse complementary of 'p' and returns it in 'd' for lenght 'k'
+*/
+inline void strrev(char *p, char *d, uint32_t k);
 
 #endif /* COMMON_FUNCTIONS_H */
