@@ -77,6 +77,11 @@ uint64_t sizeofWordbucket();
 	To compute sizeof quickfrag when not using padding
 */
 uint64_t sizeofQuickfrag();
+
+/*
+	To compute sizeof Slist without padding
+*/
+uint64_t sizeofSlist();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */
@@ -136,5 +141,10 @@ void printQuickfrag(Quickfrag * qf);
 	Prints the symmetric quickfrag matrix after a synteny block is aligned
 */
 void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint64_t n_seqs);
+
+/*
+	Print a submatrix from a quickfrags matrix
+*/
+void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs);
 
 #endif /* COMPARISON_FUNCTIONS_H */

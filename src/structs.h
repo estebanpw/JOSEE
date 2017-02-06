@@ -74,14 +74,6 @@ struct FragFile {
     long double evalue;
 };
 
-typedef struct quickfrag{
-    uint64_t x_start;
-    uint64_t y_start;
-    uint64_t t_len;
-    int64_t diag;
-    long double sim;
-} Quickfrag;
-
 //Sequence descriptor
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
@@ -91,6 +83,16 @@ typedef struct sequence{
     uint64_t n_frags; //Number of fragments that the sequence had
     char * seq; //DNA sequence
 } Sequence;
+
+typedef struct quickfrag{
+    uint64_t x_start;
+    uint64_t y_start;
+    uint64_t t_len;
+    int64_t diag;
+    long double sim;
+    Sequence * x;
+    Sequence * y;
+} Quickfrag;
 
 typedef struct frags_list{
     struct FragFile * f;
@@ -147,6 +149,7 @@ public:
     memory_pool(uint64_t max_pools, uint64_t pool_size);
     void * request_bytes(uint64_t bytes);
     void reset_n_bytes(uint64_t bytes);
+    void reset_to(uint64_t pool, uint64_t position){ this->current_pool = 0; this->base[current_pool] = 0;}
     void full_reset();
     ~memory_pool();
 };
@@ -253,6 +256,10 @@ private:
     uint64_t compute_hash(char * kmer);
 };
 
+typedef struct slist{
+    Sequence * s;
+    struct slist * next;
+} Slist;
 
 
 

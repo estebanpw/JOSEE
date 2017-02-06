@@ -442,16 +442,27 @@ void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block
 
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
 	
+	//Data structures needed
+
+	//For hits and frags computation
 	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
 	Quickfrag ** qfmat = (Quickfrag **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(Quickfrag *));
+	double ** qf_submat = (double **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(double *));
 	unsigned char ** qfmat_state = (unsigned char **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(unsigned char *));
-	if(qfmat == NULL || qfmat_state == NULL) terror("Could not allocate pairwise alignment matrix (1)");
+	if(qfmat == NULL || qfmat_state == NULL || qf_submat == NULL) terror("Could not allocate pairwise alignment matrix (1)");
 	uint64_t i;
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		qfmat[i] = (Quickfrag *) std::malloc(seq_man->get_number_of_sequences()*sizeofQuickfrag());
+		qf_submat[i] = (double *) std::malloc(seq_man->get_number_of_sequences()*sizeof(double));
 		qfmat_state[i] = (unsigned char *) std::malloc(seq_man->get_number_of_sequences()*sizeof(unsigned char));
-		if(qfmat[i] == NULL || qfmat_state[i] == NULL) terror("Could not allocate pairwsie alignment matrix (2)");
+		if(qfmat[i] == NULL || qfmat_state[i] == NULL || qf_submat == NULL) terror("Could not allocate pairwsie alignment matrix (2)");
 	}
+
+	//For clustering
+	memory_pool * mp = new memory_pool(1, seq_man->get_number_of_sequences()*sizeofSlist()*2 + seq_man->get_number_of_sequences()*sizeof(unsigned char));
+	
+
+	
 
 
 	//Lists of synteny blocks to address evolutionary events
@@ -467,9 +478,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	while(A != NULL && B != NULL && C != NULL){ // AT least three
 
 
-		
-
 		//Evolutionary events
+
+		read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+		mp->reset_to(0,0);
+		neighbor_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+		getchar();
 		
 		//Work only with those that share the same synteny level 
 		//Level 3 synteny
@@ -480,7 +494,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 				//if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
 				//Lets say we pass list C as argument since its the one in the middle
-				read_words_from_synteny_block_and_align(seq_man, C, kmer_size, words_dictionary, qfmat, qfmat_state);
+				//read_words_from_synteny_block_and_align(seq_man, C, kmer_size, words_dictionary, qfmat, qfmat_state);
+				
 
 				/*
 				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
@@ -493,7 +508,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			}else{
 
 				//if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
-				read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+				//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+				
 
 				/*
 				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
@@ -502,8 +518,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				*/
 				
 			}
-
-			//getchar();
 
 		}
 
@@ -519,12 +533,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
-		free(qfmat[i]);
-		free(qfmat_state[i]);
+		std::free(qfmat[i]);
+		std::free(qfmat_state[i]);
 	}
-	free(qfmat);
-	free(qfmat_state);
-
+	std::free(qf_submat);
+	std::free(qfmat);
+	std::free(qfmat_state);
+	
+	delete mp;
 	delete words_dictionary;
 }
 

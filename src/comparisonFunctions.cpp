@@ -255,7 +255,11 @@ uint64_t sizeofWordbucket(){
 }
 
 uint64_t sizeofQuickfrag(){
-    return 3*sizeof(uint64_t) + sizeof(long double) + sizeof(int64_t);
+    return 3*sizeof(uint64_t) + sizeof(long double) + sizeof(int64_t) + 2*sizeof(Sequence *);
+}
+
+uint64_t sizeofSlist(){
+    return sizeof(Sequence *) + sizeof(Slist *);
 }
 
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
@@ -334,7 +338,7 @@ void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint
     uint64_t i,j;
     printf(" \t");
     for(i=0;i<n_seqs;i++){
-        printf(" %"PRIu64"  ", i);
+        printf("%"PRIu64"\t", i);
     }
     printf("\n");
     for(i=0;i<n_seqs;i++){
@@ -345,6 +349,23 @@ void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint
             }else{
                 printf("[ ** ] ");
             }
+            
+        }
+        printf("\n");
+    }
+}
+
+void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs){
+    uint64_t i,j;
+    printf(" \t");
+    for(i=0;i<n_seqs;i++){
+        printf("%"PRIu64"\t", i);
+    }
+    printf("\n");
+    for(i=0;i<n_seqs;i++){
+        printf("%"PRIu64"\t", i);
+        for(j=0;j<n_seqs;j++){
+            printf("[%.1f] ", (float)qfmat[i][j]);
             
         }
         printf("\n");

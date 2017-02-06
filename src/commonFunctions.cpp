@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <ctype.h>
+#include <cfloat>
 #include <string.h>
 #include <math.h>
 #include "structs.h"
@@ -390,6 +391,8 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, Word * b, Quickfra
     qf->x_start = final_start_a;
     qf->y_start = final_start_b;
     qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
+    qf->x = a->b->genome;
+    qf->y = b->b->genome;
 
     /*
     printf("Aligned\n");
@@ -510,7 +513,8 @@ void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, 
     qf->x_start = final_end_a;
     qf->y_start = final_start_b;
     qf->diag = (int64_t)qf->x_start - (int64_t)qf->y_start;
-
+    qf->x = a->b->genome;
+    qf->y = b->b->genome;
     /*
     printf("Aligned\n");
     seq_man->print_sequence_region(a->genome->id, final_start_a, final_end_a);
@@ -753,8 +757,104 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
         sb_ptr = sb_ptr->next;
         kmer_index = 0;
     }
+    fprintf(stdout, "Synteny level: %"PRIu64"\n", sbl->synteny_level);
     printSyntenyBlock(sbl->sb);
+    for(i=0;i<seq_man->get_number_of_sequences();i++){
+        for(j=0;j<seq_man->get_number_of_sequences();j++){
+            if(qfmat_state[i][j] == 1) qfmat[i][j].sim = 100.0 - qfmat[i][j].sim;
+        }
+    }
     printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
     //getchar();
+    
+}
+// RENAME 
+void neighbor_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
+
+
+
+    uint64_t i, j, k, i_p, j_p;
+    Quickfrag * f_min = NULL;
+    uint64_t i_min, j_min;
+    uint64_t nodes_in_dendro = 0;
+    
+    Slist * dendrogram[N];
+    unsigned char skip_i[N];
+    for(i=0;i<N;i++){ dendrogram[i] = NULL; skip_i[i] = 0;}
+    
+
+    //Generate submatrix
+    i_p = 0; j_p = 0;
+    for(i=0;i<N;i++){
+        j_p = 0;
+        for(j=0;j<N;j++){
+            if(qfmat_state[i][j] == 1){
+                // Copy value
+                if(i_p == j_p) j_p++;
+                submat[i_p][j_p] = M[i][j].sim;
+                if(dendrogram[i_p] == NULL){
+                    dendrogram[i_p] = (Slist *) mp->request_bytes(sizeofSlist());
+                    if(M[i][j].x->id == i) dendrogram[i_p]->s = M[i][j].x;
+                    if(M[i][j].y->id == i) dendrogram[i_p]->s = M[i][j].y;
+                    
+                }
+                j_p++;
+            }
+        }
+        
+        if(j_p > 0) i_p++;
+    }
+
+    
+    for(i=0;i<i_p;i++){
+        printf("ID: %"PRIu64"\n", dendrogram[i]->s->id);
+    }
+    printUnstatedDoubleMatrix(submat, i_p);
+
+    
+    while(nodes_in_dendro < N){
+
+        //Find smallest
+        for(i=0;i<N;i++){
+            for(j=0;j<N;j++){
+                if(skip_i[i] == 0 && (f_min == NULL || f_min->sim > submat[i_p][j_p].sim)){
+                    f_min->sim = submat[i_p][j_p].sim;
+                    i_min = i_p;
+                    j_min = j_p;
+                }
+            }
+        }
+
+        
+    }
+
+    
+    
+    //Update M 
+
+    
+
+
+    
+
+    // Compute Q-Matrix
+    
+    // First reduce M to a distance matrix
+    /*
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            if(qfmat_state[i][j] == 1) M[i][j].sim = 100.0 - M[i][j].sim;
+        }
+    }
+
+    // Create Q-matrix
+    for(i=0;i<N;i++){
+        for(j=0;j<N;j++){
+            Q[i][j] = (N - 2)*M[i][j];
+            for(k=0;k<N;k++) Q[i][j] -= M[i][k];
+            for(k=0;k<N;k++) Q[i][j] -= M[j][k];
+        }
+    }
+    */
     
 }
