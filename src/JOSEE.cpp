@@ -101,6 +101,7 @@ int main(int ac, char **av) {
     for(i=0;i<N_ITERA;i++){
         if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
         aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len);
+        //fprintf(stdout, "FRAGS: %"PRIu64"\n", total_frags);
         free(loaded_frags); //A new list is being allocated in the function
         loaded_frags = aux_pointer;
     }
@@ -122,6 +123,7 @@ int main(int ac, char **av) {
         if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
         ht->insert_block(&loaded_frags[i]);
     }
+    //ht->print_hash_table(2);
 
     compute_order_of_blocks(ht, n_files);
     end = clock();
@@ -164,8 +166,10 @@ int main(int ac, char **av) {
 
     
 
-
-    // Debug %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // DEBUG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // DEBUG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // DEBUG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    // DEBUG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
     //ht->print_hash_table(2);
 

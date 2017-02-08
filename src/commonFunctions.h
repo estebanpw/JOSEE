@@ -124,8 +124,8 @@ inline char complement(char c);
 inline void strrev(char *p, char *d, uint32_t k);
 
 /*
-	Computes a phylogenetic clustering based on a distance matrix using the neighbor joining method
+	Computes a phylogenetic clustering based on a distance matrix using the UPGMA method (assumes equidistances)
 */
-void neighbor_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
+void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
 
 #endif /* COMMON_FUNCTIONS_H */

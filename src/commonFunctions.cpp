@@ -769,21 +769,28 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     
 }
 // RENAME 
-void neighbor_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
+void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
 
 
 
-    uint64_t i, j, k, i_p, j_p;
-    Quickfrag * f_min = NULL;
+    uint64_t i, j, i_p, j_p;
+    double f_min = -1;
     uint64_t i_min, j_min;
-    uint64_t nodes_in_dendro = 0;
+    uint64_t nodes_in_dendro = 1;
     
-    Slist * dendrogram[N];
-    unsigned char skip_i[N];
-    for(i=0;i<N;i++){ dendrogram[i] = NULL; skip_i[i] = 0;}
+    Slist ** dendrogram = (Slist **) mp->request_bytes(N*sizeof(Slist*));
+
+    uint64_t * dendro_lengths = (uint64_t *) mp->request_bytes(N*sizeof(uint64_t));
+
+    unsigned char * skip_i = (unsigned char *) mp->request_bytes(N*sizeof(unsigned char));
+    for(i=0;i<N;i++){
+        dendrogram[i] = NULL;
+        skip_i[i] = 0;
+        dendro_lengths[i] = 1;
+    }
     
 
-    //Generate submatrix
+    //Generate submatrix, since some rows or columns will be null
     i_p = 0; j_p = 0;
     for(i=0;i<N;i++){
         j_p = 0;
@@ -796,6 +803,7 @@ void neighbor_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
                     dendrogram[i_p] = (Slist *) mp->request_bytes(sizeofSlist());
                     if(M[i][j].x->id == i) dendrogram[i_p]->s = M[i][j].x;
                     if(M[i][j].y->id == i) dendrogram[i_p]->s = M[i][j].y;
+                    dendrogram[i_p]->next = NULL;
                     
                 }
                 j_p++;
@@ -805,56 +813,92 @@ void neighbor_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
         if(j_p > 0) i_p++;
     }
 
-    
+    /*
     for(i=0;i<i_p;i++){
         printf("ID: %"PRIu64"\n", dendrogram[i]->s->id);
     }
-    printUnstatedDoubleMatrix(submat, i_p);
+    */
 
-    
-    while(nodes_in_dendro < N){
+    j_p = i_p;
+    while(nodes_in_dendro < i_p){
+
+        printUnstatedDoubleMatrix(submat, i_p, skip_i);
 
         //Find smallest
-        for(i=0;i<N;i++){
-            for(j=0;j<N;j++){
-                if(skip_i[i] == 0 && (f_min == NULL || f_min->sim > submat[i_p][j_p].sim)){
-                    f_min->sim = submat[i_p][j_p].sim;
-                    i_min = i_p;
-                    j_min = j_p;
+        for(i=0;i<i_p;i++){
+            //Jump those that have been removed
+            if(skip_i[i] == 1) continue;
+
+            for(j=0;j<i;j++){
+                //Jump removed & Find minimum
+                if(skip_i[j] == 0 && (f_min == -1 || f_min >= submat[i][j])){
+                    f_min = submat[i][j];
+                    i_min = i;
+                    j_min = j;
                 }
+                
+                
             }
         }
 
+        //Join minimums
+
+        
+        if( dendrogram[j_min]->next == NULL || dendrogram[i_min]->next == NULL){ 
+            //Add one makes a tuple
+            Slist * aux = dendrogram[i_min];
+            while(aux->next != NULL){
+                aux = aux->next;
+            }
+
+            aux->next = dendrogram[j_min];
+            //last_d->next = dendrogram[j_min];
+            //last_d = dendrogram[j_min];
+            dendro_lengths[i_min]++;
+        }else{
+            Slist * null_seq = (Slist *) mp->request_bytes(sizeofSlist());
+            null_seq->s = NULL; 
+            null_seq->next = dendrogram[j_min];
+
+            Slist * aux = dendrogram[i_min];
+            while(aux->next != NULL){
+                aux = aux->next;
+            }
+            aux->next = null_seq;
+            dendro_lengths[i_min] += dendro_lengths[j_min];                
+            
+        }
+        
+
+        
+
+        //Remove existing rows and cols
+        skip_i[j_min] = 1;
+
+        //Update new distances
+        for(i=0;i<i_p;i++){
+            if(skip_i[i] == 0){
+                submat[i_min][i] = ((submat[i_min][i] + submat[j_min][i]) * dendro_lengths[i_min]) /2;
+                submat[i][i_min] = submat[i_min][i];
+            }
+        }
+        /*
+        for(i=0;i<i_p;i++){
+            if(skip_i[i] == 0){
+                submat[j_min][i] = ((submat[i_min][i] + submat[j_min][i]) * dendro_lengths[i_min]) /2;
+            }
+        }
+        */
+        
+        nodes_in_dendro++;
+        
+
+        f_min = -1; //Restart minimum search
         
     }
 
-    
-    
-    //Update M 
-
-    
-
-
-    
-
-    // Compute Q-Matrix
-    
-    // First reduce M to a distance matrix
-    /*
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            if(qfmat_state[i][j] == 1) M[i][j].sim = 100.0 - M[i][j].sim;
-        }
-    }
-
-    // Create Q-matrix
-    for(i=0;i<N;i++){
-        for(j=0;j<N;j++){
-            Q[i][j] = (N - 2)*M[i][j];
-            for(k=0;k<N;k++) Q[i][j] -= M[i][k];
-            for(k=0;k<N;k++) Q[i][j] -= M[j][k];
-        }
-    }
-    */
+    //Print clusters
+    printf("Phylogenetic Clustering: \n");printDendrogramList(dendrogram[i_min]);
+    getchar(); 
     
 }

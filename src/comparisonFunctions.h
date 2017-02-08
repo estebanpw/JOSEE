@@ -145,6 +145,11 @@ void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint
 /*
 	Print a submatrix from a quickfrags matrix
 */
-void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs);
+void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs, unsigned char * skip_i);
+
+/*
+	Prints a dendrogram as a list
+*/
+void printDendrogramList(Slist * dendrogram);
 
 #endif /* COMPARISON_FUNCTIONS_H */

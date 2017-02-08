@@ -459,8 +459,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 
 	//For clustering
-	memory_pool * mp = new memory_pool(1, seq_man->get_number_of_sequences()*sizeofSlist()*2 + seq_man->get_number_of_sequences()*sizeof(unsigned char));
-	
+	memory_pool * mp = new memory_pool(1, POOL_SIZE);
+	/*
+	memory_pool * mp = new memory_pool(1,
+	 seq_man->get_number_of_sequences()*sizeofSlist()*2 +
+	  2*seq_man->get_number_of_sequences()*sizeof(unsigned char) +
+	  seq_man->get_number_of_sequences()*sizeof(Slist *));
+	*/
 
 	
 
@@ -482,8 +487,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 		read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 		mp->reset_to(0,0);
-		neighbor_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-		getchar();
+		UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+		
 		
 		//Work only with those that share the same synteny level 
 		//Level 3 synteny

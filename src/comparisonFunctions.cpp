@@ -355,7 +355,7 @@ void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint
     }
 }
 
-void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs){
+void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs, unsigned char * skip_i){
     uint64_t i,j;
     printf(" \t");
     for(i=0;i<n_seqs;i++){
@@ -365,9 +365,28 @@ void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs){
     for(i=0;i<n_seqs;i++){
         printf("%"PRIu64"\t", i);
         for(j=0;j<n_seqs;j++){
-            printf("[%.1f] ", (float)qfmat[i][j]);
+
+            if(skip_i[i] == 1 || skip_i[j] == 1){
+                printf("[ ** ]");
+            }else{
+                if(i==j) printf("[ ** ]"); else printf("[%.1f] ", (float)qfmat[i][j]);
+            }
+
+            
+            
             
         }
         printf("\n");
+    }
+}
+
+void printDendrogramList(Slist * dendrogram){
+    Slist * d = dendrogram;
+    uint64_t safe = 0;
+    while(d != NULL){
+        if(d->s == NULL) printf(" ] "); else printf(" %"PRIu64" ", d->s->id);
+        d = d->next;
+        safe++;
+        if(safe > 20){ printf("Had to break\n"); break; }
     }
 }
