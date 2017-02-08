@@ -329,7 +329,14 @@ Bucket * hash_table::get_value_at(uint64_t pos){
 }
 
 Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
-	Bucket * ptr = this->get_key_at(compute_hash(f->xStart));
+	
+	Bucket * ptr;
+
+	if(x_or_y == 0){
+		ptr = this->get_key_at(compute_hash(f->xStart));
+	}else{
+		ptr = this->get_key_at(compute_hash(f->yStart));
+	}
 	
 	while(ptr != NULL){
 		if(x_or_y == 0 && ptr->b.start == f->xStart && ptr->b.end == f->xEnd

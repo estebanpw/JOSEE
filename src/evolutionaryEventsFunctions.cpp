@@ -306,15 +306,22 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 		ptr = ht->get_key_at(i);
 
 		while(ptr != NULL){
-			//Each block is here
+			//Each block in the has is here
 			//For each block, add the blocks linked by the fragments
 			memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
 			synteny_level = 0; //Restart synteny level
 			flptr = ptr->b.f_list;
 			while(flptr != NULL){
+				//printFragment(flptr->f);
 				//Each fragment in the current block
 				//Only if we did not already have the genome in the frags
-				if(had_genome_bitmask[flptr->f->seqX] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 0);
+				aux_block = ht->get_block_from_frag(flptr->f, 0);
+
+				/*
+				if(aux_block != NULL){
+					printf("FETCH:\n"); printBlock(aux_block); getchar();
+				}
+				*/
 
 				//Insert frag_x
 				if(aux_block != NULL && aux_block->present_in_synteny == 0){
@@ -324,12 +331,18 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
-					had_genome_bitmask[flptr->f->seqX] = 1;
+					//had_genome_bitmask[flptr->f->seqX] = 1;
 					synteny_level++;
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 
-				if(had_genome_bitmask[flptr->f->seqY] == (unsigned char)0) aux_block = ht->get_block_from_frag(flptr->f, 1);
+				aux_block = ht->get_block_from_frag(flptr->f, 1);
+
+				/*
+				if(aux_block != NULL){
+					printf("FETCH:\n"); printBlock(aux_block); getchar();
+				}
+				*/
 
 				//Insert frag_y
 				if(aux_block != NULL && aux_block->present_in_synteny == 0){
@@ -339,13 +352,16 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
-					had_genome_bitmask[flptr->f->seqY] = 1;
+					//had_genome_bitmask[flptr->f->seqY] = 1;
 					synteny_level++;
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 				
 				flptr = flptr->next;
 			}
+			//printf("broke stnyteny ---------------------------\n");
+
+			//No more frags to add 
 
 			// End synteny block
 			if(synteny_level > 1){
@@ -354,12 +370,23 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 				curr_sbl = curr_sbl->next;
 				curr_sbl->next = NULL;
+				//printf("Generated\n");
 			}
-			if(synteny_level == 1){
+			if(synteny_level <= 1){
 				//Since there is a minimum synteny, restore its level so that it can be used
-				curr_sb->b->present_in_synteny = 0;
+				//curr_sb->b->present_in_synteny = 0;
+
+				//Restore levels of all of those used
+				Synteny_block * rest_ptr = curr_sbl->sb;
+				while(rest_ptr != NULL){
+					rest_ptr->b->present_in_synteny = 0;
+					rest_ptr = rest_ptr->next;
+				}
 				mp->reset_n_bytes(pre_comp_sb);
+				
+				//printf("Failed at generatin\n");
 			}
+			
 			curr_sb = NULL;
 			//Go to next block
 			ptr = ptr->next;
@@ -368,6 +395,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			//printf("broke stnyteny ---------------------------\n");
 			//getchar();
 		}
+		//printf("broke stnyteny ---------------------------\n");
 	}
 	free(had_genome_bitmask);
 	return sbl;
@@ -485,7 +513,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 		//Evolutionary events
 
-		read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+		read_words_from_synteny_block_and_align(seq_man, A, kmer_size, words_dictionary, qfmat, qfmat_state);
 		mp->reset_to(0,0);
 		UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 		
