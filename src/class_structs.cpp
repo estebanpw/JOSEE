@@ -432,6 +432,8 @@ strand_matrix::strand_matrix(uint64_t sequences){
 	this->squared_sequences = sequences * sequences;
 	this->sm = (unsigned char **) std::calloc(sequences, sizeof(unsigned char *));
 	if(this->sm == NULL) terror("Could not allocate strand matrix");
+	this->acu_frags_forward = 0;
+	this->acu_frags_reverse = 0;
 	for(i=0;i<sequences;i++){
 		this->sm[i] = (unsigned char *) std::calloc(sequences, sizeof(unsigned char));
 		if(this->sm[i] == NULL) terror("Could not allocate strand matrix subdimensions");
@@ -449,11 +451,13 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 			fl = sb_ptr->b->f_list;
 			while(fl != NULL){
 				//printf("A frag...\n");
-				//TODO
-				//Check if the fragment has to be added or not to the strand matrix
-				//I think all fragments should be added and that the current issues are bugs
-				if(1==1){ //REPLACE: has_to_be_added(sb_ptr->b->)
-					(fl->f->strand == 'f') ? this->sm[fl->f->seqX][fl->f->seqY] = FORWARD : this->sm[fl->f->seqX][fl->f->seqY] = REVERSE;
+
+				if(fl->f->strand == 'f') {
+					this->sm[fl->f->seqX][fl->f->seqY] = FORWARD;
+					this->acu_frags_forward++;
+				}else{
+					this->sm[fl->f->seqX][fl->f->seqY] = REVERSE;
+					this->acu_frags_reverse++;
 				}
 
 				fl = fl->next;
@@ -464,6 +468,26 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 		}
 	}
 	//printf("==========================================\n");
+}
+
+void strand_matrix::reset(){
+
+	
+	this->acu_frags_forward = 0;
+	this->acu_frags_reverse = 0;
+
+	for(uint64_t i=0;i<n_seqs;i++){
+		for(uint64_t j=0;j<n_seqs;j++){
+			this->sm[i][j] = 0;
+		}
+	}
+	
+}
+
+int strand_matrix::get_strands_type(){
+	if(acu_frags_reverse == 0) return FORWARD;
+	if(acu_frags_forward == 0) return REVERSE;
+	return MIXED;
 }
 
 void strand_matrix::print_strand_matrix(){

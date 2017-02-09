@@ -2,6 +2,7 @@
 #include <cstdlib>
 #include <sys/time.h>
 #include <inttypes.h>
+#include <cstdarg>
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
@@ -401,88 +402,76 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	return sbl;
 }
 
+inline uint64_t synteny_level_across_lists(uint64_t args_count, ...){
+	va_list sbl_args;
+	va_start(sbl_args, args_count);
+	Synteny_list * sl_ptr;
+	sl_ptr = va_arg(sbl_args, Synteny_list *);
+	uint64_t s_level;
+	if(sl_ptr != NULL) s_level = sl_ptr->synteny_level; else return 0; 
 
-
-void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c){
-	/*
-
-	Block * A, * B, * C;
-
-	A = &a->b;
-	B = &b->b;
-	C = &c->b;
-
-	//At this point we have the reference to each block A,B,C
-	//We need to compute whether any of the fragments that generate B is reversed
-	//Also that both A and C have no reversion themselves
-	//Also that A,B,C have the same syteny
-
-	if(A->synteny_level != B->synteny_level || A->synteny_level != C->synteny_level) return; //No equal synteny
-
-	Frags_list * ptr;
-	char b_strand;
-
-	//Checking for no reversion in A
-	ptr = a->b.f_list;
-	while(ptr != NULL){
-		if(ptr->f->strand == 'r') return;
-		ptr = ptr->next;
+	uint64_t i;
+	for(i=1;i<args_count;i++){
+		sl_ptr = va_arg(sbl_args, Synteny_list *);
+		if(sl_ptr == NULL || sl_ptr->synteny_level != s_level) return 0;
 	}
-	//Checking for no reversion in C
-	ptr = c->b.f_list;
-	while(ptr != NULL){
-		if(ptr->f->strand == 'r') return;
-		ptr = ptr->next;
-	}
-
-
-	//Current truple
-	printBlock(A);
-	printBlock(B);
-	
-
-	//Check that there is a reversion in one or two fragments in B
-	ptr = b->b.f_list;
-	b_strand = ptr->f->strand; //First strand
-	
-	while(ptr != NULL){
-
-		//Print fragments of b
-		printf("\t"); printFragment(ptr->f);
-
-		
-		if(b_strand != ptr->f->strand){ //If there is one not equal to the first strand
-			//Found reversion
-			fprintf(stdout, "Found reversion between:\n");
-			printBlock(A);
-			printBlock(B);
-			printBlock(C);
-			getchar();
-		}
-		
-		ptr = ptr->next;
-	}
-	printBlock(C); //So that it prints in order!
-	getchar();
-	*/
+	va_end(sbl_args);
+	return s_level;
 }
 
+void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C){
+	printf("I would like to concat\n");
+	printf("And it would look like this:\n");
+	
+
+	uint64_t i;
+	Synteny_block * start_sb_ptr = A->sb;
+	Synteny_block * end_sb_ptr = C->sb;
+
+	for(i=0;i<A->synteny_level;i++){
+		start_sb_ptr->b->end = end_sb_ptr->b->end;
+		//Frags list?
+		start_sb_ptr = start_sb_ptr->next;
+		end_sb_ptr = end_sb_ptr->next;
+	}
+	
+	printSyntenyBlock(A->sb);
+
+	//Remove intermediate synteny block list
+	A->next = C;
+	//B cant be accessed now. Its not dangling because of the mempool.
+
+}
 
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
 	
 	//Data structures needed
 
+	uint64_t n_sequences = seq_man->get_number_of_sequences();
+	//Until nothing else cant be done, keep iterating
+	bool stop_criteria = false; 
+	bool update_pointers = false;
+
+	//For strand matrices
+	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
+	unsigned char ** _tmp;
+	sm_A = new strand_matrix(n_sequences);
+	sm_B = new strand_matrix(n_sequences);
+	sm_C = new strand_matrix(n_sequences);
+	sm_D = new strand_matrix(n_sequences);
+	sm_E = new strand_matrix(n_sequences);
+
 	//For hits and frags computation
 	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
-	Quickfrag ** qfmat = (Quickfrag **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(Quickfrag *));
-	double ** qf_submat = (double **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(double *));
-	unsigned char ** qfmat_state = (unsigned char **) std::malloc(seq_man->get_number_of_sequences()*seq_man->get_number_of_sequences()*sizeof(unsigned char *));
+	Quickfrag ** qfmat = (Quickfrag **) std::malloc(n_sequences*n_sequences*sizeof(Quickfrag *));
+	double ** qf_submat = (double **) std::malloc(n_sequences*n_sequences*sizeof(double *));
+	unsigned char ** qfmat_state = (unsigned char **) std::malloc(n_sequences*n_sequences*sizeof(unsigned char *));
 	if(qfmat == NULL || qfmat_state == NULL || qf_submat == NULL) terror("Could not allocate pairwise alignment matrix (1)");
 	uint64_t i;
-	for(i=0;i<seq_man->get_number_of_sequences();i++){
-		qfmat[i] = (Quickfrag *) std::malloc(seq_man->get_number_of_sequences()*sizeofQuickfrag());
-		qf_submat[i] = (double *) std::malloc(seq_man->get_number_of_sequences()*sizeof(double));
-		qfmat_state[i] = (unsigned char *) std::malloc(seq_man->get_number_of_sequences()*sizeof(unsigned char));
+	for(i=0;i<n_sequences;i++){
+		qfmat[i] = (Quickfrag *) std::malloc(n_sequences*sizeofQuickfrag());
+		qf_submat[i] = (double *) std::malloc(n_sequences*sizeof(double));
+		qfmat_state[i] = (unsigned char *) std::malloc(n_sequences*sizeof(unsigned char));
 		if(qfmat[i] == NULL || qfmat_state[i] == NULL || qf_submat == NULL) terror("Could not allocate pairwsie alignment matrix (2)");
 	}
 
@@ -500,70 +489,117 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
-	A = sbl;
-
-	//Copy pointers of first consecutive blocks
-	if(A != NULL) B = A->next; else return;
-	if(B != NULL) C = B->next; else return; //Three at least
-	if(C != NULL) D = C->next;
-	if(D != NULL) E = D->next;
-
-	while(A != NULL && B != NULL && C != NULL){ // AT least three
 
 
-		//Evolutionary events
-
-		read_words_from_synteny_block_and_align(seq_man, A, kmer_size, words_dictionary, qfmat, qfmat_state);
-		mp->reset_to(0,0);
-		UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+	while(!stop_criteria){
 		
-		
-		//Work only with those that share the same synteny level 
-		//Level 3 synteny
-		if(A->synteny_level > 2 && A->synteny_level == B->synteny_level && B->synteny_level == C->synteny_level){
+		//In case nothing gets done, stop iterating
+		stop_criteria = true;
 
-			//5-level
-			if(C->synteny_level == D->synteny_level && D->synteny_level == E->synteny_level){
+		//Get head of synteny list
+		A = sbl; 
 
-				//if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
-				//Lets say we pass list C as argument since its the one in the middle
-				//read_words_from_synteny_block_and_align(seq_man, C, kmer_size, words_dictionary, qfmat, qfmat_state);
+		//Copy pointers of first consecutive blocks
+		if(A != NULL) B = A->next; else return;
+		if(B != NULL) C = B->next; else return; //Three at least
+		if(C != NULL) D = C->next;
+		if(D != NULL) E = D->next;
+
+
+		//Generate their strand matrices
+		sm_A->add_fragment_strands(A);
+		sm_B->add_fragment_strands(B);
+		sm_C->add_fragment_strands(C);
+		sm_D->add_fragment_strands(D);
+		sm_E->add_fragment_strands(E);
+
+		while(A != NULL && B != NULL && C != NULL){ // AT least three
+
+
+			//Check here for events
+
+			
+
+			
+
+			//If no events happened
+			//Check last 3 syntenys for concatenation
+			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
+			if(A != NULL) printSyntenyBlock(A->sb); printf("========000000\n");
+			if(B != NULL) printSyntenyBlock(B->sb); printf("========000000\n");
+			if(C != NULL) printSyntenyBlock(C->sb); printf("========000000\n");
+
+			if(synteny_level_across_lists(3, A, B, C) > 0){
+				//Concat synteny blocks if they have the same strand
+				if(sm_A->get_strands_type() != MIXED && 
+				sm_A->get_strands_type() == sm_B->get_strands_type() &&
+				sm_B->get_strands_type() == sm_C->get_strands_type()){
+
+					concat_synteny_blocks(A, B, C);
+					getchar();
+					//Update current pointers
+					update_pointers = true;
+					stop_criteria = false;
+				}
+					
+			}
+			
+
+			/*
+			// Piece of code for pairwise alignment between blocks
+			read_words_from_synteny_block_and_align(seq_man, A, kmer_size, words_dictionary, qfmat, qfmat_state);
+			mp->reset_to(0,0);
+			UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+			*/
+			
+			if(update_pointers){
 				
+				sm_A->reset();
+				sm_A->add_fragment_strands(A);
+				_tmp = sm_B->sm; //Do not lose B sm pointer
+				sm_B->sm = sm_D->sm;
+				sm_C->sm = sm_E->sm;
+				sm_E->sm = _tmp; // Dont lose it
 
-				/*
-				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
-				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
-				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
-				if(D != NULL) printSyntenyBlock(D->sb);//sm_D->print_strand_matrix();printf("\nNEXT\n");
-				if(E != NULL) printSyntenyBlock(E->sb);//sm_E->print_strand_matrix();printf("\nNEXT\n");
-				*/
+
+				//A is still A
+				B = D;
+				C = E;
+				if(C != NULL) D = E->next; else D = NULL;
+				if(D != NULL) E = D->next; else E = NULL;
+
+				if(D != NULL){ sm_D->reset(); sm_D->add_fragment_strands(D);}
+				if(E != NULL){ sm_E->reset(); sm_E->add_fragment_strands(E);}
+
+				update_pointers = false;
 
 			}else{
-
-				//if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
-				//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+				//Only generate the new strand matrix and pass the others
+				_tmp = sm_A->sm; // Do not lose pointer to strand matrix
+				sm_A->sm = sm_B->sm;
+				sm_B->sm = sm_C->sm;
+				sm_C->sm = sm_D->sm;
+				sm_D->sm = sm_E->sm;
+				sm_E->sm = _tmp; // Recover strand matrix
 				
+				//advance pointers
+				A = B;
+				B = C;	
+				C = D;
+				D = E;
 
-				/*
-				if(A != NULL) printSyntenyBlock(A->sb);//sm_A->print_strand_matrix();printf("\nNEXT\n");
-				if(B != NULL) printSyntenyBlock(B->sb);//sm_B->print_strand_matrix();printf("\nNEXT\n");
-				if(C != NULL) printSyntenyBlock(C->sb);//sm_C->print_strand_matrix();printf("\nNEXT\n");
-				*/
-				
+				//next iteration
+				if(E != NULL) E = E->next;
+
+				//And generate new strand matrix
+				sm_E->reset(); //Need hard reset to not use fragments from last synteny
+				sm_E->add_fragment_strands(E);
 			}
-
 		}
-
-		//advance pointers
-		A = B;
-		B = C;	
-		C = D;
-		D = E;
-
-		//next iteration
-		if(E != NULL) E = E->next;
-
 	}
+
+	
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		std::free(qfmat[i]);
@@ -573,6 +609,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(qfmat);
 	std::free(qfmat_state);
 	
+	delete sm_A;
+	delete sm_B;
+	delete sm_C;
+	delete sm_D;
+	delete sm_E;
+
 	delete mp;
 	delete words_dictionary;
 }

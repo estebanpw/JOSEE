@@ -25,6 +25,7 @@
 
 #define FORWARD 1
 #define REVERSE 2
+#define MIXED 3
 
 #define POINT 4
 
@@ -263,12 +264,6 @@ typedef struct slist{
 
 
 
-
-
-
-
-
-//DEPRECATED
 // There will be one strand matrix per synteny block
 class strand_matrix
 {
@@ -277,10 +272,15 @@ public:
     unsigned char ** sm;
     uint64_t n_seqs;
     uint64_t squared_sequences;
+    uint64_t acu_frags_forward;
+    uint64_t acu_frags_reverse;
 
     strand_matrix(uint64_t sequences);
+    //Unsure about this one below
     int is_block_reversed(uint64_t block_number);
-    void reset() { for(uint64_t i=0;i<n_seqs;i++){ for(uint64_t j=0;j<n_seqs;j++){ this->sm[i][j] = 0; } } }
+    //
+    int get_strands_type();
+    void reset();
     void add_fragment_strands(Synteny_list * sbl);
     void print_strand_matrix();
     ~strand_matrix();

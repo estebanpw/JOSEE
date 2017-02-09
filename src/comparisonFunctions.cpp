@@ -312,7 +312,7 @@ void printSyntenyBlock(Synteny_block * b){
     while(ptr != NULL){
         //printBlockWriteMode(ptr->b);
         printBlock(ptr->b);
-        printFragsFromBlock(ptr->b);
+        //printFragsFromBlock(ptr->b);
         ptr = ptr->next;
     }
 }

@@ -1,3 +1,4 @@
+#include <cstdarg>
 #include "structs.h"
 #include "commonFunctions.h"
 
@@ -37,9 +38,15 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp);
 
 /*
-	Checks if a truple of consecutive blocks is a reversion or not
+	Returns the synteny level for any given number of synteny lists
+	returns 0 if the lists dont share the synteny level
+	otherwise returns the level of synteny
 */
-void has_reversion_in_truple(Synteny_block * a, Synteny_block * b, Synteny_block * c);
+inline uint64_t synteny_level_across_lists(uint64_t args_count, ...);
+/*
+	Concatenates three synteny blocks into one
+*/
+void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C);
 
 
 /*
