@@ -37,12 +37,29 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
 */
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp);
 
+
+
+/*
+	Checks that blocks in a synteny list are consecutive in respect to their genomes
+	Assumes: Synteny level + same number of genomes involved
+*/
+bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...);
+
+/*
+	Substracts the accumulated order offset from the blocks in given synteny lists
+*/
+void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...);
+/*
+	Returns TRUE if there is the same number of blocks per each genome, otherwise FALSE
+*/
+bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequences, uint64_t args_count, ...);
+
 /*
 	Returns the synteny level for any given number of synteny lists
 	returns 0 if the lists dont share the synteny level
 	otherwise returns the level of synteny
 */
-inline uint64_t synteny_level_across_lists(uint64_t args_count, ...);
+uint64_t synteny_level_across_lists(uint64_t args_count, ...);
 /*
 	Concatenates three synteny blocks into one
 */

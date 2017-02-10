@@ -332,8 +332,9 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
-					//had_genome_bitmask[flptr->f->seqX] = 1;
-					synteny_level++;
+					if(had_genome_bitmask[flptr->f->seqX] == 0) synteny_level++;
+					had_genome_bitmask[flptr->f->seqX] = 1;
+					
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 
@@ -353,8 +354,9 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 					aux_sb->next = curr_sb;
 					curr_sb = aux_sb;
 					aux_block = NULL;
-					//had_genome_bitmask[flptr->f->seqY] = 1;
-					synteny_level++;
+					if(had_genome_bitmask[flptr->f->seqY] == 0) synteny_level++;
+					had_genome_bitmask[flptr->f->seqY] = 1;
+					
 					//printf("\t"); printBlock(aux_sb->b);
 				}
 				
@@ -398,11 +400,67 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 		}
 		//printf("broke stnyteny ---------------------------\n");
 	}
-	free(had_genome_bitmask);
+	std::free(had_genome_bitmask);
 	return sbl;
 }
 
-inline uint64_t synteny_level_across_lists(uint64_t args_count, ...){
+//@Assumes: Synteny level + same number of genomes involved
+bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...){
+	va_list sbl_args;
+	va_start(sbl_args, args_count);
+	Synteny_list * sl_ptr;
+	Synteny_block * sb_ptr;
+	
+	uint64_t i;
+	for(i=0;i<args_count;i++){
+		sl_ptr = va_arg(sbl_args, Synteny_list *);
+		if(sl_ptr != NULL){
+			sb_ptr = sl_ptr->sb;
+			while(sb_ptr != NULL){
+
+				if(i == 0){
+					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
+				}else{
+					if(sb_ptr->b->order - pairs_diff[sb_ptr->b->genome->id] != 1) return false;
+					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
+				}
+				sb_ptr = sb_ptr->next;
+			}
+		}
+	}
+
+	return true;
+}
+
+void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...){
+	va_list sbl_args;
+	va_start(sbl_args, args_count);
+	Synteny_list * sl_ptr;
+	Synteny_block * sb_ptr;
+	
+	uint64_t i;
+	for(i=0;i<args_count;i++){
+		sl_ptr = va_arg(sbl_args, Synteny_list *);
+		if(sl_ptr != NULL){
+			sb_ptr = sl_ptr->sb;
+			while(sb_ptr != NULL){
+				
+				if(sb_ptr->b->order < orders[sb_ptr->b->genome->id]){
+					printf("Happening at\n");
+					printBlock(sb_ptr->b);
+					printf("I want to substract %"PRIu64"\n", orders[sb_ptr->b->genome->id]);
+					getchar();
+				}
+				sb_ptr->b->order = sb_ptr->b->order - orders[sb_ptr->b->genome->id];
+				sb_ptr = sb_ptr->next;
+			}
+		}
+	}
+	va_end(sbl_args);
+}
+
+
+uint64_t synteny_level_across_lists(uint64_t args_count, ...){
 	va_list sbl_args;
 	va_start(sbl_args, args_count);
 	Synteny_list * sl_ptr;
@@ -417,6 +475,42 @@ inline uint64_t synteny_level_across_lists(uint64_t args_count, ...){
 	}
 	va_end(sbl_args);
 	return s_level;
+}
+
+bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequences, uint64_t args_count, ...){
+	va_list sbl_args;
+	va_start(sbl_args, args_count);
+	Synteny_list * sl_ptr;
+	Synteny_block * sb_ptr;
+		
+	uint64_t i;
+	for(i=0;i<args_count;i++){
+		sl_ptr = va_arg(sbl_args, Synteny_list *);
+		sb_ptr = sl_ptr->sb;
+		
+		while(sb_ptr != NULL){
+			genomes_counters[sb_ptr->b->genome->id]++;
+			sb_ptr = sb_ptr->next;
+		}
+
+		
+	}
+	va_end(sbl_args);
+
+	//printInvolvedGenomes(genomes_counters, n_sequences);
+
+	uint64_t first = 0;
+	for(i=0;i<n_sequences;i++){
+
+		if(first == 0 && genomes_counters[i] != 0){
+			first = genomes_counters[i];
+		}else{
+			if(first != genomes_counters[i]) return false;
+		}
+		
+	}
+
+	return true;
 }
 
 void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C){
@@ -441,20 +535,36 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 	A->next = C;
 	//B cant be accessed now. Its not dangling because of the mempool.
 
+	//All synteny lists should be updated from 
+
 }
 
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
 	
 	//Data structures needed
 
+	uint64_t i;
 	uint64_t n_sequences = seq_man->get_number_of_sequences();
+
 	//Until nothing else cant be done, keep iterating
 	bool stop_criteria = false; 
-	bool update_pointers = false;
+	bool update_pointers_after_concat = false;
+
+	//For telling whether the same number of blocks per genome is involved in synteny
+	uint64_t * genomes_block_count = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(genomes_block_count == NULL) terror("Could not allocate genome blocks counter");
+
+	//To recompute order for the next blocks after an event
+	uint64_t * order_offsets = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(order_offsets == NULL) terror("Could not allocate order offsets for after-events");
+
+	//To check that blocks are consecutive in their genome
+	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(pairs_diff == NULL) terror("Could not allocate consecutive order of blocks array");
 
 	//For strand matrices
 	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
-	unsigned char ** _tmp;
+	unsigned char ** _tmp1, ** _tmp2;
 	sm_A = new strand_matrix(n_sequences);
 	sm_B = new strand_matrix(n_sequences);
 	sm_C = new strand_matrix(n_sequences);
@@ -467,7 +577,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	double ** qf_submat = (double **) std::malloc(n_sequences*n_sequences*sizeof(double *));
 	unsigned char ** qfmat_state = (unsigned char **) std::malloc(n_sequences*n_sequences*sizeof(unsigned char *));
 	if(qfmat == NULL || qfmat_state == NULL || qf_submat == NULL) terror("Could not allocate pairwise alignment matrix (1)");
-	uint64_t i;
+	
 	for(i=0;i<n_sequences;i++){
 		qfmat[i] = (Quickfrag *) std::malloc(n_sequences*sizeofQuickfrag());
 		qf_submat[i] = (double *) std::malloc(n_sequences*sizeof(double));
@@ -490,14 +600,20 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 
-
+	uint64_t current_step = 0;
 	while(!stop_criteria){
 		
+		//Display current iteration
+		printf("\nStep: %"PRIu64"\n", current_step++);
+
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
 
 		//Get head of synteny list
 		A = sbl; 
+
+		//Set offset orders to zero
+		memset(order_offsets, 0, n_sequences*sizeof(int64_t));
 
 		//Copy pointers of first consecutive blocks
 		if(A != NULL) B = A->next; else return;
@@ -516,33 +632,65 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		while(A != NULL && B != NULL && C != NULL){ // AT least three
 
 
-			//Check here for events
 
+			//Recompute order of the last one added to the list
+			recompute_orders_from_offset(order_offsets, 1, E);
+			
+			//printDebugBlockOrderByGenome(E, 0);
+			
+
+			//Check here for events
 			
 
 			
 
 			//If no events happened
 			//Check last 3 syntenys for concatenation
+			
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			if(A != NULL) printSyntenyBlock(A->sb); printf("========000000\n");
 			if(B != NULL) printSyntenyBlock(B->sb); printf("========000000\n");
 			if(C != NULL) printSyntenyBlock(C->sb); printf("========000000\n");
 
+						
+
+			//Check they share the synteny level
 			if(synteny_level_across_lists(3, A, B, C) > 0){
 				//Concat synteny blocks if they have the same strand
 				if(sm_A->get_strands_type() != MIXED && 
 				sm_A->get_strands_type() == sm_B->get_strands_type() &&
 				sm_B->get_strands_type() == sm_C->get_strands_type()){
 
-					concat_synteny_blocks(A, B, C);
-					getchar();
-					//Update current pointers
-					update_pointers = true;
-					stop_criteria = false;
+					//Erase genome counter
+					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+					//for(i=0;i<n_sequences;i++) genomes_block_count[i] = 0;
+
+					//Check that there is the same number of blocks per genome involved
+					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
+
+						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
+							concat_synteny_blocks(A, B, C);
+							getchar();
+							//Add offset to orders
+							for(i=0;i<n_sequences;i++){
+								if(genomes_block_count[i] != 0) order_offsets[i] += 2; //Two because two blocks are shrinked into one
+							}
+							//Update current pointers
+							update_pointers_after_concat = true;
+							stop_criteria = false;
+						}else{
+							printf("Non consecutive order in blocks...\n");
+						}
+					}else{
+						printf("Genomes involved different number ...\n"); //getchar();
+					}
+				}else{
+					printf("Frags differ in strand...\n"); //getchar();
 				}
 					
+			}else{
+				printf("Different synteny levels...\n"); //getchar();
 			}
 			
 
@@ -553,14 +701,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 			*/
 			
-			if(update_pointers){
+			if(update_pointers_after_concat){
 				
 				sm_A->reset();
 				sm_A->add_fragment_strands(A);
-				_tmp = sm_B->sm; //Do not lose B sm pointer
+				_tmp1 = sm_B->sm; //Do not lose B sm pointer
+				_tmp2 = sm_C->sm; //Same for C
 				sm_B->sm = sm_D->sm;
 				sm_C->sm = sm_E->sm;
-				sm_E->sm = _tmp; // Dont lose it
+				sm_D->sm = _tmp1; // Acquire
+				sm_E->sm = _tmp2; // Dont lose it
 
 
 				//A is still A
@@ -572,16 +722,18 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				if(D != NULL){ sm_D->reset(); sm_D->add_fragment_strands(D);}
 				if(E != NULL){ sm_E->reset(); sm_E->add_fragment_strands(E);}
 
-				update_pointers = false;
+				recompute_orders_from_offset(order_offsets, 3, B, C, D); //E is recomputed at beginning
+
+				update_pointers_after_concat = false;
 
 			}else{
 				//Only generate the new strand matrix and pass the others
-				_tmp = sm_A->sm; // Do not lose pointer to strand matrix
+				_tmp1 = sm_A->sm; // Do not lose pointer to strand matrix
 				sm_A->sm = sm_B->sm;
 				sm_B->sm = sm_C->sm;
 				sm_C->sm = sm_D->sm;
 				sm_D->sm = sm_E->sm;
-				sm_E->sm = _tmp; // Recover strand matrix
+				sm_E->sm = _tmp1; // Recover strand matrix
 				
 				//advance pointers
 				A = B;
@@ -608,6 +760,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(qf_submat);
 	std::free(qfmat);
 	std::free(qfmat_state);
+	std::free(genomes_block_count);
+	std::free(order_offsets);
+	std::free(pairs_diff);
 	
 	delete sm_A;
 	delete sm_B;

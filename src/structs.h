@@ -114,6 +114,7 @@ typedef struct block{
     Sequence * genome;      //A pointer to the genome to which it belongs
     unsigned char present_in_synteny;   //To tell whether it has already been used in a synteny block
     unsigned char strand_in_synteny;    //The strand that it has at the synteny block
+    //unsigned char repetition;   //To tell if the block is a repetition or not
 } Block;
 
 typedef struct word{

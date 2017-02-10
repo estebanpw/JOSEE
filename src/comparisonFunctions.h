@@ -152,4 +152,13 @@ void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs, unsigned char *
 */
 void printDendrogramList(Slist * dendrogram);
 
+/*
+	Prints the number of blocks involved in a synteny list
+*/
+void printInvolvedGenomes(uint64_t * genomes_counters, uint64_t n_sequences);
+
+/*
+	Debugging function to print all orders in synteny lists for a genome
+*/
+void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id);
 #endif /* COMPARISON_FUNCTIONS_H */

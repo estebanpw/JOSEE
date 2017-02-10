@@ -312,7 +312,7 @@ void printSyntenyBlock(Synteny_block * b){
     while(ptr != NULL){
         //printBlockWriteMode(ptr->b);
         printBlock(ptr->b);
-        //printFragsFromBlock(ptr->b);
+        printFragsFromBlock(ptr->b);
         ptr = ptr->next;
     }
 }
@@ -389,4 +389,26 @@ void printDendrogramList(Slist * dendrogram){
         safe++;
         if(safe > 20){ printf("Had to break\n"); break; }
     }
+}
+
+void printInvolvedGenomes(uint64_t * genomes_counters, uint64_t n_sequences){
+    for(uint64_t i=0;i<n_sequences;i++){
+        printf("%"PRIu64"\t", i);
+    }
+    printf("\n");
+    for(uint64_t i=0;i<n_sequences;i++){
+        printf("%"PRIu64"\t", genomes_counters[i]);
+    }
+}
+
+void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
+    if(sl != NULL){
+        Synteny_block * sb_ptr = sl->sb;
+        while(sb_ptr != NULL){
+
+            if(sb_ptr->b->genome->id == genome_id) printf("%"PRIu64", ", sb_ptr->b->order);
+            sb_ptr = sb_ptr->next;
+        }
+    }
+    
 }
