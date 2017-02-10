@@ -514,25 +514,40 @@ bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequenc
 }
 
 void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C){
-	printf("I would like to concat\n");
-	printf("And it would look like this:\n");
+	//printf("I would like to concat\n");
+	//printf("And it would look like this:\n");
 	
 
 	uint64_t i;
 	Synteny_block * start_sb_ptr = A->sb;
+	Synteny_block * mid_ptr = B->sb;
 	Synteny_block * end_sb_ptr = C->sb;
+	Frags_list * fl_A, * fl_B;
 
 	for(i=0;i<A->synteny_level;i++){
 		start_sb_ptr->b->end = end_sb_ptr->b->end;
-		//Frags list?
+		//Append frags lists
+		//Find last pointer in A
+		fl_A = start_sb_ptr->b->f_list;
+		while(fl_A->next != NULL) fl_A = fl_A->next;
+
+		//Find last pointer in B
+		fl_B = mid_ptr->b->f_list;
+		while(fl_B->next != NULL) fl_B = fl_B->next;
+
+		//Append C to B, and B to A
+		fl_B->next = end_sb_ptr->b->f_list;
+		fl_A->next = mid_ptr->b->f_list;
+
 		start_sb_ptr = start_sb_ptr->next;
+		mid_ptr = mid_ptr->next;
 		end_sb_ptr = end_sb_ptr->next;
 	}
 	
-	printSyntenyBlock(A->sb);
+	//printSyntenyBlock(A->sb);
 
 	//Remove intermediate synteny block list
-	A->next = C;
+	A->next = C->next;
 	//B cant be accessed now. Its not dangling because of the mempool.
 
 	//All synteny lists should be updated from 
@@ -600,11 +615,15 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 
-	uint64_t current_step = 0;
+	//To have some statistics
+	uint64_t current_step = 0; uint64_t current_concats = 0; uint64_t t_concats = 0;
+
+
 	while(!stop_criteria){
 		
 		//Display current iteration
-		printf("\nStep: %"PRIu64"\n", current_step++);
+		printf("\nOn step: %"PRIu64". Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+		current_concats = 0;
 
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
@@ -646,13 +665,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 			//If no events happened
 			//Check last 3 syntenys for concatenation
-			
+			/*
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			if(A != NULL) printSyntenyBlock(A->sb); printf("========000000\n");
 			if(B != NULL) printSyntenyBlock(B->sb); printf("========000000\n");
 			if(C != NULL) printSyntenyBlock(C->sb); printf("========000000\n");
-
+			*/
 						
 
 			//Check they share the synteny level
@@ -671,7 +690,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							concat_synteny_blocks(A, B, C);
-							getchar();
+							t_concats++;
+							current_concats++;
+							//getchar();
 							//Add offset to orders
 							for(i=0;i<n_sequences;i++){
 								if(genomes_block_count[i] != 0) order_offsets[i] += 2; //Two because two blocks are shrinked into one
@@ -679,19 +700,19 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//Update current pointers
 							update_pointers_after_concat = true;
 							stop_criteria = false;
-						}else{
-							printf("Non consecutive order in blocks...\n");
-						}
-					}else{
-						printf("Genomes involved different number ...\n"); //getchar();
-					}
-				}else{
-					printf("Frags differ in strand...\n"); //getchar();
-				}
+						}//else{
+						//	printf("Non consecutive order in blocks...\n");
+						//}
+					}//else{
+					//	printf("Genomes involved different number ...\n"); //getchar();
+					//}
+				}//else{
+				//	printf("Frags differ in strand...\n"); //getchar();
+				//}
 					
-			}else{
-				printf("Different synteny levels...\n"); //getchar();
-			}
+			}//else{
+			//	printf("Different synteny levels...\n"); //getchar();
+			//}
 			
 
 			/*
