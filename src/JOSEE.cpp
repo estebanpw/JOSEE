@@ -160,6 +160,7 @@ int main(int ac, char **av) {
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size);
+    traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     

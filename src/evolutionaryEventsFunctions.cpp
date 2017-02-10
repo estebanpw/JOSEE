@@ -545,6 +545,7 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 	}
 	
 	//printSyntenyBlock(A->sb);
+	//getchar();
 
 	//Remove intermediate synteny block list
 	A->next = C->next;
@@ -672,7 +673,28 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			if(B != NULL) printSyntenyBlock(B->sb); printf("========000000\n");
 			if(C != NULL) printSyntenyBlock(C->sb); printf("========000000\n");
 			*/
-						
+			
+			//Inversions
+			if(synteny_level_across_lists(3, A, B, C) > 0){
+				if(sm_A->get_strands_type() != MIXED && 
+				sm_A->get_strands_type() == sm_C->get_strands_type() &&
+				sm_B->get_strands_type() == REVERSE){
+
+					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
+						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
+							printf("Attention: this looks like a reversion\n");
+
+							read_words_from_synteny_block_and_align(seq_man, A, kmer_size, words_dictionary, qfmat, qfmat_state);
+							mp->reset_to(0,0);
+							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+							getchar();
+						}
+					}
+				}
+			}
+
+
 
 			//Check they share the synteny level
 			if(synteny_level_across_lists(3, A, B, C) > 0){
