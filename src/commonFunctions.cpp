@@ -776,7 +776,7 @@ int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 
     uint64_t i, j, i_p, j_p;
     double f_min = -1;
-    uint64_t i_min, j_min;
+    uint64_t i_min = 0, j_min = 1;
     uint64_t nodes_in_dendro = 1;
     
     Slist ** dendrogram = (Slist **) mp->request_bytes(N*sizeof(Slist*));

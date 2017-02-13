@@ -573,7 +573,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//To recompute order for the next blocks after an event
 	uint64_t * order_offsets = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
-	if(order_offsets == NULL) terror("Could not allocate order offsets for after-events");
+	uint64_t * order_offsets_after_concat = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(order_offsets == NULL || order_offsets_after_concat == NULL) terror("Could not allocate order offsets for after-events");
 
 	//To check that blocks are consecutive in their genome
 	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
@@ -596,6 +597,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	if(qfmat == NULL || qfmat_state == NULL || qf_submat == NULL) terror("Could not allocate pairwise alignment matrix (1)");
 	
 	for(i=0;i<n_sequences;i++){
+		order_offsets_after_concat[i] = 2; //Always to use when recomputing after concat
 		qfmat[i] = (Quickfrag *) std::malloc(n_sequences*sizeofQuickfrag());
 		qf_submat[i] = (double *) std::malloc(n_sequences*sizeof(double));
 		qfmat_state[i] = (unsigned char *) std::malloc(n_sequences*sizeof(unsigned char));
@@ -618,14 +620,17 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
 
 	//To have some statistics
-	uint64_t current_step = 0; uint64_t current_concats = 0; uint64_t t_concats = 0;
+	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
+	uint64_t t_inversions = 0, t_duplications = 0;
 
 
 	while(!stop_criteria){
 		
 		//Display current iteration
 		printf("\nOn step: %"PRIu64". Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+		printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
 		current_concats = 0;
+		getchar();
 
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
@@ -655,26 +660,46 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 			//Recompute order of the last one added to the list
+			printf("Pre all\n");
 			recompute_orders_from_offset(order_offsets, 1, E);
 			
 			//printDebugBlockOrderByGenome(E, 0);
 			
-
-			//Check here for events
-			
-
-			
-
-			//If no events happened
-			//Check last 3 syntenys for concatenation
 			
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
 			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
 			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
+			if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
 			
-			//Duplications
+
+			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			// I think only 4 synteny groups are needed ??
+			if(D != NULL){
+				if(synteny_level_across_lists(3, A, B, D)){
+					//same synteny, check the number of genomes involved
+					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, D)){
+						//Check that A and B have their order consecutive
+						if(consecutive_block_order(pairs_diff, 2, A, B)){
+							//And if D is not consecutive with B, then there must exist C with insertions
+							if(!consecutive_block_order(pairs_diff, 2, B, D)){
+								//But only if C does not have as much synteny level as D
+								if(C->synteny_level < D->synteny_level){
+									// TODO I think I have to check orders more carefully
+									printf("Detected insertions\n");
+									getchar();
+								}
+							}
+						}
+					}
+				}
+			}
+			
+
+
+			// Duplications %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 			//If there is not the same number of genomes involved
 			if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, B)){
@@ -685,13 +710,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					if(genomes_block_count[i] > 1){
 						// Genome i has duplications
 						printf("Duplications in %"PRIu64"\n", i);
+						t_duplications++;
 					}
 				}
-				getchar();
+				//getchar();
 				
 			}
 			
-			//Inversions
+			// Inversions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			if(synteny_level_across_lists(3, A, B, C) > 0){
 				if(sm_A->get_strands_type() != MIXED && 
 				sm_A->get_strands_type() == sm_C->get_strands_type() &&
@@ -705,8 +731,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-							getchar();
+							//getchar();
 							//What do here?
+							t_inversions++;
 						}
 					}
 				}else{
@@ -717,6 +744,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			}
 
 
+			// Concatenation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 			//Check they share the synteny level
 			if(synteny_level_across_lists(3, A, B, C) > 0){
@@ -739,7 +767,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//getchar();
 							//Add offset to orders
 							for(i=0;i<n_sequences;i++){
+								//If genome was involved we have to add offset to the concat
 								if(genomes_block_count[i] != 0) order_offsets[i] += 2; //Two because two blocks are shrinked into one
+								printf("G: %"PRIu64" -> O:%"PRIu64"\n", i, order_offsets[i]);
 							}
 							//Update current pointers
 							update_pointers_after_concat = true;
@@ -787,7 +817,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				if(D != NULL){ sm_D->reset(); sm_D->add_fragment_strands(D);}
 				if(E != NULL){ sm_E->reset(); sm_E->add_fragment_strands(E);}
 
-				recompute_orders_from_offset(order_offsets, 3, B, C, D); //E is recomputed at beginning
+				printf("Recomputing normals\n");
+				recompute_orders_from_offset(order_offsets_after_concat, 3, B, C, D); //E is recomputed at beginning
 
 				update_pointers_after_concat = false;
 
@@ -816,7 +847,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		}
 	}
 
-	
+	printf("\nAfter %"PRIu64" step(s). Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+	printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		std::free(qfmat[i]);
@@ -827,6 +859,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(qfmat_state);
 	std::free(genomes_block_count);
 	std::free(order_offsets);
+	std::free(order_offsets_after_concat);
 	std::free(pairs_diff);
 	
 	delete sm_A;
