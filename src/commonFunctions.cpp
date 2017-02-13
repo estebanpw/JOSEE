@@ -56,6 +56,7 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, struct FragFile 
     while(!feof(fragsfile)){
         readFragment(&temp_frag, fragsfile);
         
+        //printFragment(&temp_frag); getchar();
         //Transform coordinates to local
         //Actually, it is not required anymore.
         
@@ -768,8 +769,8 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     //getchar();
     
 }
-// RENAME 
-void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
+
+int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
 
 
 
@@ -842,6 +843,7 @@ void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char **
         }
 
         //Join minimums
+        //printf("Min on %"PRIu64", %"PRIu64"\n", i_min, j_min);
 
         
         if( dendrogram[j_min]->next == NULL || dendrogram[i_min]->next == NULL){ 
@@ -899,6 +901,7 @@ void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char **
 
     //Print clusters
     printf("Phylogenetic Clustering: \n");printDendrogramList(dendrogram[i_min]);
-    getchar(); 
+
+    return -1; //PROVISIONAL TODO
     
 }

@@ -466,7 +466,8 @@ uint64_t synteny_level_across_lists(uint64_t args_count, ...){
 	Synteny_list * sl_ptr;
 	sl_ptr = va_arg(sbl_args, Synteny_list *);
 	uint64_t s_level;
-	if(sl_ptr != NULL) s_level = sl_ptr->synteny_level; else return 0; 
+	if(sl_ptr != NULL) s_level = sl_ptr->synteny_level; else return 0;
+	
 
 	uint64_t i;
 	for(i=1;i<args_count;i++){
@@ -505,7 +506,7 @@ bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequenc
 		if(first == 0 && genomes_counters[i] != 0){
 			first = genomes_counters[i];
 		}else{
-			if(first != genomes_counters[i]) return false;
+			if(genomes_counters[i] != 0 && first != genomes_counters[i]) return false;
 		}
 		
 	}
@@ -666,32 +667,53 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 			//If no events happened
 			//Check last 3 syntenys for concatenation
-			/*
+			
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-			if(A != NULL) printSyntenyBlock(A->sb); printf("========000000\n");
-			if(B != NULL) printSyntenyBlock(B->sb); printf("========000000\n");
-			if(C != NULL) printSyntenyBlock(C->sb); printf("========000000\n");
-			*/
+			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
+			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
+			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
+			
+			//Duplications
+			memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+			//If there is not the same number of genomes involved
+			if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, B)){
+				//There are duplications in B
+				printf("Stopping it\n");
+				//Find those that have more synteny level
+				for(i=0;i<n_sequences;i++){
+					if(genomes_block_count[i] > 1){
+						// Genome i has duplications
+						printf("Duplications in %"PRIu64"\n", i);
+					}
+				}
+				getchar();
+				
+			}
 			
 			//Inversions
 			if(synteny_level_across_lists(3, A, B, C) > 0){
 				if(sm_A->get_strands_type() != MIXED && 
 				sm_A->get_strands_type() == sm_C->get_strands_type() &&
-				sm_B->get_strands_type() == REVERSE){
+				sm_B->get_strands_type() == MIXED){
 
 					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							printf("Attention: this looks like a reversion\n");
 
-							read_words_from_synteny_block_and_align(seq_man, A, kmer_size, words_dictionary, qfmat, qfmat_state);
+							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 							getchar();
+							//What do here?
 						}
 					}
+				}else{
+					printf("Strands not qualifying for inversion\n");
 				}
+			}else{
+				printf("Different synteny for inversion\n");
 			}
 
 

@@ -28,11 +28,11 @@ int main(int ac, char **av) {
     //Clocks to measure time
     clock_t begin, end;
     //Minimum length to fragment to accept a trimming
-    uint64_t min_len = 100; //Default
+    uint64_t min_len = 50; //Default
     //The sequences manager to store ids, lengths, etc
     sequence_manager * seq_manager = new sequence_manager();
     //The number of iterations to trimm
-    uint64_t N_ITERA = 4; //Default
+    uint64_t N_ITERA = 500; //Default
     //Path to the multifrags file
     char multifrags_path[512];
     multifrags_path[0] = '\0';
@@ -160,6 +160,7 @@ int main(int ac, char **av) {
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size);
+    fprintf(stdout, "\t\t After applying EE(s)\n");
     traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
@@ -245,8 +246,8 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             fprintf(stdout, "USAGE:\n");
             fprintf(stdout, "           JOSEE -multifrags [query] -pathfiles [fastas] -out [results]\n");
             fprintf(stdout, "OPTIONAL:\n");
-            fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 100)\n");
-            fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 4)\n");
+            fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 50)\n");
+            fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 500)\n");
             fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
             fprintf(stdout, "           -kmer               [Integer:   1<=X] (default 16)\n");
             fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");

@@ -125,7 +125,9 @@ inline void strrev(char *p, char *d, uint32_t k);
 
 /*
 	Computes a phylogenetic clustering based on a distance matrix using the UPGMA method (assumes equidistances)
+	returns the id of the genome where the reversion happened
+	or -1 if it cant be decided
 */
-void UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
+int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
 
 #endif /* COMMON_FUNCTIONS_H */
