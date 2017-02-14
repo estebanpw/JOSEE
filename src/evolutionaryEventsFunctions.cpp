@@ -280,7 +280,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 		}
 	}
 	//Not needed anymore
-	free(seq_orders);
+	std::free(seq_orders);
 	
 }
 
@@ -745,6 +745,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 			// Concatenation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+			// @IMPORTANT: Currently blocks are not being removed or recomputed
+			// in hash table after concatenation
 
 			//Check they share the synteny level
 			if(synteny_level_across_lists(3, A, B, C) > 0){

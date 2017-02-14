@@ -946,3 +946,64 @@ dictionary_hash::~dictionary_hash(){
 	delete this->mp;
 	std::free(this->list);
 }
+
+
+sl_order_pointers::sl_order_pointers(Synteny_list * sl, uint64_t n_sequences, int (* compare_orders)(const void * sl1, const void * sl2)){
+	
+	this->n_sequences = n_sequences;
+	this->compare_orders = compare_orders;
+	this->capacities = (uint64_t *) std::calloc(n_sequences, sizeof(uint64_t));
+	this->reallocs = (uint64_t *) std::malloc(n_sequences * sizeof(uint64_t));
+	this->table_pointers = (Synteny_list **) std::calloc(n_sequences, sizeof(Synteny_list*));
+	if(this->capacities == NULL || this->reallocs == NULL || this->table_pointers == NULL) throw "Could not allocate synteny list pointer structures";
+	
+	for(uint64_t i=0;i<n_sequences;i++){
+		this->reallocs[i] = 1;
+		this->table_pointers[i] = (Synteny_list *) std::calloc(SYN_TABLE_REALLOC, sizeof(Synteny_list*));
+		if(this->table_pointers[i] == NULL) throw "Could not suballocate synteny list pointer";
+	}
+
+	Synteny_list * sl_ptr;
+	Synteny_block * sb_ptr;
+	Sequence * g;
+
+	sl_ptr = sl;
+	while(sl_ptr != NULL){
+		sb_ptr = sl_ptr->sb;
+
+		while(sb_ptr != NULL){
+
+			g = sb_ptr->b->genome;
+			//Check for allocs
+			if(this->capacities[g->id] == this->reallocs[g->id]*SYN_TABLE_REALLOC){
+				this->reallocs[g->id]++;
+				this->table_pointers[g->id] = (Synteny_list *) std::realloc(this->table_pointers[g->id], this->reallocs[g->id]*SYN_TABLE_REALLOC);
+				if(this->table_pointers[g->id] == NULL) throw "Could not reallocate synteny list pointers";
+			}
+
+			//Add each synteny pointer by order per genome
+			table_pointers[g->id][this->capacities[g->id]++] = *sl_ptr;
+
+			sb_ptr = sb_ptr->next;
+		}
+
+		sl_ptr = sl_ptr->next;
+	}
+}
+
+void sl_order_pointers::sort_by_orders(){
+
+	for(uint64_t i=0;i<this->n_sequences;i++){
+		qsort(this->table_pointers[i], this->capacities[i], sizeof(Synteny_list *), this->compare_orders);
+	}
+	
+}
+
+sl_order_pointers::~sl_order_pointers(){
+	for(uint64_t i=0;i<this->n_sequences;i++){
+		std::free(this->table_pointers[i]);
+	}
+	std::free(this->table_pointers);
+	std::free(this->capacities);
+	std::free(this->reallocs);
+}

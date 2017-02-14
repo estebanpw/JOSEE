@@ -412,3 +412,7 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
     }
     
 }
+
+int compare_orders(const void * sl1, const void * sl2){
+    if(sl1)
+}

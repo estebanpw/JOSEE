@@ -7,6 +7,7 @@
 #pragma pack(push, 1)
 
 #define SEQ_REALLOC 5000000
+#define SYN_TABLE_REALLOC 10000
 #define INIT_SEQS 20
 #define INIT_ANNOTS 5000
 #define READLINE 2000
@@ -286,5 +287,22 @@ public:
     void print_strand_matrix();
     ~strand_matrix();
 };
+
+class sl_order_pointers
+{
+private:
+    Synteny_list ** table_pointers;
+    uint64_t n_sequences;
+    uint64_t * capacities;
+    uint64_t * reallocs;
+    int (* compare_orders)(const void * sl1, const void * sl2);
+
+public:
+    sl_order_pointers(Synteny_list * sl, uint64_t n_sequences, int (* compare_orders)(const void * sl1, const void * sl2));
+    void sort_by_orders();
+    //Synteny_list * get_synteny_list_from_order(uint64_t genome, )
+    ~sl_order_pointers();
+};
+
 
 #endif
