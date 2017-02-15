@@ -239,7 +239,7 @@ uint64_t sizeofSyntenyBlock(){
 }
 
 uint64_t sizeofSyntenyList(){
-    return sizeof(Synteny_block *) + sizeof(Synteny_list *) + sizeof(uint64_t);
+    return sizeof(Synteny_block *) + 2*sizeof(Synteny_list *) + sizeof(uint64_t);
 }
 
 uint64_t sizeofAnnotation(){
@@ -411,8 +411,4 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
         }
     }
     
-}
-
-int compare_orders(const void * sl1, const void * sl2){
-    if(sl1)
 }

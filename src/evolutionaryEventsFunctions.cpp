@@ -300,6 +300,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 
 	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 	Synteny_list * curr_sbl = sbl;
+	Synteny_list * last_sbl = NULL;
 	Synteny_block * curr_sb = NULL;
 
 
@@ -370,9 +371,14 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			if(synteny_level > 1){
 				curr_sbl->sb = curr_sb;
 				curr_sbl->synteny_level = synteny_level;
+				//curr_sbl->prev = last_sbl;
+				
 				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 				curr_sbl = curr_sbl->next;
 				curr_sbl->next = NULL;
+				curr_sbl->prev = last_sbl;
+				last_sbl = curr_sbl;
+				
 				//printf("Generated\n");
 			}
 			if(synteny_level <= 1){
@@ -400,6 +406,10 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 		}
 		//printf("broke stnyteny ---------------------------\n");
 	}
+
+	curr_sbl = NULL;
+	sbl->next->prev = sbl;
+
 	std::free(had_genome_bitmask);
 	return sbl;
 }
