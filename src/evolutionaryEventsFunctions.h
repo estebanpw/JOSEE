@@ -46,6 +46,12 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...);
 
 /*
+	Checks if there is ONE block whose order is not consecutive across two synteny lists
+	such block (if it exists) is returned in order to retrieve the synteny list
+*/
+Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_count, ...);
+
+/*
 	Substracts the accumulated order offset from the blocks in given synteny lists
 */
 void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...);

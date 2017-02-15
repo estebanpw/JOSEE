@@ -326,8 +326,8 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				*/
 
 				//Insert frag_x
-				if(aux_block != NULL && aux_block->present_in_synteny == 0){
-					aux_block->present_in_synteny = 1;
+				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
+					aux_block->present_in_synteny = curr_sbl;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
 					aux_sb->b = aux_block; //insert at the head
 					aux_sb->next = curr_sb;
@@ -348,8 +348,8 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				*/
 
 				//Insert frag_y
-				if(aux_block != NULL && aux_block->present_in_synteny == 0){
-					aux_block->present_in_synteny = 1;
+				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
+					aux_block->present_in_synteny = curr_sbl;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
 					aux_sb->b = aux_block; //insert at the head
 					aux_sb->next = curr_sb;
@@ -388,7 +388,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				//Restore levels of all of those used
 				Synteny_block * rest_ptr = curr_sbl->sb;
 				while(rest_ptr != NULL){
-					rest_ptr->b->present_in_synteny = 0;
+					rest_ptr->b->present_in_synteny = NULL;
 					rest_ptr = rest_ptr->next;
 				}
 				mp->reset_n_bytes(pre_comp_sb);
@@ -440,6 +440,41 @@ bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...){
 	}
 
 	return true;
+}
+
+// At this stage of development it should only be used with a pair of syntenys
+// And it should be generalized to n blocks
+Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_count, ...){
+	va_list sbl_args;
+	va_start(sbl_args, args_count);
+	Synteny_list * sl_ptr;
+	Synteny_block * sb_ptr;
+	Block * exception = NULL;
+	uint64_t i;
+	for(i=0;i<args_count;i++){
+		sl_ptr = va_arg(sbl_args, Synteny_list *);
+		if(sl_ptr != NULL){
+			sb_ptr = sl_ptr->sb;
+			while(sb_ptr != NULL){
+
+				if(i == 0){
+					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
+				}else{
+					if(sb_ptr->b->order - pairs_diff[sb_ptr->b->genome->id] != 1){
+						if(exception == NULL){
+							exception = sb_ptr->b;
+						}else{
+							return NULL;
+						}
+					} 
+					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
+				}
+				sb_ptr = sb_ptr->next;
+			}
+		}
+	}
+
+	return exception;
 }
 
 void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...){
@@ -685,27 +720,28 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			
 
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-			// I think only 4 synteny groups are needed ??
-			if(D != NULL){
-				if(synteny_level_across_lists(3, A, B, D)){
-					//same synteny, check the number of genomes involved
-					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
-					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, D)){
-						//Check that A and B have their order consecutive
-						if(consecutive_block_order(pairs_diff, 2, A, B)){
-							//And if D is not consecutive with B, then there must exist C with insertions
-							if(!consecutive_block_order(pairs_diff, 2, B, D)){
-								//But only if C does not have as much synteny level as D
-								if(C->synteny_level < D->synteny_level){
-									// TODO I think I have to check orders more carefully
-									printf("Detected insertions\n");
-									getchar();
-								}
-							}
+			
+			
+			if(synteny_level_across_lists(3, A, B, C)){
+				//same synteny, check the number of genomes involved
+				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
+					
+					//Check that A and B have their order consecutive except for the transposed
+					//Same for B and C (there can only be one transposed atm)
+					Block * transposed = consecutive_block_order_except_one(pairs_diff, 2, A, B);
+					if(transposed != NULL && transposed == consecutive_block_order_except_one(pairs_diff, 2, B, C)){
+						Synteny_list * sl_prev, * sl_after;
+						sl_prev = transposed->present_in_synteny->prev;
+						sl_after = transposed->present_in_synteny->next;
+						if(synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
+							printf("Detected insertions\n");
+							getchar();
 						}
 					}
 				}
 			}
+			
 			
 
 

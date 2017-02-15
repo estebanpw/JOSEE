@@ -174,7 +174,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 		bkt_x->b.f_list->next = NULL; 
 		bkt_x->b.f_list->f = f;
 		
-		bkt_x->b.present_in_synteny = 0;
+		bkt_x->b.present_in_synteny = NULL;
 
 		this->n_buckets++;
 
@@ -270,7 +270,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 		bkt_y->b.f_list->next = NULL; 
 		bkt_y->b.f_list->f = f;
 
-		bkt_y->b.present_in_synteny = 0;
+		bkt_y->b.present_in_synteny = NULL;
 
 		this->n_buckets++;
 

@@ -34,6 +34,8 @@ class memory_pool;
 class hash_table;
 class sequence_manager;
 
+struct synteny_list;
+
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
     //Diagonal where the frag is located
@@ -113,7 +115,7 @@ typedef struct block{
     uint64_t order;     //Order of block according to the genome
     Frags_list * f_list;    //List of fragments that compose it
     Sequence * genome;      //A pointer to the genome to which it belongs
-    unsigned char present_in_synteny;   //To tell whether it has already been used in a synteny block
+    struct synteny_list * present_in_synteny;   //To tell whether it has already been used in a synteny block
     unsigned char strand_in_synteny;    //The strand that it has at the synteny block
     //unsigned char repetition;   //To tell if the block is a repetition or not
 } Block;
