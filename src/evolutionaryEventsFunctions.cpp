@@ -463,7 +463,7 @@ Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_
 					if(sb_ptr->b->order - pairs_diff[sb_ptr->b->genome->id] != 1){
 						if(exception == NULL){
 							exception = sb_ptr->b;
-						}else{
+						}else if(exception->genome->id != sb_ptr->b->genome->id){
 							return NULL;
 						}
 					} 
@@ -666,7 +666,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//To have some statistics
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
-	uint64_t t_inversions = 0, t_duplications = 0;
+	uint64_t t_inversions = 0, t_duplications = 0, t_transpositions = 0;
 
 
 	while(!stop_criteria){
@@ -674,6 +674,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		//Display current iteration
 		printf("\nOn step: %"PRIu64". Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
 		printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
+		printf("Total transpositions: %"PRIu64"\n", t_transpositions);
 		current_concats = 0;
 		getchar();
 
@@ -717,6 +718,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
 			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
 			if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
+			if(E != NULL){ printSyntenyBlock(E->sb); printf("=was E=======000000\n");}
 			
 
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -730,16 +732,26 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					//Check that A and B have their order consecutive except for the transposed
 					//Same for B and C (there can only be one transposed atm)
 					Block * transposed = consecutive_block_order_except_one(pairs_diff, 2, A, B);
-					if(transposed != NULL && transposed == consecutive_block_order_except_one(pairs_diff, 2, B, C)){
+					Block * after_transposed = consecutive_block_order_except_one(pairs_diff, 2, B, C);
+					if(transposed != NULL && after_transposed != NULL && transposed->genome->id == after_transposed->genome->id){
 						Synteny_list * sl_prev, * sl_after;
 						sl_prev = transposed->present_in_synteny->prev;
 						sl_after = transposed->present_in_synteny->next;
 						if(synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
-							printf("Detected insertions\n");
+							printf("Detected transposition at B\n");
+							t_transpositions++;
 							getchar();
+						}else{
+							printf("Different synteny in ALL for transposition\n");
 						}
+					}else{
+						printf("Wrong consecutive orders for transposition\n");
 					}
+				}else{
+					printf("Sorry, genomes involved differ in transposition\n");
 				}
+			}else{
+				printf("A,B,C have different synteny in transposition\n");
 			}
 			
 			
@@ -757,6 +769,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						// Genome i has duplications
 						printf("Duplications in %"PRIu64"\n", i);
 						t_duplications++;
+						getchar();
 					}
 				}
 				//getchar();
@@ -777,7 +790,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-							//getchar();
+							getchar();
 							//What do here?
 							t_inversions++;
 						}
@@ -812,7 +825,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							concat_synteny_blocks(A, B, C);
 							t_concats++;
 							current_concats++;
-							//getchar();
+							getchar();
 							//Add offset to orders
 							for(i=0;i<n_sequences;i++){
 								//If genome was involved we have to add offset to the concat
@@ -897,6 +910,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	printf("\nAfter %"PRIu64" step(s). Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
 	printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
+	printf("Total transpositions: %"PRIu64"\n", t_transpositions);
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		std::free(qfmat[i]);
