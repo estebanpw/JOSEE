@@ -688,8 +688,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		memset(order_offsets, 0, n_sequences*sizeof(int64_t));
 
 		//Copy pointers of first consecutive blocks
-		if(A != NULL) B = A->next; else return;
-		if(B != NULL) C = B->next; else return; //Three at least
+		if(A != NULL) B = A->next; else return; // A must exist (minimum)
+		if(B != NULL) C = B->next;
 		if(C != NULL) D = C->next;
 		if(D != NULL) E = D->next;
 
@@ -701,7 +701,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		sm_D->add_fragment_strands(D);
 		sm_E->add_fragment_strands(E);
 
-		while(A != NULL && B != NULL && C != NULL){ // AT least three
+		while(A != NULL){ // AT least one to detect duplications
 
 
 
@@ -724,7 +724,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			
 			
-			if(synteny_level_across_lists(3, A, B, C)){
+			if(B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C)){
 				//same synteny, check the number of genomes involved
 				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
@@ -760,8 +760,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			// Duplications %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 			//If there is not the same number of genomes involved
-			if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, B)){
-				//There are duplications in B
+			if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, A)){
+				//There are duplications in A
 				printf("Stopping it\n");
 				//Find those that have more synteny level
 				for(i=0;i<n_sequences;i++){
@@ -777,7 +777,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			}
 			
 			// Inversions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-			if(synteny_level_across_lists(3, A, B, C) > 0){
+			if(B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C) > 0){
 				if(sm_A->get_strands_type() != MIXED && 
 				sm_A->get_strands_type() == sm_C->get_strands_type() &&
 				sm_B->get_strands_type() == MIXED){
@@ -808,7 +808,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			// in hash table after concatenation
 
 			//Check they share the synteny level
-			if(synteny_level_across_lists(3, A, B, C) > 0){
+			if(B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C) > 0){
 				//Concat synteny blocks if they have the same strand
 				if(sm_A->get_strands_type() != MIXED && 
 				sm_A->get_strands_type() == sm_B->get_strands_type() &&
