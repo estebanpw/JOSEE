@@ -307,11 +307,11 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	for(i=0;i<ht->get_size();i++){
 		ptr = ht->get_key_at(i);
 
+		memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
+		synteny_level = 0; //Restart synteny level
 		while(ptr != NULL){
-			//Each block in the has is here
+			//Each block is here
 			//For each block, add the blocks linked by the fragments
-			memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
-			synteny_level = 0; //Restart synteny level
 			flptr = ptr->b.f_list;
 			while(flptr != NULL){
 				//printFragment(flptr->f);
@@ -366,37 +366,6 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			//printf("broke stnyteny ---------------------------\n");
 
 			//No more frags to add 
-
-			// End synteny block
-			if(synteny_level > 1){
-				curr_sbl->sb = curr_sb;
-				curr_sbl->synteny_level = synteny_level;
-				//curr_sbl->prev = last_sbl;
-				
-				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
-				curr_sbl = curr_sbl->next;
-				curr_sbl->next = NULL;
-				curr_sbl->prev = last_sbl;
-				last_sbl = curr_sbl;
-				
-				//printf("Generated\n");
-			}
-			if(synteny_level <= 1){
-				//Since there is a minimum synteny, restore its level so that it can be used
-				//curr_sb->b->present_in_synteny = 0;
-
-				//Restore levels of all of those used
-				Synteny_block * rest_ptr = curr_sbl->sb;
-				while(rest_ptr != NULL){
-					rest_ptr->b->present_in_synteny = NULL;
-					rest_ptr = rest_ptr->next;
-				}
-				mp->reset_n_bytes(pre_comp_sb);
-				
-				//printf("Failed at generatin\n");
-			}
-			
-			curr_sb = NULL;
 			//Go to next block
 			ptr = ptr->next;
 			
@@ -404,6 +373,36 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			//printf("broke stnyteny ---------------------------\n");
 			//getchar();
 		}
+		// End synteny block
+		if(synteny_level > 1){
+			curr_sbl->sb = curr_sb;
+			curr_sbl->synteny_level = synteny_level;
+			//curr_sbl->prev = last_sbl;
+			
+			curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+			curr_sbl = curr_sbl->next;
+			curr_sbl->next = NULL;
+			curr_sbl->prev = last_sbl;
+			last_sbl = curr_sbl;
+			
+			//printf("Generated\n");
+		}else{
+			//Since there is a minimum synteny, restore its level so that it can be used
+			//curr_sb->b->present_in_synteny = 0;
+
+			//Restore levels of all of those used
+			Synteny_block * rest_ptr = curr_sbl->sb;
+			while(rest_ptr != NULL){
+				rest_ptr->b->present_in_synteny = NULL;
+				rest_ptr = rest_ptr->next;
+			}
+			mp->reset_n_bytes(pre_comp_sb);
+			
+			//printf("Failed at generatin\n");
+		}
+		
+		curr_sb = NULL;
+
 		//printf("broke stnyteny ---------------------------\n");
 	}
 
@@ -758,22 +757,28 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 			// Duplications %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-			memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
-			//If there is not the same number of genomes involved
-			if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, A)){
-				//There are duplications in A
-				printf("Stopping it\n");
-				//Find those that have more synteny level
-				for(i=0;i<n_sequences;i++){
-					if(genomes_block_count[i] > 1){
-						// Genome i has duplications
-						printf("Duplications in %"PRIu64"\n", i);
-						t_duplications++;
-						getchar();
+			// Left and right synteny must have same synteny level
+			if(B != NULL && C != NULL && synteny_level_across_lists(2, A, C) > 0){
+
+				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
+				//If there is not the same number of genomes involved
+				if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, B)){
+					//There are duplications in B
+					//Find those that have more synteny level
+					for(i=0;i<n_sequences;i++){
+						if(genomes_block_count[i] > 1){
+							// Genome i has duplications
+							printf("Duplications in %"PRIu64"\n", i);
+							t_duplications++;
+							getchar();
+						}
 					}
+					//getchar();
+				}else{
+					printf("Genomes involved not qualifying for duplication\n");
 				}
-				//getchar();
-				
+			}else{
+				printf("Wrong synteny for duplication\n");
 			}
 			
 			// Inversions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
