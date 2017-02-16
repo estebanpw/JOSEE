@@ -284,6 +284,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 	
 }
 
+
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
 	uint64_t i, synteny_level;
 	//Pointers
@@ -301,7 +302,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 	Synteny_list * curr_sbl = sbl;
 	Synteny_list * last_sbl = NULL;
-	Synteny_block * curr_sb = NULL;
+	Synteny_block * curr_sb = NULL, * find_pos_in_sb = NULL, * last_to_insert = NULL;
 
 
 	for(i=0;i<ht->get_size();i++){
@@ -309,6 +310,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 
 		memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
 		synteny_level = 0; //Restart synteny level
+		curr_sb = NULL;
 		while(ptr != NULL){
 			//Each block is here
 			//For each block, add the blocks linked by the fragments
@@ -324,14 +326,37 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 					printf("FETCH:\n"); printBlock(aux_block); getchar();
 				}
 				*/
+				// curr_sb is always the head
 
 				//Insert frag_x
 				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
 					aux_block->present_in_synteny = curr_sbl;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
-					aux_sb->b = aux_block; //insert at the head
-					aux_sb->next = curr_sb;
-					curr_sb = aux_sb;
+					aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
+					
+					if(curr_sb == NULL){
+						//Head is null
+						curr_sb = aux_sb;
+					}else{
+						//Finds prev and next
+						find_pos_in_sb = curr_sb;
+						last_to_insert = NULL;
+						
+						while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
+							last_to_insert = find_pos_in_sb;
+							find_pos_in_sb = find_pos_in_sb->next;
+						}
+
+						aux_sb->next = find_pos_in_sb;
+						if(last_to_insert == NULL){
+							//its new head
+							curr_sb = aux_sb;
+						}else{
+							last_to_insert->next = aux_sb;
+						}
+						
+					}
+					
 					aux_block = NULL;
 					if(had_genome_bitmask[flptr->f->seqX] == 0) synteny_level++;
 					had_genome_bitmask[flptr->f->seqX] = 1;
@@ -351,9 +376,33 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
 					aux_block->present_in_synteny = curr_sbl;
 					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
-					aux_sb->b = aux_block; //insert at the head
-					aux_sb->next = curr_sb;
-					curr_sb = aux_sb;
+					aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
+
+					if(curr_sb == NULL){
+						//Head is null
+						curr_sb = aux_sb;
+					}else{
+
+						//Finds prev and next
+						find_pos_in_sb = curr_sb;
+						last_to_insert = NULL;
+						
+						while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
+							last_to_insert = find_pos_in_sb;
+							find_pos_in_sb = find_pos_in_sb->next;
+						}
+
+						aux_sb->next = find_pos_in_sb;
+						if(last_to_insert == NULL){
+							//its new head
+							curr_sb = aux_sb;
+						}else{
+							last_to_insert->next = aux_sb;
+						}
+						
+					}
+
+
 					aux_block = NULL;
 					if(had_genome_bitmask[flptr->f->seqY] == 0) synteny_level++;
 					had_genome_bitmask[flptr->f->seqY] = 1;
@@ -413,7 +462,23 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	return sbl;
 }
 
-//@Assumes: Synteny level + same number of genomes involved
+
+
+// @Assumes same synteny level between lists
+// and same number of genomes involved
+void distance_between_blocks(uint64_t * distances, Synteny_list * A, Synteny_list * B){
+	Synteny_block * sb_A = A->sb, * sb_B = B->sb;
+
+	while(sb_A != NULL){
+
+		distances[sb_A->b->genome->id] = sb_B->b->start - sb_A->b->end; 
+
+		sb_A = sb_A->next;
+		sb_B = sb_B->next;
+	}
+}
+
+// @Assumes: Synteny level + same number of genomes involved
 bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...){
 	va_list sbl_args;
 	va_start(sbl_args, args_count);
@@ -620,6 +685,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t * order_offsets_after_concat = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
 	if(order_offsets == NULL || order_offsets_after_concat == NULL) terror("Could not allocate order offsets for after-events");
 
+	//To check for indels (distances between blocks in concat)
+	uint64_t * indel_distance = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(indel_distance == NULL) terror("Could not allocate indels distance vector");
+
 	//To check that blocks are consecutive in their genome
 	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
 	if(pairs_diff == NULL) terror("Could not allocate consecutive order of blocks array");
@@ -671,11 +740,11 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	while(!stop_criteria){
 		
 		//Display current iteration
-		printf("\nOn step: %"PRIu64". Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-		printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
-		printf("Total transpositions: %"PRIu64"\n", t_transpositions);
+		printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+		printf("\tTotal inversions: %"PRIu64".\n\tTotal duplications: %"PRIu64"\n", t_inversions, t_duplications);
+		printf("\tTotal transpositions: %"PRIu64"\n", t_transpositions);
 		current_concats = 0;
-		getchar();
+		//getchar();
 
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
@@ -736,7 +805,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						Synteny_list * sl_prev, * sl_after;
 						sl_prev = transposed->present_in_synteny->prev;
 						sl_after = transposed->present_in_synteny->next;
-						if(synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
+						if(sl_prev != A && sl_after != C && synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
+							printSyntenyBlock(sl_prev->sb);
+							printSyntenyBlock(sl_after->sb);
 							printf("Detected transposition at B\n");
 							t_transpositions++;
 							getchar();
@@ -770,7 +841,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							// Genome i has duplications
 							printf("Duplications in %"PRIu64"\n", i);
 							t_duplications++;
-							getchar();
+							//getchar();
 						}
 					}
 					//getchar();
@@ -795,7 +866,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-							getchar();
+							//getchar();
 							//What do here?
 							t_inversions++;
 						}
@@ -827,10 +898,18 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
 
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
+
+							//First check if there are any indels
+							memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
+							distance_between_blocks(indel_distance, A, B);
+							for(i=0;i<n_sequences;i++){
+								printf("D[%"PRIu64"] -:: %"PRIu64"\n", i, indel_distance[i]);
+							}
+
 							concat_synteny_blocks(A, B, C);
 							t_concats++;
 							current_concats++;
-							getchar();
+							//getchar();
 							//Add offset to orders
 							for(i=0;i<n_sequences;i++){
 								//If genome was involved we have to add offset to the concat
@@ -913,9 +992,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		}
 	}
 
-	printf("\nAfter %"PRIu64" step(s). Total concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-	printf("Total inversions: %"PRIu64". Total duplications: %"PRIu64"\n", t_inversions, t_duplications);
-	printf("Total transpositions: %"PRIu64"\n", t_transpositions);
+	printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+	printf("\tTotal inversions: %"PRIu64".\n\tTotal duplications: %"PRIu64"\n", t_inversions, t_duplications);
+	printf("\tTotal transpositions: %"PRIu64"\n", t_transpositions);
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		std::free(qfmat[i]);
@@ -928,6 +1007,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(order_offsets);
 	std::free(order_offsets_after_concat);
 	std::free(pairs_diff);
+	std::free(indel_distance);
 	
 	delete sm_A;
 	delete sm_B;

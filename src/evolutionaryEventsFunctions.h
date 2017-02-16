@@ -37,8 +37,10 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
 */
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp);
 
-
-
+/*
+	Computes the distance between blocks in two synteny lists
+*/
+void distance_between_blocks(uint64_t * distances, Synteny_list * A, Synteny_list * B);
 /*
 	Checks that blocks in a synteny list are consecutive in respect to their genomes
 	Assumes: Synteny level + same number of genomes involved
