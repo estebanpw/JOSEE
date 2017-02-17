@@ -507,14 +507,15 @@ bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...){
 }
 
 // At this stage of development it should only be used with a pair of syntenys
-// And it should be generalized to n blocks
-Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_count, ...){
+bool consecutive_block_order_except_one(int64_t * pairs_diff, uint64_t n_sequences, Block ** cons_order_T1, Block ** cons_order_T2, uint64_t args_count, ...){
 	va_list sbl_args;
 	va_start(sbl_args, args_count);
 	Synteny_list * sl_ptr;
 	Synteny_block * sb_ptr;
-	Block * exception = NULL;
 	uint64_t i;
+	int64_t diff_type_1 = 0, diff_type_2 = 0, current_diff;
+	bool is_in_T1_or_T2 = false;
+
 	for(i=0;i<args_count;i++){
 		sl_ptr = va_arg(sbl_args, Synteny_list *);
 		if(sl_ptr != NULL){
@@ -522,23 +523,103 @@ Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_
 			while(sb_ptr != NULL){
 
 				if(i == 0){
+					//This inserts the orders from A
 					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
 				}else{
-					if(sb_ptr->b->order - pairs_diff[sb_ptr->b->genome->id] != 1){
-						if(exception == NULL){
-							exception = sb_ptr->b;
-						}else if(exception->genome->id != sb_ptr->b->genome->id){
-							return NULL;
+					//Now check for different orders
+					is_in_T1_or_T2 = false;
+					current_diff = sb_ptr->b->order - pairs_diff[sb_ptr->b->genome->id];
+
+
+					if(diff_type_1 == 0){
+						//Set the difference type
+						diff_type_1 = current_diff;
+						//Add the block to the difference cluster type
+						cons_order_T1[sb_ptr->b->genome->id] = sb_ptr->b;
+						is_in_T1_or_T2 = true;
+					}else{
+						if(current_diff == diff_type_1){
+							cons_order_T1[sb_ptr->b->genome->id] = sb_ptr->b;
+							is_in_T1_or_T2 = true;
 						}
-					} 
-					pairs_diff[sb_ptr->b->genome->id] = sb_ptr->b->order;
+					}
+					if(diff_type_2 == 0 && current_diff != diff_type_1){
+						diff_type_2 = current_diff;
+						cons_order_T2[sb_ptr->b->genome->id] = sb_ptr->b;
+						is_in_T1_or_T2 = true;
+					}else{
+						if(current_diff == diff_type_2){
+							cons_order_T2[sb_ptr->b->genome->id] = sb_ptr->b;
+							is_in_T1_or_T2 = true;
+						}
+					}
+
+					if(is_in_T1_or_T2 == false) return false; //There are more difference types
+					
+					
 				}
 				sb_ptr = sb_ptr->next;
 			}
 		}
 	}
+	printf("DIFFTYPES: %"PRId64", %"PRId64"\n", diff_type_1, diff_type_2);
+	/*
+	for(i=0;i<n_sequences;i++){
+		if(cons_order_T1[i] != NULL) {printf("in T1@%"PRIu64": ",i); printBlockWriteMode(cons_order_T1[i]);}
+		if(cons_order_T2[i] != NULL) {printf("in T2@%"PRIu64": ",i); printBlockWriteMode(cons_order_T2[i]);}
+	}
+	*/
+	/*
+	if(diff_type_1 != 1){
+		//Switch them so that const_order_T1 has the one with diff 1
+		Block ** aux_list = cons_order_T1;
+		cons_order_T1 = cons_order_T2;
+		cons_order_T2 = aux_list;
+	}
+	*/
+	for(i=0;i<n_sequences;i++){
+		if(cons_order_T1[i] != NULL) {printf("in T1@%"PRIu64": ",i); printBlockWriteMode(cons_order_T1[i]);}
+		if(cons_order_T2[i] != NULL) {printf("in T2@%"PRIu64": ",i); printBlockWriteMode(cons_order_T2[i]);}
+	}
 
-	return exception;
+	return true;
+}
+
+Block * compare_order_clusters(Block ** cons_order_A_B_T1, Block ** cons_order_A_B_T2, Block ** cons_order_B_C_T1, Block ** cons_order_B_C_T2, uint64_t n_sequences){
+	
+	Block * the_pointer_to_retrieve_synteny = NULL;
+	uint64_t either_all_null_or_none_T1, either_all_null_or_none_T2, i;
+	for(i=0;i<n_sequences;i++){
+		//If one is not null, the other can't be either
+		either_all_null_or_none_T1 = 0; either_all_null_or_none_T2 = 0;
+		if(cons_order_A_B_T1[i] != NULL) either_all_null_or_none_T1++;
+		if(cons_order_B_C_T1[i] != NULL) either_all_null_or_none_T1++;
+		if(cons_order_A_B_T2[i] != NULL) either_all_null_or_none_T2++;
+		if(cons_order_B_C_T2[i] != NULL) either_all_null_or_none_T2++;
+		
+		if(either_all_null_or_none_T1 == 1) return NULL; 
+		if(either_all_null_or_none_T2 == 1) return NULL; 
+
+		if(either_all_null_or_none_T1 == 2){
+			if(cons_order_A_B_T1[i]->genome->id != cons_order_B_C_T1[i]->genome->id){
+				return NULL; 
+			}else{
+				if(the_pointer_to_retrieve_synteny == NULL){
+					the_pointer_to_retrieve_synteny = cons_order_A_B_T1[i];
+					printf("enter at@@@@@@@@@: "); printBlock(the_pointer_to_retrieve_synteny);
+				}
+			}
+		}
+		
+		if(either_all_null_or_none_T2 == 2){
+			if(cons_order_A_B_T2[i]->genome->id != cons_order_B_C_T2[i]->genome->id){
+				return NULL;
+			}else{
+				
+			}
+		}
+	}
+	return the_pointer_to_retrieve_synteny;
 }
 
 void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...){
@@ -665,7 +746,7 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 
 }
 
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht){
 	
 	//Data structures needed
 
@@ -691,7 +772,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//To check that blocks are consecutive in their genome
 	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
-	if(pairs_diff == NULL) terror("Could not allocate consecutive order of blocks array");
+	int64_t * pairs_diff_integer = (int64_t *) std::malloc(n_sequences*sizeof(int64_t));
+	Block ** cons_order_A_B_T1 = (Block **) std::calloc(n_sequences, sizeof(Block *));
+	Block ** cons_order_A_B_T2 = (Block **) std::calloc(n_sequences, sizeof(Block *));
+	Block ** cons_order_B_C_T1 = (Block **) std::calloc(n_sequences, sizeof(Block *));
+	Block ** cons_order_B_C_T2 = (Block **) std::calloc(n_sequences, sizeof(Block *));
+	if(pairs_diff == NULL || pairs_diff_integer == NULL) terror("Could not allocate consecutive order of blocks array");
+	if(cons_order_A_B_T1 == NULL || cons_order_B_C_T1 == NULL) terror("Could not allocate consecutive order of block pointers array (1)");
+	if(cons_order_A_B_T2 == NULL || cons_order_B_C_T2 == NULL) terror("Could not allocate consecutive order of block pointers array (2)");
 
 	//For strand matrices
 	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
@@ -799,23 +887,52 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					
 					//Check that A and B have their order consecutive except for the transposed
 					//Same for B and C (there can only be one transposed atm)
-					Block * transposed = consecutive_block_order_except_one(pairs_diff, 2, A, B);
-					Block * after_transposed = consecutive_block_order_except_one(pairs_diff, 2, B, C);
-					if(transposed != NULL && after_transposed != NULL && transposed->genome->id == after_transposed->genome->id){
-						Synteny_list * sl_prev, * sl_after;
-						sl_prev = transposed->present_in_synteny->prev;
-						sl_after = transposed->present_in_synteny->next;
-						if(sl_prev != A && sl_after != C && synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
-							printSyntenyBlock(sl_prev->sb);
-							printSyntenyBlock(sl_after->sb);
-							printf("Detected transposition at B\n");
-							t_transpositions++;
-							getchar();
+					memset(cons_order_A_B_T1, 0x0, n_sequences*sizeof(Block *));
+					memset(cons_order_A_B_T2, 0x0, n_sequences*sizeof(Block *));
+					memset(cons_order_B_C_T1, 0x0, n_sequences*sizeof(Block *));
+					memset(cons_order_B_C_T2, 0x0, n_sequences*sizeof(Block *));
+					
+					if(consecutive_block_order_except_one(pairs_diff_integer, n_sequences, cons_order_A_B_T1, cons_order_A_B_T2, 2, A, B)
+					&& consecutive_block_order_except_one(pairs_diff_integer, n_sequences, cons_order_B_C_T1, cons_order_B_C_T2, 2, B, C)){
+						//That is, blocks can be separated using only two order discriminators
+						//Now check that they are grouped the same way in both "clusters"
+						Block * retrieve_synteny = NULL;
+						retrieve_synteny = compare_order_clusters(cons_order_A_B_T1, cons_order_A_B_T2, cons_order_B_C_T1, cons_order_B_C_T2, n_sequences);
+
+						
+
+						if(retrieve_synteny != NULL){
+
+							printf("USING: "); printBlock(retrieve_synteny);
+
+							//Retrieve the syteny from the block
+							Synteny_list * sl_prev = NULL, * sl_after = NULL;
+							Block * aux;
+							aux = blocks_ht->get_previous_block(retrieve_synteny);
+							if(aux != NULL) sl_prev = aux->present_in_synteny;
+							aux = blocks_ht->get_next_block(retrieve_synteny);
+							if(aux != NULL) sl_after = aux->present_in_synteny;
+
+							printf("##############################\n");
+							if(sl_prev != NULL) printSyntenyBlock(sl_prev->sb);
+							printf("##############################\n");
+							if(sl_after != NULL) printSyntenyBlock(sl_after->sb);
+							printf("##############################\n");
+
+							if(sl_prev != A && sl_after != C && synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
+								printSyntenyBlock(sl_prev->sb);
+								printSyntenyBlock(sl_after->sb);
+								printf("Detected transposition at B\n");
+								t_transpositions++;
+								getchar();
+							}else{
+								printf("Different synteny in ALL for transposition\n");
+							}
 						}else{
-							printf("Different synteny in ALL for transposition\n");
+							printf("Retrieved synteny block is null for transposition\n");
 						}
 					}else{
-						printf("Wrong consecutive orders for transposition\n");
+						printf("Wrong consecutive order cant be discriminated for transposition\n");
 					}
 				}else{
 					printf("Sorry, genomes involved differ in transposition\n");
@@ -824,7 +941,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				printf("A,B,C have different synteny in transposition\n");
 			}
 			
-			
+			getchar();
 
 
 			// Duplications %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1007,7 +1124,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(order_offsets);
 	std::free(order_offsets_after_concat);
 	std::free(pairs_diff);
+	std::free(pairs_diff_integer);
 	std::free(indel_distance);
+	std::free(cons_order_A_B_T1);
+	std::free(cons_order_A_B_T2);
+	std::free(cons_order_B_C_T1);
+	std::free(cons_order_B_C_T2);
 	
 	delete sm_A;
 	delete sm_B;

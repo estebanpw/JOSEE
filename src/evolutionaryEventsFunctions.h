@@ -48,11 +48,18 @@ void distance_between_blocks(uint64_t * distances, Synteny_list * A, Synteny_lis
 bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...);
 
 /*
-	Checks if there is ONE block whose order is not consecutive across two synteny lists
-	such block (if it exists) is returned in order to retrieve the synteny list
+	Tries to separate the blocks of two synteny blocks into two groups by order
+	i.e. the order differences between blocks in A and blocks in B can only take two values
+	(diff 1 and diff 2) then a transposition can exist
+	If result is true, then cons_order_T1 and cons_order_T2 hold the separated groups respectively
 */
-Block * consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t args_count, ...);
+bool consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t n_sequences, Block ** cons_order_T1, Block ** cons_order_T2, uint64_t args_count, ...);
 
+/*
+	Checks whether the separated groups from T1 and T2 have the same genomes
+	A pointer to a block of the synteny list to be retrieved is returned
+*/
+Block * compare_order_clusters(Block ** cons_order_A_B_T1, Block ** cons_order_A_B_T2, Block ** cons_order_B_C_T1, Block ** cons_order_B_C_T2, uint64_t n_sequences);
 /*
 	Substracts the accumulated order offset from the blocks in given synteny lists
 */
@@ -83,4 +90,4 @@ void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht);

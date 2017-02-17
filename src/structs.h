@@ -233,7 +233,10 @@ public:
     uint64_t get_size(){ return ht_size; }
     void print_hash_table(int print);
     Bucket * get_iterator(){ return ht[0];}
+    Block * get_previous_block(Block * b);
+    Block * get_next_block(Block * b);
     void write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints);
+    
 
 private:
 	uint64_t compute_hash(uint64_t key);
@@ -290,5 +293,7 @@ public:
     void print_strand_matrix();
     ~strand_matrix();
 };
+
+
 
 #endif

@@ -349,6 +349,36 @@ Block * hash_table::get_block_from_frag(struct FragFile * f, int x_or_y){
 	return NULL;
 }
 
+Block * hash_table::get_previous_block(Block * b){
+	int64_t pos = (int64_t) compute_hash(b->start);
+	Bucket * ptr = this->ht[pos];
+	while(pos >= 0){
+		while(ptr != NULL){
+			if(!isBlockEqualTo(b, &ptr->b) && b->genome->id == ptr->b.genome->id){
+				return &ptr->b;
+			}
+			ptr = ptr->next;
+		}
+		ptr = this->ht[--pos];
+	}
+	return NULL;
+}
+
+Block * hash_table::get_next_block(Block * b){
+	uint64_t pos = compute_hash(b->start);
+	Bucket * ptr = this->ht[pos];
+	while(pos < this->ht_size){
+		while(ptr != NULL){
+			if(!isBlockEqualTo(b, &ptr->b) && b->genome->id == ptr->b.genome->id){
+				return &ptr->b;
+			}
+			ptr = ptr->next;
+		}
+		ptr = this->ht[++pos];
+	}
+	return NULL;
+}
+
 void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints){
 	uint64_t i, block_counts = 0;
 	Bucket * ptr;

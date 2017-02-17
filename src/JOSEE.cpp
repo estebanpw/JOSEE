@@ -12,6 +12,7 @@
 int DEBUG_ACTIVE = 0;
 int HARD_DEBUG_ACTIVE = 0;
 
+void print_all();
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, uint32_t * kmer_size);
@@ -159,7 +160,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size);
+    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     //traverse_synteny_list(synteny_block_list);
     end = clock();
@@ -233,6 +234,19 @@ int main(int ac, char **av) {
     return 0;
 }
 
+void print_all(){
+    fprintf(stdout, "USAGE:\n");
+    fprintf(stdout, "           JOSEE -multifrags [query] -pathfiles [fastas] -out [results]\n");
+    fprintf(stdout, "OPTIONAL:\n");
+    fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 50)\n");
+    fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 500)\n");
+    fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
+    fprintf(stdout, "           -kmer               [Integer:   1<=X] (default 16)\n");
+    fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");
+    fprintf(stdout, "           -annotations        [Path without format extension]\n");
+    fprintf(stdout, "           --debug     Turns debug on\n");
+    fprintf(stdout, "           --help      Shows the help for program usage\n");
+}
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
@@ -243,17 +257,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         if(strcmp(av[pNum], "--debug") == 0) DEBUG_ACTIVE = 1;
         if(strcmp(av[pNum], "--hdebug") == 0) HARD_DEBUG_ACTIVE = 1;
         if(strcmp(av[pNum], "--help") == 0){
-            fprintf(stdout, "USAGE:\n");
-            fprintf(stdout, "           JOSEE -multifrags [query] -pathfiles [fastas] -out [results]\n");
-            fprintf(stdout, "OPTIONAL:\n");
-            fprintf(stdout, "           -min_len_trimming   [Integer:   0<=X] (default 50)\n");
-            fprintf(stdout, "           -min_trim_itera     [Integer:   0<=X] (default 500)\n");
-            fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
-            fprintf(stdout, "           -kmer               [Integer:   1<=X] (default 16)\n");
-            fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");
-            fprintf(stdout, "           -annotations        [Path without format extension]\n");
-            fprintf(stdout, "           --debug     Turns debug on\n");
-            fprintf(stdout, "           --help      Shows the help for program usage\n");
+            print_all();
             exit(1);
         }
         if(strcmp(av[pNum], "-multifrags") == 0){
@@ -306,6 +310,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     }
     
     if(*multifrags==NULL || *out_file==NULL || path_files[0] == '\0'){
+        print_all();
         terror("A frags file, a path to the fasta files and an output file must be specified");
     }
 }
