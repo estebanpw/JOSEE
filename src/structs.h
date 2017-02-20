@@ -11,6 +11,7 @@
 #define INIT_SEQS 20
 #define INIT_ANNOTS 5000
 #define INIT_BLOCKS_TO_ADD 50
+#define WRITE_BUFFER_CAPACITY 100000 //100 KB
 #define READLINE 2000
 #define READBUF 50000000 //50MB
 #define INIT_TRIM_FRAGS 10000
@@ -31,11 +32,16 @@
 
 #define POINT 4
 
+//Class prototypes
 class memory_pool;
 class hash_table;
 class sequence_manager;
 
+//Struct prototypes
 struct synteny_list;
+
+//Enums
+enum Event { inversion, duplication, transposition, insertion, deletion };
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -236,6 +242,7 @@ public:
     Bucket * get_iterator(){ return ht[0];}
     Block * get_previous_block(Block * b);
     Block * get_next_block(Block * b);
+    void remove_block(Block * b);
     void write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints);
     
 
@@ -295,6 +302,30 @@ public:
     ~strand_matrix();
 };
 
+struct e_inversion{
+    Block * inv; //A block with inversion
+};
+
+
+
+
+class ee_log{
+private:
+    FILE * logfile;
+    char * write_buffer;
+    uint64_t write_index;
+    uint64_t event_count;
+    char tmp[256];
+
+public:
+    ee_log(FILE * logfile);
+    void register_event(Event e, void * event_data);    
+    ~ee_log();
+
+private:
+    void write(const char * data);
+
+};
 
 
 #endif

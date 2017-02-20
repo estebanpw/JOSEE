@@ -287,6 +287,34 @@ void hash_table::insert_y_side(struct FragFile * f){
 	
 }
 
+void hash_table::remove_block(Block * b){
+	Bucket * prev, * ptr;
+
+	uint64_t hash = compute_hash(b->start);
+	prev = NULL;
+	ptr = this->get_key_at(hash);
+	
+	
+	while(ptr != NULL){
+		if(ptr->b.start == b->start && ptr->b.end == b->end
+		&& ptr->b.genome->id == b->genome->id){
+			// Remove block
+			// No actual deletion of the block is done since
+			// its handled by the pool
+			if(prev != NULL){
+				prev->next = ptr->next;
+			}else{
+				this->ht[hash]->next = ptr->next;
+			}
+			
+			return;
+		}
+		
+		prev = ptr;
+		ptr = ptr->next;
+	}
+}
+
 void hash_table::print_hash_table(int print){
 	uint64_t i, bck_counter, total_buckets = 0, block_len_verifier;
 	Bucket * ptr;
@@ -975,5 +1003,66 @@ uint64_t dictionary_hash::compute_hash(char * kmer){
 dictionary_hash::~dictionary_hash(){
 	delete this->mp;
 	std::free(this->list);
+}
+
+
+ee_log::ee_log(FILE * logfile){
+	this->logfile = logfile;
+	this->write_buffer = (char *) std::malloc(WRITE_BUFFER_CAPACITY*sizeof(char));
+	if(this->write_buffer == NULL) terror("Could not allocate writing buffer for ee log");
+	this->write_index = 0;
+	this->event_count = 0;
+
+}
+
+void ee_log::write(const char * data){
+	uint64_t to_add = strlen(data);
+	if((this->write_index + to_add) < WRITE_BUFFER_CAPACITY){
+		strcat(this->write_buffer, data);
+		this->write_index += to_add;
+	}else{
+		fprintf(this->logfile, "%s", this->write_buffer);
+		strcat(&this->write_buffer[0], data);
+		this->write_index = to_add;
+	}
+}
+
+void ee_log::register_event(Event e, void * event_data){
+
+	switch(e){
+		case inversion: {
+
+			e_inversion * e_inv = (e_inversion *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "REVERSION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_inv->inv->genome->id, e_inv->inv->start, e_inv->inv->end);
+			this->write(this->tmp);
+		}
+		break;
+		case duplication: {
+			
+		}
+		break;
+		case transposition: {
+
+		}
+		break;
+		case insertion: {
+
+		}
+		break;
+		case deletion: {
+
+		}
+		break;
+		default: {
+
+		}
+	}
+}
+
+ee_log::~ee_log(){
+	this->write("\n$END");
+	std::free(this->write_buffer);
 }
 

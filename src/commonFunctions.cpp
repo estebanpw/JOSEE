@@ -572,6 +572,7 @@ inline void strrev(char *p, char *d, uint32_t k){
   
 }
 
+
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state){
 
     //@Important: A single hit between two sequences should be enough to align two blocks

@@ -939,8 +939,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 
-			//Recompute order of the last one added to the list
-			printf("Pre all\n");
+			//Recompute order of the last one added to the list (because of concatenation)
 			recompute_orders_from_offset(order_offsets, 1, E);
 			
 			//printDebugBlockOrderByGenome(E, 0);
@@ -1068,7 +1067,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 
-							//REMOVE THIS!!!!!!!!!!!!! TODO CUCU
 							//genomes_affected[0] = true;
 							reverse_reversion(B, seq_man, genomes_affected);
 							//Recalculate strand matrix (in case there is a concatenation)
