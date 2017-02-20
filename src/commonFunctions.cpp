@@ -161,7 +161,7 @@ void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t t
 void traverse_synteny_list(Synteny_list * sbl){
     Synteny_list * ptr_sbl = sbl;
     Synteny_block * ptr_sb;
-    bool forward = true;
+    //bool forward = true;
     while(ptr_sbl != NULL){
         fprintf(stdout, "SBL:\n");
         ptr_sb = ptr_sbl->sb;
@@ -169,18 +169,19 @@ void traverse_synteny_list(Synteny_list * sbl){
             fprintf(stdout, "\t");printBlock(ptr_sb->b);
             ptr_sb = ptr_sb->next;
         }
-
+        /*
         if(ptr_sbl->next == NULL){
             forward = !forward;
             printf("And changing direction!!!!!!!\n");
         }
-
+        
         if(forward){
             ptr_sbl = ptr_sbl->next;
         }else{
             ptr_sbl = ptr_sbl->prev;
         }
-        
+        */
+        ptr_sbl = ptr_sbl->next;
         getchar();
     }
 }

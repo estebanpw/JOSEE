@@ -3,6 +3,7 @@
 #include "commonFunctions.h"
 
 
+
 /*
 	This function maps fragments to a table of size n genomes by their lengths
 	0 -> No fragment in position

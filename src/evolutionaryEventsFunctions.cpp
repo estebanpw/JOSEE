@@ -3,6 +3,8 @@
 #include <sys/time.h>
 #include <inttypes.h>
 #include <cstdarg>
+#include <iostream>
+#include <stack>
 #include <ctype.h>
 #include <string.h>
 #include <math.h>
@@ -299,120 +301,174 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	unsigned char * had_genome_bitmask = (unsigned char *) std::malloc(n_seqs*sizeof(unsigned char));
 	if(had_genome_bitmask == NULL) terror("Could not allocate bit mask");
 
+	//List to add pointers to the blocks whose fragments will have to be added
+	std::stack<Block *> * blocks_to_add = new std::stack<Block *>();
+
 	Synteny_list * sbl = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
 	Synteny_list * curr_sbl = sbl;
 	Synteny_list * last_sbl = NULL;
 	Synteny_block * curr_sb = NULL, * find_pos_in_sb = NULL, * last_to_insert = NULL;
+	Block * curr_block;
 
 
 	for(i=0;i<ht->get_size();i++){
 		ptr = ht->get_key_at(i);
 
-		memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
-		synteny_level = 0; //Restart synteny level
+		
 		curr_sb = NULL;
 		while(ptr != NULL){
 			//Each block is here
+			
+			synteny_level = 0; //Restart synteny level
+			memset(had_genome_bitmask, 0, n_seqs); //Reset genome counters
+
+			//Add current block
+			blocks_to_add->push(&ptr->b);
 			//For each block, add the blocks linked by the fragments
-			flptr = ptr->b.f_list;
-			while(flptr != NULL){
-				//printFragment(flptr->f);
-				//Each fragment in the current block
-				//Only if we did not already have the genome in the frags
-				aux_block = ht->get_block_from_frag(flptr->f, 0);
+			while(blocks_to_add->size() > 0){
+				//Get next block added to the stack and remove it
+				curr_block = blocks_to_add->top();
+				blocks_to_add->pop();			
+			
 
-				/*
-				if(aux_block != NULL){
-					printf("FETCH:\n"); printBlock(aux_block); getchar();
-				}
-				*/
-				// curr_sb is always the head
-
-				//Insert frag_x
-				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
-					aux_block->present_in_synteny = curr_sbl;
-					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
-					aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
+				//Check its fragments
+				flptr = curr_block->f_list;
+				while(flptr != NULL){
+					//printFragment(flptr->f);
+					//Each fragment in the current block
+					//Only if we did not already have the genome in the frags
+					aux_block = ht->get_block_from_frag(flptr->f, 0);
 					
-					if(curr_sb == NULL){
-						//Head is null
-						curr_sb = aux_sb;
-					}else{
-						//Finds prev and next
-						find_pos_in_sb = curr_sb;
-						last_to_insert = NULL;
-						
-						while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
-							last_to_insert = find_pos_in_sb;
-							find_pos_in_sb = find_pos_in_sb->next;
-						}
 
-						aux_sb->next = find_pos_in_sb;
-						if(last_to_insert == NULL){
-							//its new head
+					/*
+					if(aux_block != NULL){
+						printf("FETCH:\n"); printBlock(aux_block); getchar();
+					}
+					*/
+					// curr_sb is always the head
+
+					//Insert frag_x
+					if(aux_block != NULL && aux_block->present_in_synteny == NULL){
+						//Add block so that we check its fragments
+						blocks_to_add->push(aux_block);
+						aux_block->present_in_synteny = curr_sbl;
+						Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
+						aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
+						
+						if(curr_sb == NULL){
+							//Head is null
 							curr_sb = aux_sb;
 						}else{
-							last_to_insert->next = aux_sb;
+							//Finds prev and next
+							find_pos_in_sb = curr_sb;
+							last_to_insert = NULL;
+							
+							while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
+								last_to_insert = find_pos_in_sb;
+								find_pos_in_sb = find_pos_in_sb->next;
+							}
+
+							aux_sb->next = find_pos_in_sb;
+							if(last_to_insert == NULL){
+								//its new head
+								curr_sb = aux_sb;
+							}else{
+								last_to_insert->next = aux_sb;
+							}
+							
 						}
 						
+						aux_block = NULL;
+						if(had_genome_bitmask[flptr->f->seqX] == 0) synteny_level++;
+						had_genome_bitmask[flptr->f->seqX] = 1;
+						
+						//printf("\t"); printBlock(aux_sb->b);
 					}
-					
-					aux_block = NULL;
-					if(had_genome_bitmask[flptr->f->seqX] == 0) synteny_level++;
-					had_genome_bitmask[flptr->f->seqX] = 1;
-					
-					//printf("\t"); printBlock(aux_sb->b);
-				}
 
-				aux_block = ht->get_block_from_frag(flptr->f, 1);
+					aux_block = ht->get_block_from_frag(flptr->f, 1);
 
-				/*
-				if(aux_block != NULL){
-					printf("FETCH:\n"); printBlock(aux_block); getchar();
-				}
-				*/
+					/*
+					if(aux_block != NULL){
+						printf("FETCH:\n"); printBlock(aux_block); getchar();
+					}
+					*/
 
-				//Insert frag_y
-				if(aux_block != NULL && aux_block->present_in_synteny == NULL){
-					aux_block->present_in_synteny = curr_sbl;
-					Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
-					aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
+					//Insert frag_y
+					if(aux_block != NULL && aux_block->present_in_synteny == NULL){
+						//Add block so that we check its fragments
+						blocks_to_add->push(aux_block);
+						aux_block->present_in_synteny = curr_sbl;
+						Synteny_block * aux_sb = (Synteny_block *) mp->request_bytes(pre_comp_sb);
+						aux_sb->b = aux_block; // Insert in order by genomes (later use!!)
 
-					if(curr_sb == NULL){
-						//Head is null
-						curr_sb = aux_sb;
-					}else{
-
-						//Finds prev and next
-						find_pos_in_sb = curr_sb;
-						last_to_insert = NULL;
-						
-						while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
-							last_to_insert = find_pos_in_sb;
-							find_pos_in_sb = find_pos_in_sb->next;
-						}
-
-						aux_sb->next = find_pos_in_sb;
-						if(last_to_insert == NULL){
-							//its new head
+						if(curr_sb == NULL){
+							//Head is null
 							curr_sb = aux_sb;
 						}else{
-							last_to_insert->next = aux_sb;
+
+							//Finds prev and next
+							find_pos_in_sb = curr_sb;
+							last_to_insert = NULL;
+							
+							while(find_pos_in_sb != NULL && aux_sb->b->genome->id > find_pos_in_sb->b->genome->id){
+								last_to_insert = find_pos_in_sb;
+								find_pos_in_sb = find_pos_in_sb->next;
+							}
+
+							aux_sb->next = find_pos_in_sb;
+							if(last_to_insert == NULL){
+								//its new head
+								curr_sb = aux_sb;
+							}else{
+								last_to_insert->next = aux_sb;
+							}
+							
 						}
+
+
+						aux_block = NULL;
+						if(had_genome_bitmask[flptr->f->seqY] == 0) synteny_level++;
+						had_genome_bitmask[flptr->f->seqY] = 1;
 						
+						//printf("\t"); printBlock(aux_sb->b);
 					}
-
-
-					aux_block = NULL;
-					if(had_genome_bitmask[flptr->f->seqY] == 0) synteny_level++;
-					had_genome_bitmask[flptr->f->seqY] = 1;
 					
-					//printf("\t"); printBlock(aux_sb->b);
+					flptr = flptr->next;
 				}
-				
-				flptr = flptr->next;
 			}
+			
 			//printf("broke stnyteny ---------------------------\n");
+
+			// End synteny block
+			if(synteny_level > 1){
+				curr_sbl->sb = curr_sb;
+				curr_sbl->synteny_level = synteny_level;
+				//curr_sbl->prev = last_sbl;
+				
+				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
+				curr_sbl = curr_sbl->next;
+				curr_sbl->next = NULL;
+				curr_sbl->prev = last_sbl;
+				last_sbl = curr_sbl;
+				
+				//printf("Generated\n");
+			}else{
+				//Since there is a minimum synteny, restore its level so that it can be used
+				//curr_sb->b->present_in_synteny = 0;
+
+				//Restore levels of all of those used
+				Synteny_block * rest_ptr = curr_sbl->sb;
+				while(rest_ptr != NULL){
+					rest_ptr->b->present_in_synteny = NULL;
+					rest_ptr = rest_ptr->next;
+				}
+				mp->reset_n_bytes(pre_comp_sb);
+				
+				//printf("Failed at generatin\n");
+			}
+			
+			curr_sb = NULL;
+
 
 			//No more frags to add 
 			//Go to next block
@@ -422,43 +478,18 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			//printf("broke stnyteny ---------------------------\n");
 			//getchar();
 		}
-		// End synteny block
-		if(synteny_level > 1){
-			curr_sbl->sb = curr_sb;
-			curr_sbl->synteny_level = synteny_level;
-			//curr_sbl->prev = last_sbl;
-			
-			curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
-			curr_sbl = curr_sbl->next;
-			curr_sbl->next = NULL;
-			curr_sbl->prev = last_sbl;
-			last_sbl = curr_sbl;
-			
-			//printf("Generated\n");
-		}else{
-			//Since there is a minimum synteny, restore its level so that it can be used
-			//curr_sb->b->present_in_synteny = 0;
-
-			//Restore levels of all of those used
-			Synteny_block * rest_ptr = curr_sbl->sb;
-			while(rest_ptr != NULL){
-				rest_ptr->b->present_in_synteny = NULL;
-				rest_ptr = rest_ptr->next;
-			}
-			mp->reset_n_bytes(pre_comp_sb);
-			
-			//printf("Failed at generatin\n");
-		}
 		
-		curr_sb = NULL;
 
 		//printf("broke stnyteny ---------------------------\n");
 	}
 
-	curr_sbl = NULL;
-	sbl->next->prev = sbl;
+	curr_sbl = curr_sbl->prev;
+	curr_sbl->next = NULL;
+	//sbl->next->prev = sbl;
 
 	std::free(had_genome_bitmask);
+	delete blocks_to_add;
+
 	return sbl;
 }
 
