@@ -107,6 +107,11 @@ void alignment_from_hit(sequence_manager * seq_man, Word * a, uint64_t start_blo
  *	Ungapped alignment in hit from words a (REVERSED) and b
  */
 void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, Quickfrag * qf, uint64_t kmer_size);
+
+/*
+	Aligns two unlinked blocks (i.e. take coordinates and put them as blocks in a synteny block)
+*/
+void align_region(sequence_manager * seq_man, Synteny_block * unlinked_sb, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag * result);
 /*
 	Produces the dictionary and aligns the blocks in a synteny block
 	The qfmat stores the best fragments

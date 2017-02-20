@@ -572,6 +572,169 @@ inline void strrev(char *p, char *d, uint32_t k){
   
 }
 
+void align_region(sequence_manager * seq_man, Synteny_block * unlinked_sb, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag * result){
+    //Restore dictionary
+    dhw->clear();
+
+    //Kmer reading
+    char curr_kmer[kmer_size], rev_kmer[kmer_size];
+    uint64_t kmer_index = 0;
+    char c;
+    uint64_t precomputed_sizeofQuickfrag = sizeofQuickfrag();
+    bool first = true;
+
+    //To get hits
+    Wordbucket * hit;
+    Wordbucket ** hit_list;
+
+    //Current pos in sequence
+    uint64_t advanced_steps;
+    uint64_t i;
+
+    //Results of alignment
+    Quickfrag aligned_qf;
+    int64_t curr_diag;
+    Word align_word;
+
+    //Current unlinked block
+    Synteny_block * unlinked = unlinked_sb;
+
+    //For all sequences in the unlinked synteny block
+    while(unlinked != NULL){
+        while(advanced_steps < unlinked->b->end){
+            //Get nucleotide
+            c = unlinked->b->genome->seq[advanced_steps];
+            advanced_steps++;
+
+            if(c == 'A' || c == 'C' || c == 'T' || c == 'G'){
+                curr_kmer[kmer_index] = c;
+                kmer_index++;
+            }else{
+                kmer_index = 0;
+            }
+
+            //Check if we have a kmer big enough
+            if(kmer_index == kmer_size){
+
+                //Insert word in dictionary 
+                hit_list = dhw->put_and_hit(curr_kmer, 'f', advanced_steps, unlinked->b);
+
+                for(i=0;i<dhw->get_candidates_number();i++){
+                    //For every hit candidate
+                    hit = hit_list[i];
+
+                    if(hit != NULL){
+                        
+                        //We have a hit we should try an alignment
+                        //only if the hit is not overlapping
+                        //or it is overlapping but on different diagonal
+                        if(first){
+                            
+                            //There is no frag yet, so try first one
+                            align_word.pos = advanced_steps;
+                            align_word.strand = 'f';
+                            align_word.b = unlinked->b;
+                            if(hit->w.strand == 'f'){
+                                alignment_from_hit(seq_man, &align_word, &hit->w, result, kmer_size);
+                            }else{
+                                alignment_from_hit_reverse(seq_man, &hit->w, &align_word, result, kmer_size);
+                            }
+                            first = false;
+                        }else{
+
+                            //There is already a frag, check for overlapping and diagonal
+                            if(overlapped_words(result->x_start, result->x_start+result->t_len, advanced_steps-kmer_size-1, advanced_steps-1) != 0){
+                                //If it is not overlapped 
+                                curr_diag = (int64_t) advanced_steps - (int64_t) hit->w.pos;
+                                if(curr_diag != result->diag){
+                                    //We can try new alignment
+                                    align_word.pos = advanced_steps;
+                                    align_word.strand = 'f';
+                                    align_word.b->genome = unlinked->b->genome;
+                                    if(hit->w.strand == 'f'){
+                                        alignment_from_hit(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                                    }else{
+                                        alignment_from_hit_reverse(seq_man, &hit->w, &align_word, &aligned_qf, kmer_size);
+                                    }
+                                    
+                                    //Only copy if new alignment is better 
+
+                                    if(aligned_qf.sim > result->sim){
+                                        memcpy(result, &aligned_qf, precomputed_sizeofQuickfrag);
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+
+                //Insert reversed word in dictionary
+                strrev(curr_kmer, rev_kmer, kmer_size);
+
+                hit_list = dhw->put_and_hit(rev_kmer, 'r', advanced_steps, unlinked->b);
+
+                for(i=0;i<dhw->get_candidates_number();i++){
+                    //For every hit candidate
+                    hit = hit_list[i];
+
+                    if(hit->w.strand == 'r') continue; //Skip since a 'r' - 'r' word is the same as 'f' - 'f'
+
+                    if(hit != NULL){
+                        
+                        //We have a hit we should try an alignment
+                        //only if the hit is not overlapping
+                        //or it is overlapping but on different diagonal
+                        if(first){
+                            
+                            //There is no frag yet, so try first one
+                            align_word.pos = advanced_steps;
+                            align_word.strand = 'r';
+                            align_word.b = unlinked->b;
+                            alignment_from_hit_reverse(seq_man, &align_word, &hit->w, result, kmer_size);
+                            //printQuickfrag(&aligned_qf);
+                            memcpy(result, &aligned_qf, precomputed_sizeofQuickfrag);
+                            first = false;
+                        }else{
+                            //printf("on the else track\n");
+                            //getchar();
+                            //There is already a frag, check for overlapping and diagonal
+                            if(overlapped_words(result->x_start, result->x_start+result->t_len, advanced_steps-kmer_size-1, advanced_steps-1) != 0){
+                                //If it is not overlapped 
+                                curr_diag = (int64_t) advanced_steps - (int64_t) hit->w.pos;
+                                if(curr_diag != result->diag){
+                                    //We can try new alignment
+                                    align_word.pos = advanced_steps;
+                                    align_word.strand = 'r';
+                                    align_word.b->genome = unlinked->b->genome;
+                                    alignment_from_hit_reverse(seq_man, &align_word, &hit->w, &aligned_qf, kmer_size);
+                                    
+                                    if(aligned_qf.sim > result->sim){
+                                        memcpy(result, &aligned_qf, precomputed_sizeofQuickfrag);
+                                    }
+                                }
+                            }
+                        }
+                        
+                    }
+                }
+                //Displace 
+                memmove(&curr_kmer[0], &curr_kmer[1], kmer_size-1);
+                memmove(&rev_kmer[0], &rev_kmer[1], kmer_size-1);
+                kmer_index--;
+            }
+
+        }
+        //Advance block
+        unlinked = unlinked->next;
+        kmer_index = 0;
+    }
+    
+
+    
+    
+
+}
 
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state){
 
