@@ -124,7 +124,7 @@ int main(int ac, char **av) {
         if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
         ht->insert_block(&loaded_frags[i]);
     }
-    //ht->print_hash_table(2);
+    ht->print_hash_table(2);
 
     compute_order_of_blocks(ht, n_files);
     end = clock();

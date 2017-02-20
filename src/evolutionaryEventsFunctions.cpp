@@ -484,7 +484,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 	}
 
 	curr_sbl = curr_sbl->prev;
-	curr_sbl->next = NULL;
+	if(curr_sbl != NULL) curr_sbl->next = NULL;
 	//sbl->next->prev = sbl;
 
 	std::free(had_genome_bitmask);
@@ -1069,7 +1069,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 
 							//REMOVE THIS!!!!!!!!!!!!! TODO CUCU
-							genomes_affected[0] = true;
+							//genomes_affected[0] = true;
 							reverse_reversion(B, seq_man, genomes_affected);
 							//Recalculate strand matrix (in case there is a concatenation)
 							sm_B->reset();
