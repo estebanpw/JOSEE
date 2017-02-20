@@ -777,6 +777,49 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 
 }
 
+
+
+
+void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_ids_affected){
+	uint64_t i;
+	Sequence * current;
+	Synteny_block * sb_ptr = B->sb;
+	Frags_list * fl_ptr; 
+	//Get sequence handlers for those affected
+	for(i=0;i<sm->get_number_of_sequences();i++){
+		if(genome_ids_affected[i] == true){
+			current = sm->get_sequence_by_label(i);
+			//Find the blocks in particular
+			//Since they are sorted
+			while(sb_ptr != NULL && sb_ptr->b->genome->id != i){
+				sb_ptr = sb_ptr->next;
+			}
+			if(sb_ptr != NULL){
+				//Change reversion here in sequence
+				uint64_t start = sb_ptr->b->start;
+				uint64_t end = sb_ptr->b->end;
+
+				inplace_reverse_and_complement(current->seq+start, end-start);
+				
+				//Change list of fragments
+				fl_ptr = sb_ptr->b->f_list;
+				while(fl_ptr != NULL){
+					if(fl_ptr->f->strand == 'r') fl_ptr->f->strand = 'f';
+					fl_ptr = fl_ptr->next;
+				}
+
+			}else{
+				throw "Could not find sequence and/or block to reversion";
+			}
+		}
+	}
+}
+
+
+
+
+
+
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht){
 	
 	//Data structures needed
@@ -800,6 +843,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//To check for indels (distances between blocks in concat)
 	uint64_t * indel_distance = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
 	if(indel_distance == NULL) terror("Could not allocate indels distance vector");
+
+	//To check which genomes have reversion
+	bool * genomes_affected = (bool *) std::malloc(n_sequences*sizeof(bool));
+	if(genomes_affected == NULL) terror("Could not allocate vector to keep track of inversions");
 
 	//To check that blocks are consecutive in their genome
 	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
@@ -955,7 +1002,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
 								t_transpositions++;
-								getchar();
+								//getchar();
 							}else{
 								printf("Different synteny in ALL for transposition\n");
 							}
@@ -972,7 +1019,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				printf("A,B,C have different synteny in transposition\n");
 			}
 			
-			getchar();
+			//getchar();
 
 
 			// Duplications %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1011,12 +1058,28 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							printf("Attention: this looks like a reversion\n");
 
+							//Clear out array of genomes affected
+							memset(genomes_affected, false, n_sequences*sizeof(bool));
+
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-							//getchar();
-							//What do here?
+							getchar();
+							
+							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
+
+							//REMOVE THIS!!!!!!!!!!!!! TODO CUCU
+							genomes_affected[0] = true;
+							reverse_reversion(B, seq_man, genomes_affected);
+							//Recalculate strand matrix (in case there is a concatenation)
+							sm_B->reset();
+							sm_B->add_fragment_strands(B);
+
+							printf("AFTER\n:");printSyntenyBlock(B->sb);
+
 							t_inversions++;
+						}else{
+							printf("Not consecutive order for inversion\n");
 						}
 					}
 				}else{
@@ -1067,19 +1130,18 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//Update current pointers
 							update_pointers_after_concat = true;
 							stop_criteria = false;
-						}//else{
-						//	printf("Non consecutive order in blocks...\n");
-						//}
-					}//else{
-					//	printf("Genomes involved different number ...\n"); //getchar();
-					//}
-				}//else{
-				//	printf("Frags differ in strand...\n"); //getchar();
-				//}
-					
-			}//else{
-			//	printf("Different synteny levels...\n"); //getchar();
-			//}
+						}else{
+							printf("Non consecutive order in blocks for concat...\n");
+						}
+					}else{
+						printf("Genomes involved different number concat...\n"); //getchar();
+					}
+				}else{
+					printf("Frags differ in strand for concat...\n"); //getchar();
+				}	
+			}else{
+				printf("Different synteny levels for concat...\n"); //getchar();
+			}
 			
 
 			/*
@@ -1161,6 +1223,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(cons_order_A_B_T2);
 	std::free(cons_order_B_C_T1);
 	std::free(cons_order_B_C_T2);
+	std::free(genomes_affected);
 	
 	delete sm_A;
 	delete sm_B;

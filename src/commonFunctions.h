@@ -119,6 +119,10 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
 inline char complement(char c);
 
 /*
+	Reverses and complements a sequence in place
+*/
+void inplace_reverse_and_complement(char *d, uint64_t l);
+/*
 	Computes the reverse complementary of 'p' and returns it in 'd' for lenght 'k'
 */
 inline void strrev(char *p, char *d, uint32_t k);

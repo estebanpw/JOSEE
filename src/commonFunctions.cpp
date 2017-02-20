@@ -538,6 +538,18 @@ void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, 
 
 }
 
+void inplace_reverse_and_complement(char *d, uint64_t l){
+    uint64_t i;
+    char c;
+    for(i=0;i<l/2;i++){
+        c = d[i];
+        d[i] = d[l-i-1];
+        d[l-i-1] = c;
+    }
+    for(i=0;i<l;i++){
+        d[i] = complement(d[i]);
+    }
+}
 
 
 inline void strrev(char *p, char *d, uint32_t k){

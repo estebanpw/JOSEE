@@ -89,6 +89,12 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 
 /*
+	Reverses a reversion by changing the sequence in place (the DNA) and the strand of fragments that involve the genomes
+*/
+void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_ids_affected);
+
+/*
 	Detects candidates for evolutionary events
 */
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht);
+
