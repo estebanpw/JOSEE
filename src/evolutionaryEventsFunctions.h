@@ -36,7 +36,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs);
 /*
 	Produces the list of syteny blocks
 */
-Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp);
+Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp, uint64_t * last_s_id);
 
 /*
 	Computes the distance between blocks in two synteny lists
@@ -76,6 +76,7 @@ bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequenc
 	otherwise returns the level of synteny
 */
 uint64_t synteny_level_across_lists(uint64_t args_count, ...);
+
 /*
 	Concatenates three synteny blocks into one
 */
@@ -89,6 +90,11 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 
 /*
+	Reverses a duplication and adds the operation to the event queue
+*/
+void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id);
+
+/*
 	Reverses a reversion by changing the sequence in place (the DNA) and the strand of fragments that involve the genomes
 */
 void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_ids_affected);
@@ -96,5 +102,5 @@ void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_id
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id);
 

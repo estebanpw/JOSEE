@@ -24,6 +24,8 @@ int main(int ac, char **av) {
     uint64_t i;
     //Number of frags loaded, number of sequences loaded
     uint64_t total_frags, n_files;
+    //Last ID of synteny lists
+    uint64_t last_s_id;
     //Array of fragments to hold them all, pointer to free when changing pointer
     struct FragFile * loaded_frags = NULL, * aux_pointer = NULL;
     //Clocks to measure time
@@ -124,7 +126,7 @@ int main(int ac, char **av) {
         if(loaded_frags[i].strand == 'r'){ coord_aux = loaded_frags[i].yStart; loaded_frags[i].yStart = loaded_frags[i].yEnd; loaded_frags[i].yEnd = coord_aux;}
         ht->insert_block(&loaded_frags[i]);
     }
-    ht->print_hash_table(2);
+    //ht->print_hash_table(2);
 
     compute_order_of_blocks(ht, n_files);
     end = clock();
@@ -135,7 +137,7 @@ int main(int ac, char **av) {
     
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp);
+    Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp, &last_s_id);
     //traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
@@ -160,7 +162,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht);
+    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     traverse_synteny_list(synteny_block_list);
     end = clock();

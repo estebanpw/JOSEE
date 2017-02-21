@@ -1006,8 +1006,8 @@ dictionary_hash::~dictionary_hash(){
 }
 
 
-events_queue::events_queue(uint64_t init_capacity){
-	this->rea_queue = new std::list<rearrangement>(init_capacity);
+events_queue::events_queue(){
+	this->rea_queue = new std::list<rearrangement>();
 }
 
 void events_queue::insert_event(rearrangement r){
@@ -1021,12 +1021,19 @@ rearrangement * events_queue::get_next_element(uint64_t synteny_id){
 		if(this->rea_itera->until_find_synteny_id == synteny_id){
 			this->rea_itera = this->rea_queue->erase(this->rea_itera); 
 		}else{
-			this->rea_itera++;
-			return &(*this->rea_itera);
+			return &(*this->rea_itera++);
 		}
 	}
 			
 	return NULL;
+}
+
+void events_queue::print_queue(){
+	this->begin_iterator();
+	while(this->rea_itera != this->rea_queue->end()){
+		printRearrangement(&(*this->rea_itera));
+		this->rea_itera++;
+	}
 }
 
 events_queue::~events_queue(){

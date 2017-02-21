@@ -334,11 +334,12 @@ private:
     std::list<rearrangement> * rea_queue;
     std::list<rearrangement>::iterator rea_itera;
 public:
-    events_queue(uint64_t init_capacity);
+    events_queue();
     void insert_event(rearrangement r);
     uint64_t get_queue_size(){ return this->rea_queue->size(); }
     rearrangement * get_next_element(uint64_t synteny_id);
     void begin_iterator(){ this->rea_itera = this->rea_queue->begin(); }
+    void print_queue();
     ~events_queue();
 };
 

@@ -287,7 +287,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 }
 
 
-Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
+Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp, uint64_t * last_s_id){
 	uint64_t i, synteny_level, curr_id = 0;
 	//Pointers
 	Bucket * ptr;
@@ -444,6 +444,7 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 				curr_sbl->sb = curr_sb;
 				curr_sbl->synteny_level = synteny_level;
 				curr_sbl->id = curr_id;
+				*last_s_id = curr_id;
 				curr_id++;
 				//curr_sbl->prev = last_sbl;
 				
@@ -772,8 +773,8 @@ void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C)
 	//getchar();
 
 	//Remove intermediate synteny block list
-	A->next = C->next;
-	//B cant be accessed now. Its not dangling because of the mempool.
+	if(C != NULL) A->next = C->next; else A->next = NULL;
+	//B and C cant be accessed now. Its not dangling because of the mempool.
 
 	//All synteny lists should be updated from 
 
@@ -817,7 +818,8 @@ void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_id
 	}
 }
 
-void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht){
+void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id){
+	if(dup == NULL) return;
 	//Modify DNA sequence by removing block and shifting char bytes
 	char * dna_ptr = dup->genome->seq;
 	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end], dup->genome->len - dup->start);
@@ -843,18 +845,24 @@ void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht){
 	//Remove block from ht
 	ht->remove_block(dup);
 
+	//Add operation to queue
+	//Coordinates and order
+	rearrangement _r = {dup->end - dup->start, 1, last_s_id, (int64_t)dup->genome->id};
+	operations_queue->insert_event(_r);
 
 }
 
 
 
 
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id){
 	
 	//Data structures needed
-
 	uint64_t i;
 	uint64_t n_sequences = seq_man->get_number_of_sequences();
+
+	//First id in the synteny_list
+	//uint64_t first_s_id = sbl->id;
 
 	//Until nothing else cant be done, keep iterating
 	bool stop_criteria = false; 
@@ -889,13 +897,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	if(cons_order_A_B_T2 == NULL || cons_order_B_C_T2 == NULL) terror("Could not allocate consecutive order of block pointers array (2)");
 
 	//For strand matrices
-	strand_matrix * sm_A, * sm_B, * sm_C, * sm_D, * sm_E;
-	unsigned char ** _tmp1, ** _tmp2;
+	strand_matrix * sm_A, * sm_B, * sm_C;// * sm_D, * sm_E;
+	unsigned char ** _tmp1;//, ** _tmp2;
 	sm_A = new strand_matrix(n_sequences);
 	sm_B = new strand_matrix(n_sequences);
 	sm_C = new strand_matrix(n_sequences);
-	sm_D = new strand_matrix(n_sequences);
-	sm_E = new strand_matrix(n_sequences);
+	//sm_D = new strand_matrix(n_sequences);
+	//sm_E = new strand_matrix(n_sequences);
 
 	//For hits and frags computation
 	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
@@ -924,10 +932,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	
 	// For handling rearragement operations
 	rearrangement * current_rea;
-	events_queue * operations_queue = new events_queue(INIT_REARRANGEMENT_CAPACITY);
+	events_queue * operations_queue = new events_queue();
 
 	//Lists of synteny blocks to address evolutionary events
-	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
+	Synteny_list * A, * B = NULL, * C = NULL; //, * D = NULL, * E = NULL;
 
 	//To have some statistics
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
@@ -955,43 +963,54 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		//Copy pointers of first consecutive blocks
 		if(A != NULL) B = A->next; else return; // A must exist (minimum)
 		if(B != NULL) C = B->next;
-		if(C != NULL) D = C->next;
-		if(D != NULL) E = D->next;
+		//if(C != NULL) D = C->next;
+		//if(D != NULL) E = D->next;
 
 
 		//Generate their strand matrices
+		sm_A->reset();
+		sm_B->reset();
+		sm_C->reset();
 		sm_A->add_fragment_strands(A);
 		sm_B->add_fragment_strands(B);
 		sm_C->add_fragment_strands(C);
-		sm_D->add_fragment_strands(D);
-		sm_E->add_fragment_strands(E);
+		//sm_D->add_fragment_strands(D);
+		//sm_E->add_fragment_strands(E);
 
 		while(A != NULL){ // AT least one to detect duplications
 
 
 
 			//Traverse rearrangement queue and apply modifications
-			current_rea = NULL;
-			operations_queue->begin_iterator();
-			while((current_rea = operations_queue->get_next_element(E->id)) != NULL){
-				//apply current_rea
-				printRearrangement(current_rea);
+			//operations_queue->print_queue();
+			//getchar();
+			if(C != NULL){
+				current_rea = NULL;
+				operations_queue->begin_iterator();
+				while((current_rea = operations_queue->get_next_element(C->id)) != NULL){
+					//apply current_rea
+					printRearrangement(current_rea);
+				}
 			}
+			//rearrangement r = {1,2,3,4};
+			//operations_queue->insert_event(r);
+			//getchar();
+
 
 			//Recompute order of the last one added to the list (because of concatenation)
-			recompute_orders_from_offset(order_offsets, 1, E);
+			recompute_orders_from_offset(order_offsets, 1, C);
 			
 			//printDebugBlockOrderByGenome(E, 0);
 			
 			
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
-			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
-			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
-			if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
-			if(E != NULL){ printSyntenyBlock(E->sb); printf("=was E=======000000\n");}
-			
+			//if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
+			//if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
+			//if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
+			//if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
+			//if(E != NULL){ printSyntenyBlock(E->sb); printf("=was E=======000000\n");}
+			//getchar();
 
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			
@@ -1041,6 +1060,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printf("Detected transposition at B\n");
 								t_transpositions++;
 								//getchar();
+								stop_criteria = false;
 							}else{
 								printf("Different synteny in ALL for transposition\n");
 							}
@@ -1073,8 +1093,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						if(genomes_block_count[i] > 1){
 							// Genome i has duplications
 							printf("Duplications in %"PRIu64"\n", i);
+
+							// Now we would know which blocks are duplications
+							// list_of_dups = who_is_dup(sbl ...)
+
+							//And reverse it
+							Block * current_dup = NULL;
+							reverse_duplication(B, current_dup, blocks_ht, operations_queue, *last_s_id);
 							t_duplications++;
 							//getchar();
+							stop_criteria = false;
 						}
 					}
 					//getchar();
@@ -1102,7 +1130,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
-							getchar();
+							//getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 
@@ -1115,6 +1143,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							printf("AFTER\n:");printSyntenyBlock(B->sb);
 
 							t_inversions++;
+							stop_criteria = false;
 						}else{
 							printf("Not consecutive order for inversion\n");
 						}
@@ -1161,8 +1190,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//Add offset to orders
 							for(i=0;i<n_sequences;i++){
 								//If genome was involved we have to add offset to the concat
-								if(genomes_block_count[i] != 0) order_offsets[i] += 2; //Two because two blocks are shrinked into one
-								printf("G: %"PRIu64" -> O:%"PRIu64"\n", i, order_offsets[i]);
+								if(genomes_block_count[i] != 0){
+									order_offsets[i] += 2; //Two because two blocks are shrinked into one
+								}
 							}
 							//Update current pointers
 							update_pointers_after_concat = true;
@@ -1190,27 +1220,33 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			
 			if(update_pointers_after_concat){
 				
+				//A is still A
+				if(C != NULL) B = C->next;
+				if(B != NULL) C = B->next; else C = NULL;
+
 				sm_A->reset();
 				sm_A->add_fragment_strands(A);
+				sm_B->reset();
+				if(B != NULL) sm_B->add_fragment_strands(B);
+				sm_C->reset();
+				if(C != NULL) sm_C->add_fragment_strands(C);
+				/*
 				_tmp1 = sm_B->sm; //Do not lose B sm pointer
 				_tmp2 = sm_C->sm; //Same for C
 				sm_B->sm = sm_D->sm;
 				sm_C->sm = sm_E->sm;
 				sm_D->sm = _tmp1; // Acquire
 				sm_E->sm = _tmp2; // Dont lose it
+				*/
 
 
-				//A is still A
-				B = D;
-				C = E;
-				if(C != NULL) D = E->next; else D = NULL;
-				if(D != NULL) E = D->next; else E = NULL;
+				
 
-				if(D != NULL){ sm_D->reset(); sm_D->add_fragment_strands(D);}
-				if(E != NULL){ sm_E->reset(); sm_E->add_fragment_strands(E);}
+				//if(D != NULL){ sm_D->reset(); sm_D->add_fragment_strands(D);}
+				//if(E != NULL){ sm_E->reset(); sm_E->add_fragment_strands(E);}
 
-				printf("Recomputing normals\n");
-				recompute_orders_from_offset(order_offsets_after_concat, 3, B, C, D); //E is recomputed at beginning
+				//printf("Recomputing normals\n");
+				recompute_orders_from_offset(order_offsets_after_concat, 1, B); 
 
 				update_pointers_after_concat = false;
 
@@ -1219,22 +1255,24 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				_tmp1 = sm_A->sm; // Do not lose pointer to strand matrix
 				sm_A->sm = sm_B->sm;
 				sm_B->sm = sm_C->sm;
-				sm_C->sm = sm_D->sm;
-				sm_D->sm = sm_E->sm;
-				sm_E->sm = _tmp1; // Recover strand matrix
+				sm_C->sm = _tmp1;
+				//sm_C->sm = sm_D->sm;
+				//sm_D->sm = sm_E->sm;
+				//sm_E->sm = _tmp1; // Recover strand matrix
 				
 				//advance pointers
 				A = B;
-				B = C;	
-				C = D;
-				D = E;
+				B = C;
+				if(C != NULL) C = C->next;
+				//C = D;
+				//D = E;
 
 				//next iteration
-				if(E != NULL) E = E->next;
+				//if(E != NULL) E = E->next;
 
 				//And generate new strand matrix
-				sm_E->reset(); //Need hard reset to not use fragments from last synteny
-				sm_E->add_fragment_strands(E);
+				sm_C->reset(); //Need hard reset to not use fragments from last synteny
+				sm_C->add_fragment_strands(C);
 			}
 		}
 	}
@@ -1265,8 +1303,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	delete sm_A;
 	delete sm_B;
 	delete sm_C;
-	delete sm_D;
-	delete sm_E;
+	//delete sm_D;
+	//delete sm_E;
 
 	delete operations_queue;
 
