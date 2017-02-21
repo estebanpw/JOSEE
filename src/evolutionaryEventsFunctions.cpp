@@ -288,7 +288,7 @@ void compute_order_of_blocks(hash_table * ht, uint64_t n_seqs){
 
 
 Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_pool * mp){
-	uint64_t i, synteny_level;
+	uint64_t i, synteny_level, curr_id = 0;
 	//Pointers
 	Bucket * ptr;
 	Block * aux_block = NULL;
@@ -443,6 +443,8 @@ Synteny_list * compute_synteny_list(hash_table * ht, uint64_t n_seqs, memory_poo
 			if(synteny_level > 1){
 				curr_sbl->sb = curr_sb;
 				curr_sbl->synteny_level = synteny_level;
+				curr_sbl->id = curr_id;
+				curr_id++;
 				//curr_sbl->prev = last_sbl;
 				
 				curr_sbl->next = (Synteny_list *) mp->request_bytes(pre_comp_sbl);
@@ -815,7 +817,34 @@ void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_id
 	}
 }
 
+void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht){
+	//Modify DNA sequence by removing block and shifting char bytes
+	char * dna_ptr = dup->genome->seq;
+	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end], dup->genome->len - dup->start);
+	//Change max len
+	dup->genome->len = dup->genome->len - dup->start;
 
+	//Remove references from synteny list
+	Synteny_block * sb_ptr = B->sb;
+	Synteny_block * last = NULL;
+	while(sb_ptr != NULL){
+
+		if(isBlockEqualToWithOrder(sb_ptr->b, dup)){
+			sb_ptr = sb_ptr->next;
+			if(last != NULL){
+				last->next = sb_ptr;
+			}
+			
+		}
+		last = sb_ptr;
+		sb_ptr = sb_ptr->next;
+	}
+
+	//Remove block from ht
+	ht->remove_block(dup);
+
+
+}
 
 
 
@@ -893,7 +922,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	*/
 
 	
-
+	// For handling rearragement operations
+	rearrangement * current_rea;
+	events_queue * operations_queue = new events_queue(INIT_REARRANGEMENT_CAPACITY);
 
 	//Lists of synteny blocks to address evolutionary events
 	Synteny_list * A, * B = NULL, * C = NULL, * D = NULL, * E = NULL;
@@ -938,6 +969,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		while(A != NULL){ // AT least one to detect duplications
 
 
+
+			//Traverse rearrangement queue and apply modifications
+			current_rea = NULL;
+			operations_queue->begin_iterator();
+			while((current_rea = operations_queue->get_next_element(E->id)) != NULL){
+				//apply current_rea
+				printRearrangement(current_rea);
+			}
 
 			//Recompute order of the last one added to the list (because of concatenation)
 			recompute_orders_from_offset(order_offsets, 1, E);
@@ -1062,7 +1101,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
-							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
 							getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
@@ -1228,6 +1267,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	delete sm_C;
 	delete sm_D;
 	delete sm_E;
+
+	delete operations_queue;
 
 	delete mp;
 	delete words_dictionary;

@@ -1006,6 +1006,34 @@ dictionary_hash::~dictionary_hash(){
 }
 
 
+events_queue::events_queue(uint64_t init_capacity){
+	this->rea_queue = new std::list<rearrangement>(init_capacity);
+}
+
+void events_queue::insert_event(rearrangement r){
+	this->rea_queue->push_back(r);
+}
+
+rearrangement * events_queue::get_next_element(uint64_t synteny_id){
+	
+	while(this->rea_itera != this->rea_queue->end()){
+		//Remove element if a cycle was completed
+		if(this->rea_itera->until_find_synteny_id == synteny_id){
+			this->rea_itera = this->rea_queue->erase(this->rea_itera); 
+		}else{
+			this->rea_itera++;
+			return &(*this->rea_itera);
+		}
+	}
+			
+	return NULL;
+}
+
+events_queue::~events_queue(){
+	delete this->rea_queue;
+}
+
+
 ee_log::ee_log(FILE * logfile){
 	this->logfile = logfile;
 	this->write_buffer = (char *) std::malloc(WRITE_BUFFER_CAPACITY*sizeof(char));
@@ -1040,7 +1068,12 @@ void ee_log::register_event(Event e, void * event_data){
 		}
 		break;
 		case duplication: {
-			
+
+			e_duplication * e_dup = (e_duplication *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "DUPLICATION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\tFROM ORIGINAL\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]", e_dup->orig->genome->id, e_dup->dup->start, e_dup->dup->end, e_dup->orig->genome->id, e_dup->orig->start, e_dup->orig->end);
+			this->write(this->tmp);
 		}
 		break;
 		case transposition: {

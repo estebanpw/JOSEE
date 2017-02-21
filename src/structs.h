@@ -2,7 +2,8 @@
 #define STRUCTS_H
 
 #include <inttypes.h>
-
+#include <iostream>
+#include <list>
 
 #pragma pack(push, 1)
 
@@ -11,6 +12,7 @@
 #define INIT_SEQS 20
 #define INIT_ANNOTS 5000
 #define INIT_BLOCKS_TO_ADD 50
+#define INIT_REARRANGEMENT_CAPACITY 100
 #define WRITE_BUFFER_CAPACITY 100000 //100 KB
 #define READLINE 2000
 #define READBUF 50000000 //50MB
@@ -40,7 +42,7 @@ class sequence_manager;
 //Struct prototypes
 struct synteny_list;
 
-//Enums
+//Enum of events
 enum Event { inversion, duplication, transposition, insertion, deletion };
 
 //Struct for FragHits, af2png and leeFrag programs
@@ -95,6 +97,7 @@ typedef struct sequence{
     char * seq; //DNA sequence
 } Sequence;
 
+// Struct used to compute the alignment between two hits
 typedef struct quickfrag{
     uint64_t x_start;
     uint64_t y_start;
@@ -105,6 +108,7 @@ typedef struct quickfrag{
     Sequence * y;
 } Quickfrag;
 
+// A collection of fragments 
 typedef struct frags_list{
     struct FragFile * f;
     struct frags_list * next;
@@ -127,6 +131,7 @@ typedef struct block{
     //unsigned char repetition;   //To tell if the block is a repetition or not
 } Block;
 
+//Word struct that identifies a kmer in a sequence
 typedef struct word{
     uint64_t hash;
     uint64_t pos;
@@ -140,11 +145,13 @@ typedef struct synteny_block{
     struct synteny_block * next;
 } Synteny_block;
 
+//A synteny list is a collection of synteny blocks
 typedef struct synteny_list{
     Synteny_block * sb;
     uint64_t synteny_level;
     struct synteny_list * next;
     struct synteny_list * prev;
+    uint64_t id;
 } Synteny_list;
 
 
@@ -167,7 +174,7 @@ public:
     ~memory_pool();
 };
 
-
+//Bucket structs to hold blocks in hash table (1) and words in dictionary (2)
 typedef struct bucket {
 	Block b;
 	struct bucket * next;
@@ -187,7 +194,7 @@ typedef struct annotation{
     char * product; //Requires hard copy
 } Annotation;
 
-
+// Sequence class management
 class sequence_manager
 {
 private:
@@ -215,7 +222,7 @@ public:
     ~sequence_manager();
 };
 
-//Hash-table class for Blocks
+//Hash-table class for Blocks management
 class hash_table
 {
 
@@ -252,6 +259,7 @@ private:
     void insert_y_side(struct FragFile * f);
 };
 
+// Dictionary class to handle words and hits between sequences
 class dictionary_hash{
 private:
     Wordbucket ** words;
@@ -280,7 +288,7 @@ typedef struct slist{
 
 
 
-// There will be one strand matrix per synteny block
+// There will be one strand matrix per synteny block to compute if a synteny list might have a reversion
 class strand_matrix
 {
 
@@ -302,13 +310,39 @@ public:
     ~strand_matrix();
 };
 
+// Structs to pass events and handle them in one function
 struct e_inversion{
     Block * inv; //A block with inversion
 };
 
+struct e_duplication{
+    Block * orig; //The original block from which the duplication "duplicated"
+    Block * dup; //A block that has been detected as duplication
+};
 
+// Struct to modify blocks given previous rearrangments
+struct rearrangement{
+    uint64_t mod_coordinates; //coordinate offset to add
+    uint64_t mod_order; //order offset to add 
+    uint64_t until_find_synteny_id; //This rearragement will be in the queue until the s.id is found
+    int64_t affects_who; //-1 for all, either specify genome label
+};
 
+// Queue-like class to handle all operations that have to be done 
+class events_queue{
+private:
+    std::list<rearrangement> * rea_queue;
+    std::list<rearrangement>::iterator rea_itera;
+public:
+    events_queue(uint64_t init_capacity);
+    void insert_event(rearrangement r);
+    uint64_t get_queue_size(){ return this->rea_queue->size(); }
+    rearrangement * get_next_element(uint64_t synteny_id);
+    void begin_iterator(){ this->rea_itera = this->rea_queue->begin(); }
+    ~events_queue();
+};
 
+// Class to register events and write them to file
 class ee_log{
 private:
     FILE * logfile;

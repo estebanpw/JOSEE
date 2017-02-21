@@ -137,6 +137,6 @@ inline void strrev(char *p, char *d, uint32_t k);
 	returns the id of the genome where the reversion happened
 	or -1 if it cant be decided
 */
-int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
+int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected);
 
 #endif /* COMMON_FUNCTIONS_H */

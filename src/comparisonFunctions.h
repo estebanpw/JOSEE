@@ -82,15 +82,35 @@ uint64_t sizeofQuickfrag();
 	To compute sizeof Slist without padding
 */
 uint64_t sizeofSlist();
+
+/*
+	To compute sizeof E_inversion without padding
+*/
+uint64_t sizeofE_inversion();
+
+/*
+	To compute sizeof E_duplication without padding
+*/
+uint64_t sizeofE_duplication();
+
+/*
+	To compute sizeof Rearrangement without padding
+*/
+uint64_t sizeofRearrangement();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b);
 
 /*
-	Check if two blocks are equal
+	Check if two blocks are equal WITHOUT COMPARING ORDER!
 */
 int isBlockEqualTo(Block * a, Block * b);
+
+/*
+	Check if two blocks are equal WITH ORDER COMPARISON
+*/
+int isBlockEqualToWithOrder(Block * a, Block * b);
 
 /*
 	Checks if a SEQ_ID is contained in a list of frags
@@ -161,4 +181,9 @@ void printInvolvedGenomes(uint64_t * genomes_counters, uint64_t n_sequences);
 	Debugging function to print all orders in synteny lists for a genome
 */
 void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id);
+
+/*
+	Prints a rearrangement structure
+*/
+void printRearrangement(rearrangement * r);
 #endif /* COMPARISON_FUNCTIONS_H */

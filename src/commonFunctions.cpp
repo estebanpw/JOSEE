@@ -959,7 +959,7 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     
 }
 
-int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
+int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected){
 
 
 

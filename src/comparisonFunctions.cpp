@@ -239,7 +239,7 @@ uint64_t sizeofSyntenyBlock(){
 }
 
 uint64_t sizeofSyntenyList(){
-    return sizeof(Synteny_block *) + 2*sizeof(Synteny_list *) + sizeof(uint64_t);
+    return sizeof(Synteny_block *) + 2*sizeof(Synteny_list *) + 2*sizeof(uint64_t);
 }
 
 uint64_t sizeofAnnotation(){
@@ -262,6 +262,18 @@ uint64_t sizeofSlist(){
     return sizeof(Sequence *) + sizeof(Slist *);
 }
 
+uint64_t sizeofE_inversion(){
+    return sizeof(Block *);
+}
+
+uint64_t sizeofE_duplication(){
+    return 2*sizeof(Block *);
+}
+
+uint64_t sizeofRearrangement(){
+    return 3*sizeof(uint64_t) + sizeof(int64_t);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;
@@ -271,6 +283,11 @@ int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
 
 int isBlockEqualTo(Block * a, Block * b){
     if(a->start == b->start && a->end == b->end && a->genome->id == b->genome->id) return 1;
+    return 0;
+}
+
+int isBlockEqualToWithOrder(Block * a, Block * b){
+    if(a->start == b->start && a->end == b->end && a->genome->id == b->genome->id && a->order == b->order) return 1;
     return 0;
 }
 
@@ -411,4 +428,8 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
         }
     }
     
+}
+
+void printRearrangement(rearrangement * r){
+    printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" UNTIL->%"PRIu64" AFFECTS->%"PRId64"\n", r->mod_coordinates, r->mod_order, r->until_find_synteny_id, r->affects_who);
 }
