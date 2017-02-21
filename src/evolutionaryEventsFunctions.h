@@ -71,6 +71,10 @@ void recompute_orders_from_offset(uint64_t * orders, uint64_t args_count, ...);
 bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequences, uint64_t args_count, ...);
 
 /*
+	Applies event operations to a synteny list
+*/
+void apply_queue_operation(rearrangement * _r, Synteny_list * sl);
+/*
 	Returns the synteny level for any given number of synteny lists
 	returns 0 if the lists dont share the synteny level
 	otherwise returns the level of synteny
@@ -92,7 +96,7 @@ void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 /*
 	Reverses a duplication and adds the operation to the event queue
 */
-void reverse_duplication(Synteny_list * B, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id);
+void reverse_duplication(Synteny_list * B, Synteny_list * C, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id);
 
 /*
 	Reverses a reversion by changing the sequence in place (the DNA) and the strand of fragments that involve the genomes

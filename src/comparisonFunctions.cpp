@@ -271,7 +271,7 @@ uint64_t sizeofE_duplication(){
 }
 
 uint64_t sizeofRearrangement(){
-    return 3*sizeof(uint64_t) + sizeof(int64_t);
+    return 3*sizeof(uint64_t) + 1*sizeof(int64_t);
 }
 
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
@@ -329,7 +329,7 @@ void printSyntenyBlock(Synteny_block * b){
     while(ptr != NULL){
         //printBlockWriteMode(ptr->b);
         printBlock(ptr->b);
-        printFragsFromBlock(ptr->b);
+        //printFragsFromBlock(ptr->b);
         ptr = ptr->next;
     }
 }
