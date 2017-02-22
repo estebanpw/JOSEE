@@ -1017,12 +1017,16 @@ void events_queue::insert_event(rearrangement r){
 rearrangement * events_queue::get_next_element(uint64_t synteny_id){
 	
 	while(this->rea_itera != this->rea_queue->end()){
-		//Remove element if a cycle was completed
-		//printf("we have %"PRIu64" and current: %"PRIu64"\n", synteny_id, this->rea_itera->until_find_synteny_id);
-		if(this->rea_itera->until_find_synteny_id > synteny_id){
-			this->rea_itera = this->rea_queue->erase(this->rea_itera); 
-		}else{
+		
+		if(synteny_id < this->rea_itera->until_find_synteny_id){
+			this->rea_itera->received = false;
+		}
+
+		//Plus one because we dont want it reapplied
+		if(this->rea_itera->received || (synteny_id+1 < this->rea_itera->until_find_synteny_id)){
 			return &(*this->rea_itera++);
+		}else{
+			this->rea_itera = this->rea_queue->erase(this->rea_itera);
 		}
 	}
 			

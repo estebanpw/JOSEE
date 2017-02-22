@@ -84,7 +84,7 @@ uint64_t synteny_level_across_lists(uint64_t args_count, ...);
 /*
 	Concatenates three synteny blocks into one
 */
-void concat_synteny_blocks(Synteny_list * A, Synteny_list * B, Synteny_list * C);
+void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list ** C);
 
 
 /*

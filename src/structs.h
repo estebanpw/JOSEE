@@ -325,6 +325,7 @@ struct rearrangement{
     uint64_t mod_coordinates; //coordinate offset to add
     uint64_t mod_order; //order offset to add 
     uint64_t until_find_synteny_id; //This rearragement will be in the queue until the s.id is found
+    bool received; //To indicate whether a transition from high to low synteny happened
     int64_t affects_who; //-1 for all, either specify genome label
 };
 

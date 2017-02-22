@@ -271,7 +271,7 @@ uint64_t sizeofE_duplication(){
 }
 
 uint64_t sizeofRearrangement(){
-    return 3*sizeof(uint64_t) + 1*sizeof(int64_t);
+    return 3*sizeof(uint64_t) + 1*sizeof(int64_t) + sizeof(bool);
 }
 
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
@@ -431,5 +431,5 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
 }
 
 void printRearrangement(rearrangement * r){
-    printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" UNTIL->%"PRIu64" AFFECTS->%"PRId64"\n", r->mod_coordinates, r->mod_order, r->until_find_synteny_id, r->affects_who);
+    printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" UNTIL->%"PRIu64" R:%d AFFECTS->%"PRId64"\n", r->mod_coordinates, r->mod_order, r->until_find_synteny_id, (bool) r->received, r->affects_who);
 }
