@@ -32,6 +32,10 @@
 #define REVERSE 2
 #define MIXED 3
 
+#define ORDER_HIGHER_THAN 1
+#define ORDER_SMALLER_THAN 2
+#define ORDER_BETWEEN 3
+
 #define POINT 4
 
 //Class prototypes
@@ -128,7 +132,8 @@ typedef struct block{
     Sequence * genome;      //A pointer to the genome to which it belongs
     struct synteny_list * present_in_synteny;   //To tell whether it has already been used in a synteny block
     unsigned char strand_in_synteny;    //The strand that it has at the synteny block
-    //unsigned char repetition;   //To tell if the block is a repetition or not
+    struct block * prev;
+    struct block * next;
 } Block;
 
 //Word struct that identifies a kmer in a sequence
@@ -249,9 +254,10 @@ public:
     Bucket * get_iterator(){ return ht[0];}
     Block * get_previous_block(Block * b);
     Block * get_next_block(Block * b);
+    void release_temp_last_blocks();
     void remove_block(Block * b);
     void write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints);
-    
+    Block ** last_blocks; // Used to generate the double link between blocks
 
 private:
 	uint64_t compute_hash(uint64_t key);
@@ -322,11 +328,13 @@ struct e_duplication{
 
 // Struct to modify blocks given previous rearrangments
 struct rearrangement{
-    uint64_t mod_coordinates; //coordinate offset to add
-    uint64_t mod_order; //order offset to add 
-    uint64_t until_find_synteny_id; //This rearragement will be in the queue until the s.id is found
-    bool received; //To indicate whether a transition from high to low synteny happened
-    int64_t affects_who; //-1 for all, either specify genome label
+    int64_t mod_coordinates; //coordinate offset to add
+    int64_t mod_order; //order offset to add 
+    uint64_t b1_id; //Range start of blocks affected
+    uint64_t b2_id; //Range end of blocks affected
+    uint64_t ends_at; //Ending id of synteny_id
+    unsigned char type; 
+    uint64_t affects_who; //-1 for all, either specify genome label
 };
 
 // Queue-like class to handle all operations that have to be done 
@@ -334,11 +342,13 @@ class events_queue{
 private:
     std::list<rearrangement> * rea_queue;
     std::list<rearrangement>::iterator rea_itera;
+    rearrangement aggregated_r;
+    uint64_t n_sequences;
 public:
-    events_queue();
+    events_queue(uint64_t n_sequences);
     void insert_event(rearrangement r);
     uint64_t get_queue_size(){ return this->rea_queue->size(); }
-    rearrangement * get_next_element(uint64_t synteny_id);
+    rearrangement * get_aggregated_event(Block * b);
     void begin_iterator(){ this->rea_itera = this->rea_queue->begin(); }
     void print_queue();
     ~events_queue();

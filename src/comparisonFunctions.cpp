@@ -223,7 +223,7 @@ uint64_t sizeofSequence() {
 }
 
 uint64_t sizeofBlock(){
-    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + 2*sizeof(unsigned char);
+    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + 1*sizeof(unsigned char) + sizeof(Synteny_list *) + 2*sizeof(Block *);
 }
 
 uint64_t sizeofFrags_list(){
@@ -271,7 +271,7 @@ uint64_t sizeofE_duplication(){
 }
 
 uint64_t sizeofRearrangement(){
-    return 3*sizeof(uint64_t) + 1*sizeof(int64_t) + sizeof(bool);
+    return 5*sizeof(uint64_t) + sizeof(bool);
 }
 
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
@@ -423,13 +423,34 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
         Synteny_block * sb_ptr = sl->sb;
         while(sb_ptr != NULL){
 
-            if(sb_ptr->b->genome->id == genome_id) printf("%"PRIu64", ", sb_ptr->b->order);
+            if(sb_ptr->b->genome->id == genome_id){
+                Block * b_ptr = sb_ptr->b;
+                bool change = false;
+                while(b_ptr != NULL){
+                    printf("%"PRIu64", ", b_ptr->order);
+                    if(b_ptr->next == NULL){
+                        change = true;
+                    }
+                    if(!change){
+                        b_ptr = b_ptr->next;
+                    }else{
+                        b_ptr = b_ptr->prev;
+                    }
+                    
+                    
+                    
+                }
+                
+                
+                return;
+            }
             sb_ptr = sb_ptr->next;
         }
     }
     
 }
 
+
 void printRearrangement(rearrangement * r){
-    printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" UNTIL->%"PRIu64" R:%d AFFECTS->%"PRId64"\n", r->mod_coordinates, r->mod_order, r->until_find_synteny_id, (bool) r->received, r->affects_who);
+    //printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" APPLIES IN->[%"PRIu64", %"PRIu64"] R:%d AFFECTS->%"PRIu64"\n", r->mod_coordinates, r->mod_order, r->b1_id, r->b2_id, (bool) r->completed, r->affects_who);
 }

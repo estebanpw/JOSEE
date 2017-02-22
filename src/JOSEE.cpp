@@ -159,7 +159,6 @@ int main(int ac, char **av) {
         fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     }
 
-
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id);

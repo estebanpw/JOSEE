@@ -68,6 +68,9 @@ hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, sequence
 	this->sequences = sequences;
 	this->n_buckets = init_size;
 
+	this->last_blocks = (Block **) std::calloc(sequences->get_number_of_sequences(), sizeof(Block *));
+	if(this->last_blocks == NULL) terror("Could not allocate last blocks to generate double link");
+
 	uint64_t i;
 	for(i=0;i<init_size;i++) this->ht[i] = NULL;
 
@@ -175,6 +178,9 @@ void hash_table::insert_x_side(struct FragFile * f){
 		bkt_x->b.f_list->f = f;
 		
 		bkt_x->b.present_in_synteny = NULL;
+
+		
+		
 
 		this->n_buckets++;
 
@@ -405,6 +411,10 @@ Block * hash_table::get_next_block(Block * b){
 		ptr = this->ht[++pos];
 	}
 	return NULL;
+}
+
+void hash_table::release_temp_last_blocks(){
+	 std::free(this->last_blocks);
 }
 
 void hash_table::write_blocks_and_breakpoints_to_file(FILE * out_blocks, FILE * out_breakpoints){
@@ -1006,31 +1016,49 @@ dictionary_hash::~dictionary_hash(){
 }
 
 
-events_queue::events_queue(){
+events_queue::events_queue(uint64_t n_sequences){
 	this->rea_queue = new std::list<rearrangement>();
+	this->n_sequences = n_sequences;
+	
 }
 
 void events_queue::insert_event(rearrangement r){
 	this->rea_queue->push_back(r);
 }
 
-rearrangement * events_queue::get_next_element(uint64_t synteny_id){
-	
+rearrangement * events_queue::get_aggregated_event(Block * b){
+	/*
+	memset(this->aggregated_r, 0, sizeofRearrangement);
+	this->begin_iterator();
+	bool _changes = false;
+
+	//For the whole list
 	while(this->rea_itera != this->rea_queue->end()){
 		
-		if(synteny_id < this->rea_itera->until_find_synteny_id){
-			this->rea_itera->received = false;
-		}
+		if(b->id == 0) this->rea_itera->passed_first = true;
+		
+		if(this->rea_itera->affects_who == b->genome->id){
+			//The rearragement affects the block 
 
-		//Plus one because we dont want it reapplied
-		if(this->rea_itera->received || (synteny_id+1 < this->rea_itera->until_find_synteny_id)){
-			return &(*this->rea_itera++);
-		}else{
-			this->rea_itera = this->rea_queue->erase(this->rea_itera);
+			//If its in range
+			if(this->rea_itera->b1_id < b->id && b->id < this->rea_itera->b2_id){
+				//Add it to the aggregated rearrangement
+				this->aggregated_r.mod_coordinates += this->rea_itera->mod_coordinates;
+				this->aggregated_r.mod_order += this->rea_itera->mod_order;
+				_changes = true;
+				//Rest is not needed
+			}
+			if(this->passed_first == true && b->id >= this->rea_itera->ends_at){
+				//A round was completed, this event does not apply anymore
+				this->rea_itera = this->rea_queue->erase(this->rea_itera);	
+			}
 		}
+		this->rea_itera++;
 	}
-			
-	return NULL;
+	
+	if(!_changes) return NULL;
+	*/
+	return &this->aggregated_r;
 }
 
 void events_queue::print_queue(){
