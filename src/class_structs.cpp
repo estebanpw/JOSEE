@@ -1026,29 +1026,27 @@ void events_queue::insert_event(rearrangement r){
 	this->rea_queue->push_back(r);
 }
 
-rearrangement * events_queue::get_aggregated_event(Block * b){
-	/*
-	memset(this->aggregated_r, 0, sizeofRearrangement);
+rearrangement * events_queue::get_aggregated_event(Block * b, uint64_t s_id){
+	
+	memset(&this->aggregated_r, 0, sizeofRearrangement());
 	this->begin_iterator();
 	bool _changes = false;
 
 	//For the whole list
 	while(this->rea_itera != this->rea_queue->end()){
-		
-		if(b->id == 0) this->rea_itera->passed_first = true;
-		
+				
 		if(this->rea_itera->affects_who == b->genome->id){
 			//The rearragement affects the block 
 
 			//If its in range
-			if(this->rea_itera->b1_id < b->id && b->id < this->rea_itera->b2_id){
+			if(this->rea_itera->b1_id < b->order && b->order < this->rea_itera->b2_id){
 				//Add it to the aggregated rearrangement
 				this->aggregated_r.mod_coordinates += this->rea_itera->mod_coordinates;
 				this->aggregated_r.mod_order += this->rea_itera->mod_order;
 				_changes = true;
 				//Rest is not needed
 			}
-			if(this->passed_first == true && b->id >= this->rea_itera->ends_at){
+			if(s_id == this->rea_itera->ends_at){
 				//A round was completed, this event does not apply anymore
 				this->rea_itera = this->rea_queue->erase(this->rea_itera);	
 			}
@@ -1057,7 +1055,6 @@ rearrangement * events_queue::get_aggregated_event(Block * b){
 	}
 	
 	if(!_changes) return NULL;
-	*/
 	return &this->aggregated_r;
 }
 

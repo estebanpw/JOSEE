@@ -332,8 +332,8 @@ struct rearrangement{
     int64_t mod_order; //order offset to add 
     uint64_t b1_id; //Range start of blocks affected
     uint64_t b2_id; //Range end of blocks affected
-    uint64_t ends_at; //Ending id of synteny_id
-    unsigned char type; 
+    uint64_t ends_at; //Ending id
+    unsigned char type;
     uint64_t affects_who; //-1 for all, either specify genome label
 };
 
@@ -348,7 +348,7 @@ public:
     events_queue(uint64_t n_sequences);
     void insert_event(rearrangement r);
     uint64_t get_queue_size(){ return this->rea_queue->size(); }
-    rearrangement * get_aggregated_event(Block * b);
+    rearrangement * get_aggregated_event(Block * b, uint64_t s_id);
     void begin_iterator(){ this->rea_itera = this->rea_queue->begin(); }
     void print_queue();
     ~events_queue();

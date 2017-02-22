@@ -866,8 +866,8 @@ void reverse_duplication(Synteny_list * B, Synteny_list * C, Block * dup, hash_t
 
 	//Add operation to queue
 	//Coordinates and order
-	//rearrangement _r = { -(dup->end - dup->start), -1, B->id, true, dup->genome->id};
-	rearrangement _r; // delete
+	rearrangement _r = { -((int64_t)(dup->end - dup->start)), -1, B->id, 0xFFFFFFFFFFFFFFFF, B->id, '0', dup->genome->id};
+
 	operations_queue->insert_event(_r);
 
 	//in case there were blocks after (now without order)
@@ -876,7 +876,7 @@ void reverse_duplication(Synteny_list * B, Synteny_list * C, Block * dup, hash_t
 			//Remove what was added
 			sb_ptr->b->order = (uint64_t)((int64_t)sb_ptr->b->order + _r.mod_order);
 			sb_ptr->b->start = (uint64_t)((int64_t)sb_ptr->b->start + _r.mod_coordinates);
-			sb_ptr->b->end -= (uint64_t)((int64_t)sb_ptr->b->end + _r.mod_coordinates);
+			sb_ptr->b->end = (uint64_t)((int64_t)sb_ptr->b->end + _r.mod_coordinates);
 		}
 		sb_ptr = sb_ptr->next;
 	}
@@ -888,7 +888,7 @@ void reverse_duplication(Synteny_list * B, Synteny_list * C, Block * dup, hash_t
 		if(sb_ptr->b->genome->id == dup->genome->id){
 			sb_ptr->b->order = (uint64_t)((int64_t)sb_ptr->b->order + _r.mod_order);
 			sb_ptr->b->start = (uint64_t)((int64_t)sb_ptr->b->start + _r.mod_coordinates);
-			sb_ptr->b->end -= (uint64_t)((int64_t)sb_ptr->b->end + _r.mod_coordinates);
+			sb_ptr->b->end = (uint64_t)((int64_t)sb_ptr->b->end + _r.mod_coordinates);
 		}
 
 		sb_ptr = sb_ptr->next;
@@ -987,7 +987,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 
 	//For clustering
-	memory_pool * mp = new memory_pool(1, POOL_SIZE);
+	memory_pool * mp = new memory_pool(1, 2*POOL_SIZE);
 	/*
 	memory_pool * mp = new memory_pool(1,
 	 seq_man->get_number_of_sequences()*sizeofSlist()*2 +
@@ -1049,11 +1049,25 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 			//Traverse rearrangement queue and apply modifications
+			if(had_modifying_event){
+				if(B != NULL){
+					sb_ptr = B->sb;
+					while(sb_ptr != NULL){
+						current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
+						if(current_rea != NULL){
+							sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
+							sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
+							sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
+						}
+						sb_ptr = sb_ptr->next;
+					}
+				}
+			}
 			if(C != NULL){
 				
 				sb_ptr = C->sb;
 				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b);
+					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, C->id);
 					if(current_rea != NULL){
 						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
 						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
@@ -1101,16 +1115,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			//printDebugBlockOrderByGenome(E, 0);
 			
 			had_modifying_event = false;
-			/*
+			
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
 			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
 			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
-			*/
+			
 			//if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
 			//if(E != NULL){ printSyntenyBlock(E->sb); printf("=was E=======000000\n");}
-			//getchar();
+			getchar();
 
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			
@@ -1216,16 +1230,17 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 							// REMOVE THIS PART
 							Block * current_dup = NULL;
-							/*
+							
 							if(i == 0){
 								current_dup = B->sb->next->b;
 								printf("USING: "); printBlock(current_dup);
 							}
+							
 							if(i == 2){
 								current_dup = B->sb->next->next->b;
 								printf("USING: "); printBlock(current_dup);
 							}
-							*/
+							
 							if(current_dup != NULL) reverse_duplication(B, C, current_dup, blocks_ht, operations_queue, *last_s_id);
 							// UNTIL HERE
 
@@ -1325,15 +1340,17 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							current_concats++;
 							
 							//Add offset to orders
-							for(i=0;i<n_sequences;i++){
+							Synteny_block * sb_ptr = A->sb;
+							while(sb_ptr != NULL){
 								//If genome was involved we have to add offset to the concat
-								if(genomes_block_count[i] != 0){
-
-									rearrangement _r = {0, -2, A->id, true, i};
+								if(genomes_block_count[sb_ptr->b->genome->id] != 0){
+																	
+									rearrangement _r = {0, -2, sb_ptr->b->order, 0xFFFFFFFFFFFFFFFF, A->id, '0', sb_ptr->b->genome->id};
 									operations_queue->insert_event(_r);
 
 									//order_offsets[i] += 2; //Two because two blocks are shrinked into one
 								}
+								sb_ptr = sb_ptr->next;
 							}
 							//Make the machine dont stop
 							had_modifying_event = true;
