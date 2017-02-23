@@ -1019,43 +1019,52 @@ dictionary_hash::~dictionary_hash(){
 events_queue::events_queue(uint64_t n_sequences){
 	this->rea_queue = new std::list<rearrangement>();
 	this->n_sequences = n_sequences;
-	
+	this->aggregated_r = new rearrangement();
 }
 
 void events_queue::insert_event(rearrangement r){
+	
 	this->rea_queue->push_back(r);
+	printf("Inserted----->"); printRearrangement(&r);
 }
 
 rearrangement * events_queue::get_aggregated_event(Block * b, uint64_t s_id){
 	
-	memset(&this->aggregated_r, 0, sizeofRearrangement());
+	memset(this->aggregated_r, 0, sizeofRearrangement());
 	this->begin_iterator();
-	bool _changes = false;
+	bool _changes = false, _pop;
 
 	//For the whole list
 	while(this->rea_itera != this->rea_queue->end()){
-				
+		_pop = false;
 		if(this->rea_itera->affects_who == b->genome->id){
 			//The rearragement affects the block 
-
+			if(s_id < this->rea_itera->ends_at) this->rea_itera->type = 0;
+			if(this->rea_itera->type == 0 && s_id == this->rea_itera->ends_at){
+				printf("popped out like a mad dog on %"PRIu64": ", s_id); printRearrangement(&(*this->rea_itera));
+				//this->aggregated_r->mod_coordinates += this->rea_itera->mod_coordinates;
+				//this->aggregated_r->mod_order += this->rea_itera->mod_order;
+				//_changes = true;
+				//A round was completed, this event does not apply anymore
+				this->rea_itera = this->rea_queue->erase(this->rea_itera);	
+				_pop = true;
+			}
 			//If its in range
-			if(this->rea_itera->b1_id < b->order && b->order < this->rea_itera->b2_id){
+			if(this->rea_itera->b1_id < b->id && b->id < this->rea_itera->b2_id){
+				printf("\tIncluded R:"); printRearrangement(&(*this->rea_itera));
 				//Add it to the aggregated rearrangement
-				this->aggregated_r.mod_coordinates += this->rea_itera->mod_coordinates;
-				this->aggregated_r.mod_order += this->rea_itera->mod_order;
+				this->aggregated_r->mod_coordinates += this->rea_itera->mod_coordinates;
+				this->aggregated_r->mod_order += this->rea_itera->mod_order;
 				_changes = true;
 				//Rest is not needed
 			}
-			if(s_id == this->rea_itera->ends_at){
-				//A round was completed, this event does not apply anymore
-				this->rea_itera = this->rea_queue->erase(this->rea_itera);	
-			}
+			
 		}
-		this->rea_itera++;
+		if(!_pop) this->rea_itera++;
 	}
 	
 	if(!_changes) return NULL;
-	return &this->aggregated_r;
+	return this->aggregated_r;
 }
 
 void events_queue::print_queue(){

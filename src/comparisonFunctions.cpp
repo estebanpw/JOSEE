@@ -223,7 +223,7 @@ uint64_t sizeofSequence() {
 }
 
 uint64_t sizeofBlock(){
-    return  3*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + 1*sizeof(unsigned char) + sizeof(Synteny_list *) + 2*sizeof(Block *);
+    return  4*sizeof(uint64_t) + sizeof(Sequence *) + sizeof(Frags_list *) + 1*sizeof(unsigned char) + sizeof(Synteny_list *) + 2*sizeof(Block *);
 }
 
 uint64_t sizeofFrags_list(){
@@ -309,7 +309,7 @@ void printFragment(struct FragFile * f){
 }
 
 void printBlock(Block * b){
-    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"]\n", b->start, b->end, b->order, b->end-b->start+1, b->genome->id);
+    fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"] #%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start+1, b->genome->id, b->id);
 }
 
 void printFragsFromBlock(Block * b){
@@ -452,5 +452,5 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
 
 
 void printRearrangement(rearrangement * r){
-    //printf("REARRANGEMENT:: MC->%"PRIu64" MO->%"PRIu64" APPLIES IN->[%"PRIu64", %"PRIu64"] R:%d AFFECTS->%"PRIu64"\n", r->mod_coordinates, r->mod_order, r->b1_id, r->b2_id, (bool) r->completed, r->affects_who);
+    printf("REARRANGEMENT:: MC->%"PRId64" MO->%"PRId64" APPLIES IN->[%"PRIu64", %"PRIu64"] ENDS:%"PRIu64" AFFECTS->%"PRIu64"\n", r->mod_coordinates, r->mod_order, r->b1_id, r->b2_id, r->ends_at, r->affects_who);
 }

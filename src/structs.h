@@ -134,6 +134,7 @@ typedef struct block{
     unsigned char strand_in_synteny;    //The strand that it has at the synteny block
     struct block * prev;
     struct block * next;
+    uint64_t id;
 } Block;
 
 //Word struct that identifies a kmer in a sequence
@@ -342,7 +343,7 @@ class events_queue{
 private:
     std::list<rearrangement> * rea_queue;
     std::list<rearrangement>::iterator rea_itera;
-    rearrangement aggregated_r;
+    rearrangement * aggregated_r;
     uint64_t n_sequences;
 public:
     events_queue(uint64_t n_sequences);
