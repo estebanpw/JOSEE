@@ -822,18 +822,22 @@ void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_id
 				uint64_t end = sb_ptr->b->end;
 
 				inplace_reverse_and_complement(current->seq+start, end-start);
-				
-				//Change list of fragments
-				fl_ptr = sb_ptr->b->f_list;
-				while(fl_ptr != NULL){
-					if(fl_ptr->f->strand == 'r') fl_ptr->f->strand = 'f';
-					fl_ptr = fl_ptr->next;
-				}
+
 
 			}else{
 				throw "Could not find sequence and/or block to reversion";
 			}
 		}
+	}
+	sb_ptr = B->sb;
+	while(sb_ptr != NULL){
+		//Change list of fragments for all since the reversion was effected
+		fl_ptr = sb_ptr->b->f_list;
+		while(fl_ptr != NULL){
+			if(fl_ptr->f->strand == 'r') fl_ptr->f->strand = 'f';
+			fl_ptr = fl_ptr->next;
+		}
+		sb_ptr = sb_ptr->next;
 	}
 }
 
@@ -1235,12 +1239,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								current_dup = B->sb->next->b;
 								printf("USING: "); printBlock(current_dup);
 							}
-							
+							/*
 							if(i == 2){
 								current_dup = B->sb->next->next->b;
 								printf("USING: "); printBlock(current_dup);
 							}
-							
+							*/
 							if(current_dup != NULL) reverse_duplication(B, C, current_dup, blocks_ht, operations_queue, *last_s_id);
 							// UNTIL HERE
 
@@ -1278,7 +1282,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 
-							//genomes_affected[0] = true;
+							genomes_affected[0] = true;
 							reverse_reversion(B, seq_man, genomes_affected);
 							//Recalculate strand matrix (in case there is a concatenation)
 							sm_B->reset();
