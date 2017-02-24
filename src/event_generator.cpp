@@ -83,6 +83,17 @@ int main(int ac, char **av) {
     }
     printf("\n");
 
+    //The original sequence is loaded
+    
+
+
+
+
+
+
+
+    //Free everything
+
     for(i=0;i<n_files;i++){
         if(all_sequences[i] != NULL) std::free(all_sequences[i]);
     }
