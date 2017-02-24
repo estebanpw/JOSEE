@@ -611,7 +611,7 @@ bool consecutive_block_order_except_one(int64_t * pairs_diff, uint64_t n_sequenc
 		if(cons_order_T2[i] != NULL) {printf("in T2@%"PRIu64": ",i); printBlockWriteMode(cons_order_T2[i]);}
 	}
 	*/
-	
+	if(diff_type_1 != 1 && diff_type_2 != 1) return false;
 	if(diff_type_1 == 1){
 		//Switch them so that const_order_T1 has the one with higher diff
 		Block ** aux_list = cons_order_T1;
@@ -1225,12 +1225,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
 								getchar();
+								
 
 								//To reverse the transposition we have to align the B synteny block
 								//To find out which block moved first
 						
 								memset(genomes_affected, false, n_sequences*sizeof(bool));
-								printf("Before killing machine\n");
+
 								read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 								mp->reset_to(0,0);
 								//Note: The "genomes_affected" should hold which one are the blocks that moved (i.e. genome ids)
@@ -1238,7 +1239,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								//Now we know which blocks moved
 								//cons_A_B_T1 has the "further" blocks
 								//whereas cons_A_B_T2 has the closest
-								printf("after\n");
 
 								t_transpositions++;
 								//getchar();
