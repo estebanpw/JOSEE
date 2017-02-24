@@ -452,5 +452,5 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
 
 
 void printRearrangement(rearrangement * r){
-    printf("REARRANGEMENT:: MC->%"PRId64" MO->%"PRId64" APPLIES IN->[%"PRIu64", %"PRIu64"] ENDS:%"PRIu64" AFFECTS->%"PRIu64"\n", r->mod_coordinates, r->mod_order, r->b1_id, r->b2_id, r->ends_at, r->affects_who);
+    printf("REARRANGEMENT:: MC->%"PRId64" MO->%"PRId64" APPLIES IN->[%"PRIu64", %"PRIu64"] ENDS:%"PRIu64" AFFECTS->%"PRIu64" LIFE:%d\n", r->mod_coordinates, r->mod_order, r->b1_id, r->b2_id, r->ends_at, r->affects_who, (int)r->type);
 }

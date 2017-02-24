@@ -1060,39 +1060,43 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C====with %"PRIu64"===000000\n", C->id);}
 		operations_queue->print_queue();
 		//Apply queue actions for A and B (they wont be applied at iteration restart)
-		if(A != NULL){
-			printf("RESTART AT A &&&&&&&&&&&&&&&&&&&&&&\n");	
-			sb_ptr = A->sb;
-			while(sb_ptr != NULL){
-				current_rea = operations_queue->get_aggregated_event(sb_ptr->b, A->id);
-				printf("In block: "); printBlock(sb_ptr->b);
-				if(current_rea != NULL){
-					
-					printf("Applying to A (%"PRIu64")...:", A->id); printRearrangement(current_rea);
-					sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-					sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-					sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
+		//And only if last action was not a concat (since if it was a concat there was no new synteny block!)
+		if(!had_modifying_event){
+			if(A != NULL){
+				printf("RESTART AT A &&&&&&&&&&&&&&&&&&&&&&\n");	
+				sb_ptr = A->sb;
+				while(sb_ptr != NULL){
+					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, A->id);
+					printf("In block: "); printBlock(sb_ptr->b);
+					if(current_rea != NULL){
+						
+						printf("Applying to A (%"PRIu64")...:", A->id); printRearrangement(current_rea);
+						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
+						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
+						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
+					}
+					sb_ptr = sb_ptr->next;
 				}
-				sb_ptr = sb_ptr->next;
+			}
+			if(B != NULL){
+				printf("RESTART AT B &&&&&&&&&&&&&&&&&&&&&&\n");	
+				sb_ptr = B->sb;
+				while(sb_ptr != NULL){
+					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
+					
+					printf("In block: "); printBlock(sb_ptr->b);
+					if(current_rea != NULL){
+						
+						printf("Applying to B (%"PRIu64")...:", B->id); printRearrangement(current_rea);
+						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
+						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
+						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
+					}
+					sb_ptr = sb_ptr->next;
+				}
 			}
 		}
-		if(B != NULL){
-			printf("RESTART AT B &&&&&&&&&&&&&&&&&&&&&&\n");	
-			sb_ptr = B->sb;
-			while(sb_ptr != NULL){
-				current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
-				
-				printf("In block: "); printBlock(sb_ptr->b);
-				if(current_rea != NULL){
-					
-					printf("Applying to B (%"PRIu64")...:", B->id); printRearrangement(current_rea);
-					sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-					sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-					sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-				}
-				sb_ptr = sb_ptr->next;
-			}
-		}
+		
 
 		had_modifying_event = false; //It would have been applied here
 
@@ -1111,6 +1115,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			//Traverse rearrangement queue and apply modifications
 			if(had_modifying_event){
 				if(B != NULL){
+					printf("In the GOOD AT B &&&&&&&&&&&&&&&&&&&&&&\n");	
 					sb_ptr = B->sb;
 					while(sb_ptr != NULL){
 						current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
@@ -1126,7 +1131,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				}
 			}
 			if(C != NULL){
-				
+				printf("In the GOOD  AT C &&&&&&&&&&&&&&&&&&&&&&\n");	
 				sb_ptr = C->sb;
 				while(sb_ptr != NULL){
 					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, C->id);
