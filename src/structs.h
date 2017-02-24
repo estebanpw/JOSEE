@@ -4,6 +4,7 @@
 #include <inttypes.h>
 #include <iostream>
 #include <list>
+#include <vector>
 
 #pragma pack(push, 1)
 
@@ -165,17 +166,17 @@ typedef struct synteny_list{
 class memory_pool{
 
 private:
-    char ** mem_pool;
-    uint64_t * base;
+    std::vector<char *> * mem_pool;
+    std::vector<uint64_t> * base;
     uint64_t current_pool;
     uint64_t max_pools;
     uint64_t pool_size;
 
 public:
-    memory_pool(uint64_t max_pools, uint64_t pool_size);
+    memory_pool(uint64_t pool_size);
     void * request_bytes(uint64_t bytes);
     void reset_n_bytes(uint64_t bytes);
-    void reset_to(uint64_t pool, uint64_t position){ this->current_pool = 0; this->base[current_pool] = 0;}
+    void reset_to(uint64_t pool, uint64_t position){ this->current_pool = 0; this->base->at(this->current_pool) = 0;}
     void full_reset();
     ~memory_pool();
 };

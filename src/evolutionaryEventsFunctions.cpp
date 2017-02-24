@@ -981,7 +981,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//sm_E = new strand_matrix(n_sequences);
 
 	//For hits and frags computation
-	dictionary_hash * words_dictionary = new dictionary_hash(seq_man->get_maximum_length()/TABLE_RATE, seq_man->get_maximum_length(), kmer_size);
+	dictionary_hash * words_dictionary = new dictionary_hash((uint64_t) (seq_man->get_maximum_length()/TABLE_RATE), seq_man->get_maximum_length(), kmer_size);
 	Quickfrag ** qfmat = (Quickfrag **) std::malloc(n_sequences*n_sequences*sizeof(Quickfrag *));
 	double ** qf_submat = (double **) std::malloc(n_sequences*n_sequences*sizeof(double *));
 	unsigned char ** qfmat_state = (unsigned char **) std::malloc(n_sequences*n_sequences*sizeof(unsigned char *));
@@ -996,7 +996,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 
 	//For clustering
-	memory_pool * mp = new memory_pool(1, 2*POOL_SIZE);
+	memory_pool * mp = new memory_pool(2*POOL_SIZE);
 	/*
 	memory_pool * mp = new memory_pool(1,
 	 seq_man->get_number_of_sequences()*sizeofSlist()*2 +
@@ -1180,7 +1180,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			
 			
-			if(1 == 0 && A != NULL && B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C)){
+			if(A != NULL && B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C)){
 				//same synteny, check the number of genomes involved
 				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
@@ -1224,20 +1224,21 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printSyntenyBlock(sl_prev->sb);
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
+								getchar();
 
 								//To reverse the transposition we have to align the B synteny block
 								//To find out which block moved first
 						
 								memset(genomes_affected, false, n_sequences*sizeof(bool));
+								printf("Before killing machine\n");
 								read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 								mp->reset_to(0,0);
 								//Note: The "genomes_affected" should hold which one are the blocks that moved (i.e. genome ids)
 								UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
-
 								//Now we know which blocks moved
 								//cons_A_B_T1 has the "further" blocks
 								//whereas cons_A_B_T2 has the closest
-								
+								printf("after\n");
 
 								t_transpositions++;
 								//getchar();
@@ -1287,12 +1288,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								current_dup = B->sb->next->b;
 								//printf("USING: "); printBlock(current_dup);
 							}
-							/*
+							
 							if(i == 2){
-								current_dup = B->sb->next->next->b;
-								printf("USING: "); printBlock(current_dup);
+								//current_dup = B->sb->next->next->b;
+								//printf("USING: "); printBlock(current_dup);
 							}
-							*/
+							
 							if(current_dup != NULL) reverse_duplication(A, B, C, current_dup, blocks_ht, operations_queue, *last_s_id);
 							// UNTIL HERE
 

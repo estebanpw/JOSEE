@@ -7,57 +7,94 @@
 #include "comparisonFunctions.h"
 
 
-memory_pool::memory_pool(uint64_t max_pools, uint64_t pool_size)
+memory_pool::memory_pool(uint64_t pool_size)
 {
 	this->current_pool = 0;
-	this->max_pools = max_pools;
-	this->mem_pool = (char **) std::calloc(max_pools, sizeof(char *));
-	this->base = (uint64_t *) std::malloc(max_pools * sizeof(uint64_t));
-	this->base[0] = 0;
-	if (this->mem_pool == NULL) terror("Could not allocate memory pools");
-	this->mem_pool[0] = (char *) std::calloc(pool_size, sizeof(char));
-	if (this->mem_pool[0] == NULL) terror("Could not allocate initial memory pool");
+	//this->max_pools = max_pools;
+	this->mem_pool = new std::vector<char *>();
+	//this->mem_pool = (char **) std::calloc(max_pools, sizeof(char *));
+	//this->base = (uint64_t *) std::malloc(max_pools * sizeof(uint64_t));
+	this->base = new std::vector<uint64_t>();
+	//this->base[0] = 0;
+	this->base->push_back(0);
 
+	//if (this->mem_pool == NULL) terror("Could not allocate memory pools");
+	//this->mem_pool[0] = (char *) std::calloc(pool_size, sizeof(char));
+	char * a_pool = (char *) std::calloc(pool_size, sizeof(char));
+	this->mem_pool->push_back(a_pool);
+	//if (this->mem_pool[0] == NULL) terror("Could not allocate initial memory pool");
+	this->max_pools = 1;
 	this->pool_size = pool_size;
 }
 
 void * memory_pool::request_bytes(uint64_t n_bytes)
 {
 	void * ptr;
-	if (this->base[this->current_pool] + n_bytes >= this->pool_size) {
+	if (this->base->at(this->current_pool) + n_bytes >= this->pool_size) {
+
 		this->current_pool++;
-		if(this->current_pool == this->max_pools) terror("Reached maximum number of pools. Exiting.");
-		this->mem_pool[this->current_pool] = (char *) std::calloc(this->pool_size, sizeof(char));
-		if (this->mem_pool[this->current_pool] == NULL) terror("Could not allocate memory pool");
-		this->base[this->current_pool] = 0;
+
+		if(this->current_pool == this->max_pools){
+			//if(this->current_pool == this->max_pools) terror("Reached maximum number of pools. Exiting.");
+			//this->mem_pool[this->current_pool] = (char *) std::calloc(this->pool_size, sizeof(char));
+			char * a_pool = (char *) std::calloc(this->pool_size, sizeof(char));
+			if(a_pool == NULL) throw "Could not allocate new memory pool";
+			this->mem_pool->push_back(a_pool);
+			//if (this->mem_pool[this->current_pool] == NULL) terror("Could not allocate memory pool");
+			this->base->push_back(0);
+			this->max_pools++;
+		}
+		
 	}
 	
-	ptr = &this->mem_pool[this->current_pool][0] + this->base[this->current_pool];
-	this->base[this->current_pool] = this->base[this->current_pool] + n_bytes;
+	ptr = &this->mem_pool->at(this->current_pool)[0] + this->base->at(this->current_pool);
+	this->base->at(this->current_pool) = this->base->at(this->current_pool) + n_bytes;
 	
 	return ptr;
 }
 
 void memory_pool::reset_n_bytes(uint64_t bytes){
 	//Makes no checks, assuming you allocated some a priori
+	if(bytes >= this->base->at(current_pool)){
+		this->base->at(current_pool) = this->base->at(current_pool) - bytes;
+	}
+	/*
 	if(bytes >= this->base[current_pool]){
 		this->base[current_pool] = this->base[current_pool] - bytes;
 	}
+	*/
 }
 
 void memory_pool::full_reset(){
+	
 	for (uint64_t i = 0; i <= this->current_pool; i++) {
-		memset(this->mem_pool[i], 0, this->pool_size);
+		memset(this->mem_pool->at(i), 0, this->pool_size);
+		/*
+		for(uint64_t j=0;j<5;j++){
+			if(&this->mem_pool->at(0)[0] == NULL) printf("Is good\n");
+		}
+		*/
+		this->base->at(i) = 0;
 	}
+	this->current_pool = 0;
 }
 
-memory_pool::~memory_pool()
-{
+memory_pool::~memory_pool(){
+
+	//For the whole list
+	for(uint64_t i=0;i<=this->current_pool;i++){
+		std::free(this->mem_pool->at(i));
+	}
+	delete this->mem_pool;
+	delete this->base;
+
+	/*
 	for (uint64_t i = 0; i <= this->current_pool; i++) {
 		free(this->mem_pool[i]);
 	}
 	free(this->mem_pool);
 	free(this->base);
+	*/
 }
 
 
@@ -909,7 +946,7 @@ sequence_manager::~sequence_manager(){
 dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
 	this->ht_size = init_size;
 	this->kmer_size = kmer_size;
-	this->mp = new memory_pool(MAX_MEM_POOLS, (init_size * sizeofWordbucket()));
+	this->mp = new memory_pool((init_size * sizeofWordbucket()));
 
 	this->list_allocs = 1;
 	this->list = (Wordbucket **) std::malloc(INIT_CANDIDATES_ALIGN * sizeof(Wordbucket *));
@@ -927,6 +964,7 @@ dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint3
 	}else{
 		this->key_factor = 1.0;
 	}
+
 }
 
 Wordbucket ** dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t position, Block * b){
@@ -940,17 +978,20 @@ Wordbucket ** dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t po
 	//Insert new word in hash table
 	Wordbucket * ptr = this->words[h_pos];
 
+
 	if(ptr == NULL){ //Insert at head
-		this->words[h_pos] = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
-		this->words[h_pos]->w.hash = hash;
-		this->words[h_pos]->w.pos = position;
-		this->words[h_pos]->w.b = b;
-		this->words[h_pos]->w.strand = strand;
-		this->words[h_pos]->next = NULL;
+		Wordbucket * new_word = (Wordbucket *) this->mp->request_bytes(this->computed_sizeofwordbucket);
+		new_word->w.hash = hash;
+		new_word->w.pos = position;
+		new_word->w.b = b;
+		new_word->w.strand = strand;
+		new_word->next = NULL;
+
+		this->words[h_pos] = new_word;
 		//printf("U see? its null\n");
 		return NULL;
 	}
-
+	
 	//Else there is already some word 
 	while(ptr != NULL){
 		if(hash == ptr->w.hash && ptr->w.b->genome->id != b->genome->id){
@@ -1003,7 +1044,11 @@ Wordbucket ** dictionary_hash::put_and_hit(char * kmer, char strand, uint64_t po
 }
 
 void dictionary_hash::clear(){
+	
 	this->mp->full_reset();
+	this->words = (Wordbucket **) this->mp->request_bytes(this->ht_size * sizeof(Wordbucket *));
+	//for(uint64_t i=0;i<this->ht_size;i++) this->words[i] = NULL;
+	//for(uint64_t i=0;i<this->ht_size;i++) printf("%p <-> ", this->words[i]);
 }
 
 uint64_t dictionary_hash::compute_hash(char * kmer){
