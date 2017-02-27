@@ -116,3 +116,74 @@ void dna_deletion::step(){
         }
     }
 }
+
+dna_inversion::dna_inversion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len, uint64_t seed){
+    this->sequence = sequence;
+    this->p = p;
+    this->s_len = s_len;
+    this->i_len = i_len;
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
+    this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
+    this->generator = std::default_random_engine(seed);
+    
+}
+
+void dna_inversion::step(){
+    uint64_t i;
+    
+    for(i=0;i<*this->s_len-this->i_len;i++){
+        if(this->d_r_unif(this->generator) <= this->p){
+            // Reverse part 
+            inplace_reverse_and_complement(&this->sequence->s[i], this->i_len);
+        }
+    }
+}
+
+
+
+
+
+dna_transposition::dna_transposition(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t t_len, uint64_t seed){
+    this->sequence = sequence;
+    this->p = p;
+    this->s_len = s_len;
+    this->t_len = t_len;
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
+    this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
+    this->generator = std::default_random_engine(seed);
+}
+
+void dna_transposition::step(){
+    uint64_t i;
+    int64_t prev = -1;
+    char trans[this->t_len];
+    for(i=0;i<(*this->s_len - this->t_len);i++){
+        if(this->d_r_unif(this->generator) <= this->p){
+
+            if(prev == -1){
+                prev = (int64_t) i;
+            }else{
+
+                if(((uint64_t) prev + this->t_len) < i){
+                    // Generate transposition
+                    // Copy trans
+                    /*
+                    aux = a;
+                    a = b;
+                    b = aux;
+                    */
+
+                    memcpy(&trans[0], &this->sequence->s[i], this->t_len);
+                    memmove(&this->sequence->s[i], &this->sequence->s[prev], this->t_len);
+                    memcpy(&this->sequence->s[prev], &trans[0], this->t_len);
+
+                    // Restar other position
+                    prev = -1;
+                } 
+
+            }
+
+            
+        }
+    }
+}

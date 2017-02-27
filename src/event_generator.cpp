@@ -10,9 +10,10 @@
 #include "comparisonFunctions.h"
 
 #define PRINT_RATE 70
-#define DUP_SIZE 50
-#define INS_SIZE 30
-#define DEL_SIZE 20
+#define DUP_SIZE 100
+#define INS_SIZE 100
+#define DEL_SIZE 100
+#define INV_SIZE 100
 
 void set_base_name(char * s, char * d);
 
@@ -92,7 +93,14 @@ int main(int ac, char **av) {
     
     
     //The original sequence is loaded
-    
+
+    //Probabilities multiplier
+    srand(time(NULL));
+    uint64_t seed = seed + rand();
+    std::default_random_engine generator(seed);
+    std::uniform_real_distribution<long double> d_r_unif(0.25, 1.25); //Empirically chosen
+    uint64_t event_size = seq_sizes[0]/10;
+
     //Create evolution processes
     dna_mutation ** mutation_proc = (dna_mutation **) std::malloc((n_files-1) * sizeof(dna_mutation *));
     if(mutation_proc == NULL) throw "Could not allocate mutation processes";
@@ -104,45 +112,63 @@ int main(int ac, char **av) {
     if(insertion_proc == NULL) throw "Could not allocate insertion processes";
 
     dna_deletion ** deletion_proc = (dna_deletion **) std::malloc((n_files-1) * sizeof(dna_deletion *));
-    if(deletion_proc == NULL) throw "Could not allocate insertion processes";
+    if(deletion_proc == NULL) throw "Could not allocate deletion processes";
+
+    dna_inversion ** inversion_proc = (dna_inversion **) std::malloc((n_files-1) * sizeof(dna_inversion *));
+    if(inversion_proc == NULL) throw "Could not allocate inversion processes";
+
+    dna_transposition ** transposition_proc = (dna_transposition **) std::malloc((n_files-1) * sizeof(dna_transposition *));
+    if(transposition_proc == NULL) throw "Could not allocate transposition processes";
 
     //Attach processes
-    srand(time(NULL));
-    uint64_t seed = seed + rand();
-    long double p_mut = ((long double)1/seq_sizes[i+1])/((long double)n_itera*8);
-    long double p_dup = ((long double)1/seq_sizes[i+1])/(n_itera);
-    long double p_ins = ((long double)1/seq_sizes[i+1])/(n_itera);
-    long double p_del = ((long double)1/seq_sizes[i+1])/(n_itera);
-    fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le\n", p_mut, p_dup, p_ins);
+    
+    long double p_mut = ((long double) n_itera*d_r_unif(generator));
+    long double p_dup = ((long double) n_itera*d_r_unif(generator));
+    long double p_ins = ((long double) n_itera*d_r_unif(generator));
+    long double p_del = ((long double) n_itera*d_r_unif(generator));
+    long double p_inv = ((long double) n_itera*d_r_unif(generator));
+    long double p_tra = ((long double) n_itera*d_r_unif(generator));
+
+    long double s_size_init = (long double)1/seq_sizes[0];
+
+    fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le, %Le, %Le, %Le\n", p_mut, p_dup, p_ins, p_del, p_inv, p_tra);
     for(i=0;i<n_files-1;i++){
         for(j=0;j<=strlen(av[1])/(n_files-1);j++){
             //Dont even initialize the seed
             seed += (uint64_t) av[1][j];
         }
-        printf("seed. %"PRIu64"\n", seed);
-        mutation_proc[i] = new dna_mutation(p_mut, &all_sequences[i+1], &seq_sizes[i+1], seed);
-        duplication_proc[i] = new dna_duplication(p_dup, &all_sequences[i+1], &seq_sizes[i+1], DUP_SIZE, seed);
-        insertion_proc[i] = new dna_insertion(p_ins, &all_sequences[i+1], &seq_sizes[i+1], INS_SIZE, seed);
-        deletion_proc[i] = new dna_deletion(p_del, &all_sequences[i+1], &seq_sizes[i+1], DEL_SIZE, seed);
+        printf("[INFO] Seed: %"PRIu64"\n", seed);
+        mutation_proc[i] = new dna_mutation(s_size_init/p_mut, &all_sequences[i+1], &seq_sizes[i+1], seed);
+        duplication_proc[i] = new dna_duplication(s_size_init/p_dup, &all_sequences[i+1], &seq_sizes[i+1], event_size, seed);
+        insertion_proc[i] = new dna_insertion(s_size_init/p_ins, &all_sequences[i+1], &seq_sizes[i+1], event_size, seed);
+        deletion_proc[i] = new dna_deletion(s_size_init/p_del, &all_sequences[i+1], &seq_sizes[i+1], event_size, seed);
+        inversion_proc[i] = new dna_inversion(s_size_init/p_inv, &all_sequences[i+1], &seq_sizes[i+1], event_size, seed);
+        transposition_proc[i] = new dna_transposition(s_size_init/p_tra, &all_sequences[i+1], &seq_sizes[i+1], event_size, seed);
     }
 
     
 
     //Apply evolution iteratively
-    fprintf(stdout, "[INFO] Running on %"PRIu64" iterations and %"PRIu64" sequences.\n", n_itera, n_files);
+    
     for(i=0;i<n_itera;i++){
         for(j=0;j<n_files-1;j++){
+            //fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le, %Le, %Le\n", mutation_proc[j]->get_p(), duplication_proc[j]->get_p(), insertion_proc[j]->get_p(), deletion_proc[j]->get_p(), inversion_proc[j]->get_p());
             mutation_proc[j]->step();
             duplication_proc[j]->step();
             insertion_proc[j]->step();
             deletion_proc[j]->step();
+            inversion_proc[j]->step();
+            transposition_proc[j]->step();
             
-            // Update probabilities
-            mutation_proc[j]->set_p(((long double)1/seq_sizes[j+1])/((long double)n_itera));
-            duplication_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
-            insertion_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
-            deletion_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
-
+            // Update probabilities (because of length change)
+            s_size_init = (long double)1/seq_sizes[j+1];
+            mutation_proc[j]->set_p(s_size_init/p_mut);
+            duplication_proc[j]->set_p(s_size_init/p_dup);
+            insertion_proc[j]->set_p(s_size_init/p_ins);
+            deletion_proc[j]->set_p(s_size_init/p_del);
+            inversion_proc[j]->set_p(s_size_init/p_inv);
+            transposition_proc[j]->set_p(s_size_init/p_tra);
+            
         }
     }
 
@@ -205,6 +231,8 @@ int main(int ac, char **av) {
     std::free(duplication_proc);
     std::free(insertion_proc);
     std::free(deletion_proc);
+    std::free(inversion_proc);
+    std::free(transposition_proc);
     std::free(all_sequences);
     fclose(original);
 
