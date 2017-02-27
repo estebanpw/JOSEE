@@ -16,10 +16,10 @@
 #define INV_SIZE 100
 
 void set_base_name(char * s, char * d);
-
+void match_regex_to_distributions(char * s, long double * p_mut, long double * p_dup, long double * p_ins, long double * p_del, long double * p_inv, long double * p_tra);
 int main(int ac, char **av) {
-    if (ac < 4) {
-        terror("USE: event_generator <original> <n_sequences> <n_itera>");
+    if (ac < 5) {
+        terror("USE: event_generator <original> <n_sequences> <n_itera> <regex>");
     }
 
 
@@ -32,6 +32,18 @@ int main(int ac, char **av) {
     FILE * out_mod;
     n_files = (uint64_t) atoi(av[2]);
     n_itera = (uint64_t) atoi(av[3]);
+
+    //Probs.
+    long double p_mut = (long double) n_itera;
+    long double p_dup = (long double) n_itera;
+    long double p_ins = (long double) n_itera;
+    long double p_del = (long double) n_itera;
+    long double p_inv = (long double) n_itera;
+    long double p_tra = (long double) n_itera;
+
+    // Trying out regex
+    match_regex_to_distributions(av[4], &p_mut, &p_dup, &p_ins, &p_del, &p_inv, &p_tra);
+    exit(-1);
     
     //Vector to tell for sequence reallocs
     uint64_t * n_reallocs = (uint64_t *) std::calloc(n_files, sizeof(uint64_t));
@@ -122,12 +134,12 @@ int main(int ac, char **av) {
 
     //Attach processes
     
-    long double p_mut = ((long double) 10);
-    long double p_dup = ((long double) n_itera*d_r_unif(generator));
-    long double p_ins = ((long double) n_itera*d_r_unif(generator));
-    long double p_del = ((long double) n_itera*d_r_unif(generator));
-    long double p_inv = ((long double) n_itera*d_r_unif(generator));
-    long double p_tra = ((long double) n_itera*d_r_unif(generator));
+    p_mut = ((long double) 10);
+    p_dup = ((long double) n_itera*d_r_unif(generator));
+    p_ins = ((long double) n_itera*d_r_unif(generator));
+    p_del = ((long double) n_itera*d_r_unif(generator));
+    p_inv = ((long double) n_itera*d_r_unif(generator));
+    p_tra = ((long double) n_itera*d_r_unif(generator));
 
     long double s_size_init = (long double)1/seq_sizes[0];
 
@@ -252,4 +264,37 @@ void set_base_name(char * s, char * d){
         if(s[i] == '.') break;
     }
     d[i] = '\0';
+}
+
+void match_regex_to_distributions(char * s, long double * p_mut, long double * p_dup, long double * p_ins, long double * p_del, long double * p_inv, long double * p_tra){
+    
+    //mut.[0-9]+,dup.[0-9]+....
+    char aux[READLINE], aux_2[READLINE];
+    bool never_enter = true;
+    uint64_t index = 0, a_match;
+    char * ptr;
+    for(uint64_t i=0;i<strlen(s)+1;i++){
+        if(s[i] != ',' && s[i] != '\0'){
+            aux[index++] = s[i];
+        }else{
+            //Should be a match
+            aux[index++] = '\0';
+            index = 0;
+            never_enter = false;
+            if((ptr = (char *) strstr(aux, "dup:")) != NULL){
+                while(*ptr != ':' && *ptr != '\0') ptr++;
+                if(*ptr == '\0') throw "Bad regex"; else ptr++;
+                while(*ptr != ',' && *ptr != '\0'){
+                    if(index < READLINE) aux_2[index++] = *ptr;
+                    ptr++;
+                }
+                if(index < READLINE) aux_2[index++] = '\0';
+                a_match = (uint64_t) atoi(aux_2);
+                printf("Got %"PRIu64"\n", a_match);
+            }
+            
+            index = 0;
+        }
+    }
+    if(never_enter) std::cout << "No regex was specified. Using defaults." << std::endl;
 }
