@@ -98,7 +98,7 @@ int main(int ac, char **av) {
     srand(time(NULL));
     uint64_t seed = seed + rand();
     std::default_random_engine generator(seed);
-    std::uniform_real_distribution<long double> d_r_unif(0.25, 1.25); //Empirically chosen
+    std::uniform_real_distribution<long double> d_r_unif(0.90, 1.25); //Empirically chosen
     uint64_t event_size = seq_sizes[0]/10;
 
     //Create evolution processes
@@ -122,7 +122,7 @@ int main(int ac, char **av) {
 
     //Attach processes
     
-    long double p_mut = ((long double) n_itera*d_r_unif(generator));
+    long double p_mut = ((long double) 10);
     long double p_dup = ((long double) n_itera*d_r_unif(generator));
     long double p_ins = ((long double) n_itera*d_r_unif(generator));
     long double p_del = ((long double) n_itera*d_r_unif(generator));
@@ -150,9 +150,14 @@ int main(int ac, char **av) {
 
     //Apply evolution iteratively
     
+    uint64_t step_size = n_itera/10;
+    uint64_t acum = 0;
     for(i=0;i<n_itera;i++){
+        //fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le, %Le, %Le, %Le\n", s_size_init/p_mut, s_size_init/p_dup, s_size_init/p_ins, s_size_init/p_del, s_size_init/p_inv, s_size_init/p_tra);
+        if(i % step_size == 0){ acum+= 10; fprintf(stdout, "..%"PRIu64"%%", acum); fflush(stdout); }
         for(j=0;j<n_files-1;j++){
-            //fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le, %Le, %Le\n", mutation_proc[j]->get_p(), duplication_proc[j]->get_p(), insertion_proc[j]->get_p(), deletion_proc[j]->get_p(), inversion_proc[j]->get_p());
+        
+            
             mutation_proc[j]->step();
             duplication_proc[j]->step();
             insertion_proc[j]->step();
@@ -171,6 +176,7 @@ int main(int ac, char **av) {
             
         }
     }
+    fprintf(stdout, "\n");
 
     //Find new seq maximum len
     uint64_t m_len = 0;

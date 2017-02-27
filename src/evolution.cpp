@@ -22,6 +22,7 @@ void dna_mutation::step(){
     
 
     for(i=0;i<*this->s_len;i++){
+        
         if(this->d_r_unif(this->generator) <= this->p){
             // Mutate individual nucleotide
             c = this->sequence->s[i];
@@ -155,35 +156,28 @@ dna_transposition::dna_transposition(long double p, a_sequence * sequence, uint6
 
 void dna_transposition::step(){
     uint64_t i;
-    int64_t prev = -1;
+    uint64_t prev;
     char trans[this->t_len];
     for(i=0;i<(*this->s_len - this->t_len);i++){
         if(this->d_r_unif(this->generator) <= this->p){
 
-            if(prev == -1){
-                prev = (int64_t) i;
-            }else{
+            do{
+                prev = (uint64_t) (this->d_r_unif(this->generator) *( (long double) *this->s_len));
+            }while(prev <= (i+this->t_len) && (i) <= (prev+this->t_len)  && prev < (*this->s_len - this->t_len));
 
-                if(((uint64_t) prev + this->t_len) < i){
-                    // Generate transposition
-                    // Copy trans
-                    /*
-                    aux = a;
-                    a = b;
-                    b = aux;
-                    */
 
-                    memcpy(&trans[0], &this->sequence->s[i], this->t_len);
-                    memmove(&this->sequence->s[i], &this->sequence->s[prev], this->t_len);
-                    memcpy(&this->sequence->s[prev], &trans[0], this->t_len);
+            // Generate transposition
+            // Copy trans
+            /*
+            aux = a;
+            a = b;
+            b = aux;
+            */
 
-                    // Restar other position
-                    prev = -1;
-                } 
+            memcpy(&trans[0], &this->sequence->s[i], this->t_len);
+            memmove(&this->sequence->s[i], &this->sequence->s[prev], this->t_len);
+            memcpy(&this->sequence->s[prev], &trans[0], this->t_len);
 
-            }
-
-            
         }
     }
 }
