@@ -14,9 +14,16 @@ struct a_sequence{
     char * s;
 };
 
+class dna_mutation;
+class dna_duplication;
+class dna_insertion;
+class dna_deletion;
+
 void dna_generator_gc(uint64_t l, char * s, std::uniform_int_distribution<uint64_t> * u, std::default_random_engine * r);
 
-class mutation{
+
+
+class dna_mutation{
 private:
     a_sequence * sequence;
     uint64_t * s_len;
@@ -26,12 +33,13 @@ private:
     long double p;
 
 public:
-    mutation(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t seed);
+    dna_mutation(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t seed);
+    void set_p(long double p){ this->p = p; }
     void step();
 
 };
 
-class duplication{
+class dna_duplication{
 private:
     a_sequence * sequence;
     uint64_t * s_len;
@@ -42,12 +50,13 @@ private:
     long double p;
 
 public:
-    duplication(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
+    dna_duplication(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
+    void set_p(long double p){ this->p = p; }
     void step();
 
 };
 
-class insertion{
+class dna_insertion{
 private:
     a_sequence * sequence;
     uint64_t * s_len;
@@ -58,12 +67,13 @@ private:
     long double p;
 
 public:
-    insertion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len, uint64_t seed);
+    dna_insertion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len, uint64_t seed);
+    void set_p(long double p){ this->p = p; }
     void step();
 
 };
 
-class deletion{
+class dna_deletion{
 private:
     a_sequence * sequence;
     uint64_t * s_len;
@@ -74,7 +84,8 @@ private:
     long double p;
 
 public:
-    deletion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
+    dna_deletion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
+    void set_p(long double p){ this->p = p; }
     void step();
 
 };

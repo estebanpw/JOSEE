@@ -10,6 +10,9 @@
 #include "comparisonFunctions.h"
 
 #define PRINT_RATE 70
+#define DUP_SIZE 50
+#define INS_SIZE 30
+#define DEL_SIZE 20
 
 void set_base_name(char * s, char * d);
 
@@ -17,6 +20,7 @@ int main(int ac, char **av) {
     if (ac < 4) {
         terror("USE: event_generator <original> <n_sequences> <n_itera>");
     }
+
 
     //Iterators
     uint64_t i, j, k, n_files, curr_pos, n_itera;
@@ -90,26 +94,55 @@ int main(int ac, char **av) {
     //The original sequence is loaded
     
     //Create evolution processes
-    mutation ** mutation_proc = (mutation **) std::malloc((n_files-1) * sizeof(mutation *));
+    dna_mutation ** mutation_proc = (dna_mutation **) std::malloc((n_files-1) * sizeof(dna_mutation *));
     if(mutation_proc == NULL) throw "Could not allocate mutation processes";
 
+    dna_duplication ** duplication_proc = (dna_duplication **) std::malloc((n_files-1) * sizeof(dna_duplication *));
+    if(duplication_proc == NULL) throw "Could not allocate duplication processes";
+
+    dna_insertion ** insertion_proc = (dna_insertion **) std::malloc((n_files-1) * sizeof(dna_insertion *));
+    if(insertion_proc == NULL) throw "Could not allocate insertion processes";
+
+    dna_deletion ** deletion_proc = (dna_deletion **) std::malloc((n_files-1) * sizeof(dna_deletion *));
+    if(deletion_proc == NULL) throw "Could not allocate insertion processes";
+
     //Attach processes
-    uint64_t seed;
+    srand(time(NULL));
+    uint64_t seed = seed + rand();
+    long double p_mut = ((long double)1/seq_sizes[i+1])/((long double)n_itera*8);
+    long double p_dup = ((long double)1/seq_sizes[i+1])/(n_itera);
+    long double p_ins = ((long double)1/seq_sizes[i+1])/(n_itera);
+    long double p_del = ((long double)1/seq_sizes[i+1])/(n_itera);
+    fprintf(stdout, "[INFO] Using probabilities %Le, %Le, %Le\n", p_mut, p_dup, p_ins);
     for(i=0;i<n_files-1;i++){
         for(j=0;j<=strlen(av[1])/(n_files-1);j++){
             //Dont even initialize the seed
             seed += (uint64_t) av[1][j];
         }
-        mutation_proc[i] = new mutation(((long double)1/seq_sizes[i+1]), &all_sequences[i+1], &seq_sizes[i+1], seed);
+        printf("seed. %"PRIu64"\n", seed);
+        mutation_proc[i] = new dna_mutation(p_mut, &all_sequences[i+1], &seq_sizes[i+1], seed);
+        duplication_proc[i] = new dna_duplication(p_dup, &all_sequences[i+1], &seq_sizes[i+1], DUP_SIZE, seed);
+        insertion_proc[i] = new dna_insertion(p_ins, &all_sequences[i+1], &seq_sizes[i+1], INS_SIZE, seed);
+        deletion_proc[i] = new dna_deletion(p_del, &all_sequences[i+1], &seq_sizes[i+1], DEL_SIZE, seed);
     }
+
+    
 
     //Apply evolution iteratively
     fprintf(stdout, "[INFO] Running on %"PRIu64" iterations and %"PRIu64" sequences.\n", n_itera, n_files);
     for(i=0;i<n_itera;i++){
         for(j=0;j<n_files-1;j++){
-            mutation_proc[0]->step();
-            mutation_proc[1]->step();
-            mutation_proc[2]->step();
+            mutation_proc[j]->step();
+            duplication_proc[j]->step();
+            insertion_proc[j]->step();
+            deletion_proc[j]->step();
+            
+            // Update probabilities
+            mutation_proc[j]->set_p(((long double)1/seq_sizes[j+1])/((long double)n_itera));
+            duplication_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
+            insertion_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
+            deletion_proc[j]->set_p(((long double)1/seq_sizes[j+1])/(n_itera));
+
         }
     }
 
@@ -118,7 +151,7 @@ int main(int ac, char **av) {
     for(i=0;i<n_files;i++) if(seq_sizes[i] > m_len) m_len = seq_sizes[i];
 
     //Compare seqs
-    
+    /*
     i = 0;
     while(i<m_len){
         if(i % PRINT_RATE == 0){            
@@ -135,7 +168,7 @@ int main(int ac, char **av) {
         }
         i++;
     }
-    
+    */
 
     //Write everything to disk
     char _path[READLINE];
@@ -169,6 +202,9 @@ int main(int ac, char **av) {
     std::free(temp_seq_buffer);
     std::free(n_reallocs);
     std::free(mutation_proc);
+    std::free(duplication_proc);
+    std::free(insertion_proc);
+    std::free(deletion_proc);
     std::free(all_sequences);
     fclose(original);
 
