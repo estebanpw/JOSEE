@@ -274,6 +274,10 @@ uint64_t sizeofRearrangement(){
     return 4*sizeof(uint64_t) + sizeof(unsigned char) + 2*sizeof(int64_t);
 }
 
+uint64_t sizeofASequence(){
+    return sizeof(char *);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;

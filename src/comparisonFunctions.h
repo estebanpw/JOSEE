@@ -97,6 +97,11 @@ uint64_t sizeofE_duplication();
 	To compute sizeof Rearrangement without padding
 */
 uint64_t sizeofRearrangement();
+
+/*
+	To compute sizeof Rearrangement without padding
+*/
+uint64_t sizeofASequence();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */

@@ -14,23 +14,19 @@ struct a_sequence{
     char * s;
 };
 
-void dna_generator_gc(uint64_t l, char * s, std::uniform_int_distribution<uint64_t> * u, std::default_random_engine * r){
-    for(uint64_t i=0;i<l;i++){
-        s[i] = nts[(*u)(*r)];
-    }
-}
+void dna_generator_gc(uint64_t l, char * s, std::uniform_int_distribution<uint64_t> * u, std::default_random_engine * r);
 
 class mutation{
 private:
     a_sequence * sequence;
     uint64_t * s_len;
     std::default_random_engine generator;
-    std::uniform_real_distribution<double> d_r_unif;
+    std::uniform_real_distribution<long double> d_r_unif;
     std::uniform_int_distribution<uint64_t> d_u_unif;
-    double p;
+    long double p;
 
 public:
-    mutation(double p, a_sequence * sequence, uint64_t * s_len);
+    mutation(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t seed);
     void step();
 
 };
@@ -41,12 +37,12 @@ private:
     uint64_t * s_len;
     uint64_t d_len;
     std::default_random_engine generator;
-    std::uniform_real_distribution<double> d_r_unif;
+    std::uniform_real_distribution<long double> d_r_unif;
     std::uniform_int_distribution<uint64_t> d_u_unif;
-    double p;
+    long double p;
 
 public:
-    duplication(double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len);
+    duplication(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
     void step();
 
 };
@@ -57,12 +53,12 @@ private:
     uint64_t * s_len;
     uint64_t i_len;
     std::default_random_engine generator;
-    std::uniform_real_distribution<double> d_r_unif;
+    std::uniform_real_distribution<long double> d_r_unif;
     std::uniform_int_distribution<uint64_t> d_u_unif;
-    double p;
+    long double p;
 
 public:
-    insertion(double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len);
+    insertion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len, uint64_t seed);
     void step();
 
 };
@@ -73,12 +69,12 @@ private:
     uint64_t * s_len;
     uint64_t d_len;
     std::default_random_engine generator;
-    std::uniform_real_distribution<double> d_r_unif;
+    std::uniform_real_distribution<long double> d_r_unif;
     std::uniform_int_distribution<uint64_t> d_u_unif;
-    double p;
+    long double p;
 
 public:
-    deletion(double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len);
+    deletion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed);
     void step();
 
 };

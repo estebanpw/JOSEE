@@ -1,11 +1,18 @@
 #include "evolution.h"
 
-mutation::mutation(double p, a_sequence * sequence, uint64_t * s_len){
+void dna_generator_gc(uint64_t l, char * s, std::uniform_int_distribution<uint64_t> * u, std::default_random_engine * r){
+    for(uint64_t i=0;i<l;i++){
+        s[i] = nts[(*u)(*r)];
+    }
+}
+
+mutation::mutation(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t seed){
     this->sequence = sequence;
     this->p = p;
     this->s_len = s_len;
-    this->d_r_unif = std::uniform_real_distribution<double>(0.0, 1.0);
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
     this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
+    this->generator = std::default_random_engine(seed);
     
 }
 
@@ -14,7 +21,7 @@ void mutation::step(){
     char c;
     
     for(i=0;i<*this->s_len;i++){
-        if(this->d_r_unif(this->generator) > this->p){
+        if(this->d_r_unif(this->generator) < this->p){
             // Mutate individual nucleotide
             c = this->sequence->s[i];
             while(c == this->sequence->s[i]){
@@ -25,21 +32,21 @@ void mutation::step(){
 }
 
 
-duplication::duplication(double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len){
+duplication::duplication(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed){
     this->sequence = sequence;
     this->p = p;
     this->s_len = s_len;
     this->d_len = d_len;
-    this->d_r_unif = std::uniform_real_distribution<double>(0.0, 1.0);
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
     this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
-    
+    this->generator = std::default_random_engine(seed);
 }
 
 void duplication::step(){
     uint64_t i;
     
     for(i=0;i<*this->s_len;i++){
-        if(this->d_r_unif(this->generator) > this->p){
+        if(this->d_r_unif(this->generator) < this->p){
             // Generate insertion
             // First add space
             this->sequence->s = (char *) realloc(this->sequence->s, (*this->s_len+2*this->d_len)*sizeof(char));
@@ -53,21 +60,21 @@ void duplication::step(){
     }
 }
 
-insertion::insertion(double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len){
+insertion::insertion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t i_len, uint64_t seed){
     this->sequence = sequence;
     this->p = p;
     this->s_len = s_len;
     this->i_len = i_len;
-    this->d_r_unif = std::uniform_real_distribution<double>(0.0, 1.0);
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
     this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
-    
+    this->generator = std::default_random_engine(seed);
 }
 
 void insertion::step(){
     uint64_t i;
     
     for(i=0;i<*this->s_len;i++){
-        if(this->d_r_unif(this->generator) > this->p){
+        if(this->d_r_unif(this->generator) < this->p){
             // Generate insertion
             // First add space
             this->sequence->s = (char *) realloc(this->sequence->s, (*this->s_len+this->i_len)*sizeof(char));
@@ -81,21 +88,21 @@ void insertion::step(){
     }
 }
 
-deletion::deletion(double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len){
+deletion::deletion(long double p, a_sequence * sequence, uint64_t * s_len, uint64_t d_len, uint64_t seed){
     this->sequence = sequence;
     this->p = p;
     this->s_len = s_len;
     this->d_len = d_len;
-    this->d_r_unif = std::uniform_real_distribution<double>(0.0, 1.0);
+    this->d_r_unif = std::uniform_real_distribution<long double>(0.0, 1.0);
     this->d_u_unif = std::uniform_int_distribution<uint64_t>(0, 3);
-    
+    this->generator = std::default_random_engine(seed);
 }
 
 void deletion::step(){
     uint64_t i;
     
     for(i=this->d_len;i<*this->s_len;i++){
-        if(this->d_r_unif(this->generator) > this->p){
+        if(this->d_r_unif(this->generator) < this->p){
             // Generate deletion
             
             
