@@ -611,7 +611,7 @@ bool consecutive_block_order_except_one(int64_t * pairs_diff, uint64_t n_sequenc
 		if(cons_order_T2[i] != NULL) {printf("in T2@%"PRIu64": ",i); printBlockWriteMode(cons_order_T2[i]);}
 	}
 	*/
-	if(diff_type_1 != 1 && diff_type_2 != 1) return false;
+	if(diff_type_1 != 1 && diff_type_2 != 1) return false; //Avoid false positives
 	if(diff_type_1 == 1){
 		//Switch them so that const_order_T1 has the one with higher diff
 		Block ** aux_list = cons_order_T1;
@@ -911,27 +911,173 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	}
 }
 
-void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** cons_order_A_B_T1, Block ** cons_order_A_B_T2, bool * genomes_affected, uint64_t n_sequences, events_queue * operations_queue){
+void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue){
 	uint64_t i;
 
 	// Remember: T1 holds those blocks with furthest distance (i.e. contained in K1 K2)
 
-	for(i=0;i<n_sequences;i++){
-		if(cons_order_A_B_T1[i] != NULL && genomes_affected[cons_order_A_B_T1[i]->genome->id] == true){
-			//Block has to be moved to its counterpart
-			// Block cons_order_A_B_T1[i] gets order from A post
+	// Move blocks contained in A_B_T either from B to between K1 and K2
+	// or from between K1 and K2 to B
+	Synteny_block * sb_ptr_A, * sb_ptr_C, * sb_ptr_K1, * sb_ptr_K2;
 
-			//Find the block from A that has the same genome
-			Synteny_block * sb_ptr = A->sb;
-			while(sb_ptr != NULL){
-				if(sb_ptr->b->genome->id == cons_order_A_B_T1[i]->genome->id) break;
-				sb_ptr = sb_ptr->next;
+
+
+
+	for(i=0;i<n_sequences;i++){
+		if(blocks_to_move[i] != NULL){
+			//This block has to be moved
+			printf("I will try to move %"PRIu64"\n", blocks_to_move[i]->genome->id);
+
+			//Check if it is possible to exchange the block (no other block in its way)
+
+			//Check if the previous block corresponds to A or to K1
+			if(blocks_to_move[i]->prev->present_in_synteny == K1){
+				sb_ptr_A = A->sb;
+				sb_ptr_C = C->sb;
+
+				while(sb_ptr_A != NULL && sb_ptr_A->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_A = sb_ptr_A->next;
+				}
+				//Have the previous block in A
+				//Find the post block in C 
+				while(sb_ptr_C != NULL && sb_ptr_C->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_C = sb_ptr_C->next;
+				}
+				//Check that both are not null 
+				if(sb_ptr_A != NULL && sb_ptr_C != NULL){
+					//Check that there is place 
+					if(sb_ptr_A->b->next == sb_ptr_C->b){
+						//Sufficient room?
+						uint64_t l_breach = sb_ptr_C->b->start - sb_ptr_A->b->end;
+						uint64_t l_move = blocks_to_move[i]->end - blocks_to_move[i]->start;
+						uint64_t d_breach_midpoint = (sb_ptr_A->b->end + (l_breach/2));
+						if(l_breach >= l_move){
+							//Calculate middle point where to copy
+							//And exchange dna
+							inplace_dna_switch(blocks_to_move[i]->genome->seq, blocks_to_move[i]->genome->seq, d_breach_midpoint-(l_move/2), blocks_to_move[i]->start, l_move);
+
+							//Calculate if the block is moved left or right
+							//bool going_backwards = (blocks_to_move[i]->start >= sb_ptr_A->b->end);
+
+							//Now we have to change blocks coordinates
+							blocks_to_move[i]->start = d_breach_midpoint-(l_move/2);
+							blocks_to_move[i]->end = blocks_to_move[i]->start + l_move;
+							//Update prev and next
+							Block * b_comes_after = blocks_to_move[i]->next;
+							Block * b_comes_before = blocks_to_move[i]->prev;
+							blocks_to_move[i]->prev->next = blocks_to_move[i]->next;
+							sb_ptr_A->b->next = blocks_to_move[i];
+							sb_ptr_C->b->prev = blocks_to_move[i];
+							blocks_to_move[i]->prev = sb_ptr_A->b;
+							blocks_to_move[i]->next = sb_ptr_C->b;
+
+
+							//Change order 
+							blocks_to_move[i]->order = sb_ptr_A->b->order + 1;
+							//And the one in C as well 
+							blocks_to_move[i]->next->order = sb_ptr_A->b->order + 2;
+
+							//Insert queue operation to change orders and coordinates
+							//if(going_backwards){
+							rearrangement _r = { 0, (int64_t)1, b_comes_before->id, b_comes_after->id, A->id, 1, blocks_to_move[i]->genome->id};
+							operations_queue->insert_event(_r);
+							//}
+							/*else{
+								rearrangement _r = { 0, (int64_t)-1, b_comes_after->id, sb_ptr_C->b->id, A->id, 1, blocks_to_move[i]->genome->id};
+								operations_queue->insert_event(_r);
+							}
+							*/
+
+							//Change frags list
+							//TODO
+
+						}else{
+							printf("Problem at transposition: breach not long enough\n");
+						}
+					}else{
+						printf("Problem at transposition: there is something in between\n"); 
+						printBlock(sb_ptr_A->b->next);
+						printBlock(sb_ptr_C->b);
+						getchar();
+					}
+				}
+			}else{
+				//It belongs to A
+				sb_ptr_K1 = K1->sb;
+				sb_ptr_K2 = K2->sb;
+
+				while(sb_ptr_K1 != NULL && sb_ptr_K1->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_K1 = sb_ptr_K1->next;
+				}
+				//Have the previous block in A
+				//Find the post block in C 
+				while(sb_ptr_K2 != NULL && sb_ptr_K2->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_K2 = sb_ptr_K2->next;
+				}
+				//Check that both are not null 
+				if(sb_ptr_K1 != NULL && sb_ptr_K2 != NULL){
+					//Check that there is place 
+					if(sb_ptr_K1->b->next == sb_ptr_K2->b){
+						//Sufficient room?
+						uint64_t l_breach = sb_ptr_K2->b->start - sb_ptr_K1->b->end;
+						uint64_t l_move = blocks_to_move[i]->end - blocks_to_move[i]->start;
+						uint64_t d_breach_midpoint = (sb_ptr_K1->b->end + (l_breach/2));
+						if(l_breach >= l_move){
+							//Calculate middle point where to copy
+							//And exchange dna
+							inplace_dna_switch(blocks_to_move[i]->genome->seq, blocks_to_move[i]->genome->seq, d_breach_midpoint-(l_move/2), blocks_to_move[i]->start, l_move);
+
+							//Calculate if the block is moved left or right
+							//bool going_backwards = (blocks_to_move[i]->start >= sb_ptr_A->b->end);
+
+							//Now we have to change blocks coordinates
+							blocks_to_move[i]->start = d_breach_midpoint-(l_move/2);
+							blocks_to_move[i]->end = blocks_to_move[i]->start + l_move;
+							//Update prev and next
+							Block * b_comes_after = blocks_to_move[i]->next;
+							Block * b_comes_before = blocks_to_move[i]->prev;
+							blocks_to_move[i]->prev->next = blocks_to_move[i]->next;
+							sb_ptr_K1->b->next = blocks_to_move[i];
+							sb_ptr_K2->b->prev = blocks_to_move[i];
+							blocks_to_move[i]->prev = sb_ptr_K1->b;
+							blocks_to_move[i]->next = sb_ptr_K2->b;
+
+
+							//Change order 
+							blocks_to_move[i]->order = sb_ptr_K1->b->order + 1;
+							//And the one in C as well 
+							blocks_to_move[i]->next->order = sb_ptr_K1->b->order + 2;
+
+							//Insert queue operation to change orders and coordinates
+							//if(going_backwards){
+							rearrangement _r = { 0, (int64_t)1, b_comes_before->id, b_comes_after->id, A->id, 1, blocks_to_move[i]->genome->id};
+							operations_queue->insert_event(_r);
+							//}
+							/*else{
+								rearrangement _r = { 0, (int64_t)-1, b_comes_after->id, sb_ptr_C->b->id, A->id, 1, blocks_to_move[i]->genome->id};
+								operations_queue->insert_event(_r);
+							}
+							*/
+
+							//Change frags list
+							//TODO
+
+						}else{
+							printf("Problem at transposition: breach not long enough\n");
+						}
+					}else{
+						printf("Problem at transposition: there is something in between\n"); 
+						printBlock(sb_ptr_A->b->next);
+						printBlock(sb_ptr_C->b);
+						getchar();
+					}
+				}
+
+
+
 			}
-			
-		}
-		if(cons_order_A_B_T2[i] != NULL && genomes_affected[cons_order_A_B_T2[i]->genome->id] == true){
-			//Block has to be moved to its counterpart
-			// Block cons_order_A_B_T2[i] gets order from K1 post
+
+						
 		}
 	}
 }
@@ -1229,6 +1375,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							*/
 							if(sl_prev != A && sl_after != C && synteny_level_across_lists(5, A, B, C, sl_prev, sl_after)){
 								printSyntenyBlock(sl_prev->sb);
+								printf("!!!!!!!!!!!!\n");
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
 								getchar();
@@ -1246,6 +1393,22 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								//Now we know which blocks moved
 								//cons_A_B_T1 has the "further" blocks
 								//whereas cons_A_B_T2 has the closest
+								
+								//Heuristic: Less changes
+								//Count how many blocks in the groups T1 and T2
+								uint64_t in_T1 = 0, in_T2 = 0;
+								for(uint64_t w=0;w<n_sequences;w++){
+									if(cons_order_A_B_T1[w] != NULL) in_T1++;
+									if(cons_order_A_B_T2[w] != NULL) in_T2++;
+								}
+
+								if(in_T1 < in_T2){
+									reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
+								}else{
+									reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);
+									
+								}
+								
 
 								t_transpositions++;
 								//getchar();
@@ -1340,7 +1503,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							int make_change;
 							for(uint64_t w=0;w<n_sequences;w++){
 								make_change = sm_B->do_forwards_require_less_changes(w);
-								if(sm_B->get_frags_forward >= sm_B->get_frags_reverse){
+								if(sm_B->get_frags_forward() >= sm_B->get_frags_reverse()){
 									if(make_change == -1) genomes_affected[w] = 1;
 								}else{
 									if(make_change == 1) genomes_affected[w] = 1;

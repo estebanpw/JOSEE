@@ -538,6 +538,16 @@ void alignment_from_hit_reverse(sequence_manager * seq_man, Word * a, Word * b, 
 
 }
 
+void inplace_dna_switch(char *a, char *b, uint64_t l1, uint64_t l2, uint64_t t){
+    uint64_t i;
+    char aux;
+    for(i=0;i<t;i++){
+        aux = a[i+l1];
+        a[i+l1] = b[i+l2];
+        b[i+l2] = aux;
+    }
+}
+
 void inplace_reverse_and_complement(char *d, uint64_t l){
     uint64_t i;
     char c;
@@ -1091,7 +1101,7 @@ int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
     //Print clusters
     printf("Phylogenetic Clustering: \n");printDendrogramList(dendrogram[i_min]);
 
-    
+
 
     return -1; //PROVISIONAL TODO
     

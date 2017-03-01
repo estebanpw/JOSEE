@@ -124,6 +124,10 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
 inline char complement(char c);
 
 /*
+	Swaps two DNA segments 
+*/
+void inplace_dna_switch(char *a, char *b, uint64_t l1, uint64_t l2, uint64_t t);
+/*
 	Reverses and complements a sequence in place
 */
 void inplace_reverse_and_complement(char *d, uint64_t l);
