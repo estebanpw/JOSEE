@@ -851,6 +851,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end], dup->genome->len - dup->end);
 	//Change max len 
 	dup->genome->len -= (dup->end - dup->start);
+	Block * who_was_next = NULL;
 
 	//Remove references from synteny list
 	Synteny_block * sb_ptr = B->sb;
@@ -871,7 +872,9 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 		if(sb_ptr != NULL) sb_ptr = sb_ptr->next;
 	}
 
+	
 	//Remove block from ht
+	who_was_next = dup->next;
 	ht->remove_block(dup);
 
 	//Downgrade synteny level
@@ -887,16 +890,17 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	operations_queue->insert_event(_r);
 
 	//in case there were blocks after (now without order)
-	while(sb_ptr != NULL){
-		if(isBlockEqualTo(sb_ptr->b, dup)){
-			//Remove what was added
-			sb_ptr->b->order = (uint64_t)((int64_t)sb_ptr->b->order + _r.mod_order);
-			sb_ptr->b->start = (uint64_t)((int64_t)sb_ptr->b->start + _r.mod_coordinates);
-			sb_ptr->b->end = (uint64_t)((int64_t)sb_ptr->b->end + _r.mod_coordinates);
-		}
-		sb_ptr = sb_ptr->next;
+	
+	
+	while(who_was_next->present_in_synteny == dup->present_in_synteny){
+		//Remove what was added
+		printf("Gone to\n");
+		who_was_next->order = (uint64_t)((int64_t)who_was_next->order + _r.mod_order);
+		who_was_next->start = (uint64_t)((int64_t)who_was_next->start + _r.mod_coordinates);
+		who_was_next->end = (uint64_t)((int64_t)who_was_next->end + _r.mod_coordinates);
+		who_was_next = who_was_next->next;
 	}
-
+	
 	//And Same for C
 	sb_ptr = C->sb;
 	while(sb_ptr != NULL && sb_ptr->b->genome->id <= dup->genome->id){
@@ -921,8 +925,6 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 	Synteny_block * sb_ptr_A, * sb_ptr_C, * sb_ptr_K1, * sb_ptr_K2;
 
 
-
-
 	for(i=0;i<n_sequences;i++){
 		if(blocks_to_move[i] != NULL){
 			//This block has to be moved
@@ -932,6 +934,7 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 
 			//Check if the previous block corresponds to A or to K1
 			if(blocks_to_move[i]->prev->present_in_synteny == K1){
+				printf("Chose the k1 wpath\n"); getchar();
 				sb_ptr_A = A->sb;
 				sb_ptr_C = C->sb;
 
@@ -1002,6 +1005,7 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 					}
 				}
 			}else{
+				printf("Chose the A wpath\n"); getchar();
 				//It belongs to A
 				sb_ptr_K1 = K1->sb;
 				sb_ptr_K2 = K2->sb;
@@ -1034,8 +1038,8 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 							blocks_to_move[i]->start = d_breach_midpoint-(l_move/2);
 							blocks_to_move[i]->end = blocks_to_move[i]->start + l_move;
 							//Update prev and next
-							Block * b_comes_after = blocks_to_move[i]->next;
-							Block * b_comes_before = blocks_to_move[i]->prev;
+							Block * comes_after = blocks_to_move[i]->next;
+							blocks_to_move[i]->next->order -= 1;
 							blocks_to_move[i]->prev->next = blocks_to_move[i]->next;
 							sb_ptr_K1->b->next = blocks_to_move[i];
 							sb_ptr_K2->b->prev = blocks_to_move[i];
@@ -1044,13 +1048,13 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 
 
 							//Change order 
-							blocks_to_move[i]->order = sb_ptr_K1->b->order + 1;
-							//And the one in C as well 
-							blocks_to_move[i]->next->order = sb_ptr_K1->b->order + 2;
+							blocks_to_move[i]->order = sb_ptr_K2->b->order - 1;
+							//And the one in K1 as well 
+							//blocks_to_move[i]->next->order = sb_ptr_K1->b->order - 1;
 
 							//Insert queue operation to change orders and coordinates
 							//if(going_backwards){
-							rearrangement _r = { 0, (int64_t)1, b_comes_before->id, b_comes_after->id, A->id, 1, blocks_to_move[i]->genome->id};
+							rearrangement _r = { 0, (int64_t)-1, comes_after->id, sb_ptr_K2->b->id, K2->id, 1, blocks_to_move[i]->genome->id};
 							operations_queue->insert_event(_r);
 							//}
 							/*else{
