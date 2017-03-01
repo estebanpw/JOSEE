@@ -589,6 +589,16 @@ void strand_matrix::reset(){
 	
 }
 
+int strand_matrix::do_forwards_require_less_changes(uint64_t genome){
+	uint64_t c_f = 0, c_r = 0;
+	for(uint64_t i=0;i<this->n_seqs;i++){
+		if(this->sm[genome][i] == FORWARD) c_f++; else c_r++;
+	}
+	if(c_f == 0 && c_f == c_r) return 0;
+	if(c_f >= c_r) return 1;
+	return -1;
+}
+
 int strand_matrix::get_strands_type(){
 	if(acu_frags_reverse == 0) return FORWARD;
 	if(acu_frags_forward == 0) return REVERSE;

@@ -1278,6 +1278,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				if(!genomes_involved_in_synteny(genomes_block_count, n_sequences, 1, B)){
 					//There are duplications in B
 					//Find those that have more synteny level
+
+
 					for(i=0;i<n_sequences;i++){
 						if(genomes_block_count[i] > 1){
 							// Genome i has duplications
@@ -1286,9 +1288,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							// Now we would know which blocks are duplications
 							// list_of_dups = who_is_dup(sbl ...)
 
-							//And reverse it
+							// And reverse it
 
-							// REMOVE THIS PART
+							// TODO make this based on real heuristic choices
 							// Doing what requires less changes currently
 							Synteny_block * sb_ptr_dup = B->sb;
 							Block * current_dup = NULL;
@@ -1335,8 +1337,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
+							int make_change;
+							for(uint64_t w=0;w<n_sequences;w++){
+								make_change = sm_B->do_forwards_require_less_changes(w);
+								if(sm_B->get_frags_forward >= sm_B->get_frags_reverse){
+									if(make_change == -1) genomes_affected[w] = 1;
+								}else{
+									if(make_change == 1) genomes_affected[w] = 1;
+								}
+							}
 
-							genomes_affected[0] = true;
 							reverse_reversion(B, seq_man, genomes_affected);
 							//Recalculate strand matrix (in case there is a concatenation)
 							sm_B->reset();
@@ -1381,11 +1391,11 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//First check if there are any indels
 							memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
 							distance_between_blocks(indel_distance, A, B);
-							/*
+							
 							for(i=0;i<n_sequences;i++){
 								printf("D[%"PRIu64"] -:: %"PRIu64"\n", i, indel_distance[i]);
 							}
-							
+							/*
 							printf("Got some concat here\n");
 							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
 							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
@@ -1413,7 +1423,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									rearrangement _r = {0, -2, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, A->id, 1, sb_ptr->b->genome->id};
 									operations_queue->insert_event(_r);
 
-									//order_offsets[i] += 2; //Two because two blocks are shrinked into one
 								}
 								sb_ptr = sb_ptr->next;
 							}

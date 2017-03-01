@@ -310,8 +310,10 @@ public:
     strand_matrix(uint64_t sequences);
     //Unsure about this one below
     int is_block_reversed(uint64_t block_number);
-    //
+    int do_forwards_require_less_changes(uint64_t genome);
     int get_strands_type();
+    uint64_t get_frags_forward(){ return this->acu_frags_forward; }
+    uint64_t get_frags_reverse(){ return this->acu_frags_reverse; }
     void reset();
     void add_fragment_strands(Synteny_list * sbl);
     void print_strand_matrix();

@@ -4,6 +4,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <float.h>
+#include <regex>
 #include "structs.h"
 #include "evolution.h"
 #include "commonFunctions.h"
@@ -18,8 +19,8 @@
 void set_base_name(char * s, char * d);
 void match_regex_to_distributions(char * s, long double * p_mut, long double * p_dup, long double * p_ins, long double * p_del, long double * p_inv, long double * p_tra);
 int main(int ac, char **av) {
-    if (ac < 5) {
-        terror("USE: event_generator <original> <n_sequences> <n_itera> <regex>");
+    if (ac < 4) {
+        terror("USE: event_generator <original> <n_sequences> <n_itera>");
     }
 
 
@@ -45,8 +46,13 @@ int main(int ac, char **av) {
     long double p_tra = (long double) n_itera;
 
     // Trying out regex
-    //match_regex_to_distributions(av[4], &p_mut, &p_dup, &p_ins, &p_del, &p_inv, &p_tra);
-    //exit(-1);
+    /*
+    char all_input[READLINE];
+    all_input[0] = '\0';
+    i = 4; while(i<(uint64_t)ac){ strcat(all_input, av[i]); strcat(all_input, " "); i++;}
+    match_regex_to_distributions(all_input, &p_mut, &p_dup, &p_ins, &p_del, &p_inv, &p_tra);
+    exit(-1);
+    */
     
     //Vector to tell for sequence reallocs
     uint64_t * n_reallocs = (uint64_t *) std::calloc(n_files, sizeof(uint64_t));
@@ -137,7 +143,7 @@ int main(int ac, char **av) {
 
     //Attach processes
     
-    p_mut = ((long double) 10);
+    p_mut = ((long double) n_itera);
     //p_mut = ((long double) 1);
     p_dup = ((long double) n_itera*d_r_unif(generator));
     p_ins = ((long double) n_itera*d_r_unif(generator));
@@ -272,8 +278,22 @@ void set_base_name(char * s, char * d){
 }
 
 void match_regex_to_distributions(char * s, long double * p_mut, long double * p_dup, long double * p_ins, long double * p_del, long double * p_inv, long double * p_tra){
+
+    printf("Received: %s\n", s);
+
+    std::regex all("(mut\\s)"
+                    "([0-9]+)"
+                    );
+    
+    std::smatch cm;
+    std::string str(s, s + strlen(s));
+    std::regex_match(str, cm, all);
+    for(unsigned i=0; i<cm.size(); ++i) {
+        std::cout << "[" << cm[i] << "] " << std::endl;
+    }
     
     //mut.[0-9]+,dup.[0-9]+....
+    /*
     char aux[READLINE], aux_2[READLINE];
     bool never_enter = true;
     uint64_t index = 0, a_match;
@@ -302,4 +322,5 @@ void match_regex_to_distributions(char * s, long double * p_mut, long double * p
         }
     }
     if(never_enter) std::cout << "No regex was specified. Using defaults." << std::endl;
+    */
 }
