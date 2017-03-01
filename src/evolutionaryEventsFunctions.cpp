@@ -847,9 +847,10 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	if(dup == NULL) return;
 	//Modify DNA sequence by removing block and shifting char bytes
 	char * dna_ptr = dup->genome->seq;
+	printf("How could be wrong: %"PRIu64", %"PRIu64", %"PRIu64", %"PRIu64"\n", dup->start, dup->end, dup->genome->len, dup->genome->len - dup->end);
 	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end], dup->genome->len - dup->end);
-	//Change max len
-	dup->genome->len -= (dup->genome->len - dup->end);
+	//Change max len 
+	dup->genome->len -= (dup->end - dup->start);
 
 	//Remove references from synteny list
 	Synteny_block * sb_ptr = B->sb;
@@ -860,6 +861,9 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 			sb_ptr = sb_ptr->next;
 			if(last != NULL){
 				last->next = sb_ptr;
+			}else{
+				//Its the head
+				B->sb = B->sb->next;
 			}
 			
 		}
@@ -870,10 +874,13 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	//Remove block from ht
 	ht->remove_block(dup);
 
+	//Downgrade synteny level
+	B->synteny_level -= 1;
+
 	//Add operation to queue
 	//Coordinates and order
 	printf("ENDINGSSSSSSS %"PRIu64"\n", A->id);
-	getchar();
+	//getchar();
 	rearrangement _r = { -((int64_t)(dup->end - dup->start)), -1, dup->id, 0xFFFFFFFFFFFFFFFF, B->id, 1, dup->genome->id};
 	
 
@@ -1148,7 +1155,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				
 				
 			}
-			getchar();
+			//getchar();
 			//rearrangement r = {1,2,3,4};
 			//operations_queue->insert_event(r);
 			//getchar();
@@ -1174,7 +1181,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			
 			//if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
 			//if(E != NULL){ printSyntenyBlock(E->sb); printf("=was E=======000000\n");}
-			getchar();
+			//getchar();
 			
 
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -1282,23 +1289,21 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//And reverse it
 
 							// REMOVE THIS PART
+							// Doing what requires less changes currently
+							Synteny_block * sb_ptr_dup = B->sb;
 							Block * current_dup = NULL;
 							
-							if(i == 0){
-								current_dup = B->sb->next->b;
-								//printf("USING: "); printBlock(current_dup);
-							}
-							
-							if(i == 2){
-								//current_dup = B->sb->next->next->b;
-								//printf("USING: "); printBlock(current_dup);
+							while(sb_ptr_dup != NULL && current_dup == NULL){
+
+								if(sb_ptr_dup->b->genome->id == i) current_dup = sb_ptr_dup->b;
+								sb_ptr_dup = sb_ptr_dup->next;
 							}
 							
 							if(current_dup != NULL) reverse_duplication(A, B, C, current_dup, blocks_ht, operations_queue, *last_s_id);
 							// UNTIL HERE
 
 							t_duplications++;
-							//getchar();
+							getchar();
 							stop_criteria = false;
 						}
 					}
@@ -1327,7 +1332,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
-							//getchar();
+							getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 
@@ -1372,6 +1377,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							printf("Got some concat here\n");
+							getchar();
 							//First check if there are any indels
 							memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
 							distance_between_blocks(indel_distance, A, B);
@@ -1411,6 +1417,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								}
 								sb_ptr = sb_ptr->next;
 							}
+							getchar();
 							//Make the machine dont stop
 							had_modifying_event = true;
 							stop_criteria = false;

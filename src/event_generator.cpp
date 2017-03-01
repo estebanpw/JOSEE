@@ -27,6 +27,9 @@ int main(int ac, char **av) {
     uint64_t i, j, k, n_files, curr_pos, n_itera;
     
 
+    //Supress a wrong warning
+    nts[0] = nts[0];
+
     //Files to read/write results
     FILE * original = fopen64(av[1], "rt"); if(original == NULL) throw "Could not open input sequence file";
     FILE * out_mod;
@@ -42,8 +45,8 @@ int main(int ac, char **av) {
     long double p_tra = (long double) n_itera;
 
     // Trying out regex
-    match_regex_to_distributions(av[4], &p_mut, &p_dup, &p_ins, &p_del, &p_inv, &p_tra);
-    exit(-1);
+    //match_regex_to_distributions(av[4], &p_mut, &p_dup, &p_ins, &p_del, &p_inv, &p_tra);
+    //exit(-1);
     
     //Vector to tell for sequence reallocs
     uint64_t * n_reallocs = (uint64_t *) std::calloc(n_files, sizeof(uint64_t));
@@ -135,11 +138,13 @@ int main(int ac, char **av) {
     //Attach processes
     
     p_mut = ((long double) 10);
+    //p_mut = ((long double) 1);
     p_dup = ((long double) n_itera*d_r_unif(generator));
     p_ins = ((long double) n_itera*d_r_unif(generator));
     p_del = ((long double) n_itera*d_r_unif(generator));
     p_inv = ((long double) n_itera*d_r_unif(generator));
     p_tra = ((long double) n_itera*d_r_unif(generator));
+    
 
     long double s_size_init = (long double)1/seq_sizes[0];
 
