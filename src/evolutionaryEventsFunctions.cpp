@@ -877,8 +877,6 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	who_was_next = dup->next;
 	ht->remove_block(dup);
 
-	//Downgrade synteny level
-	B->synteny_level -= 1;
 
 	//Add operation to queue
 	//Coordinates and order
@@ -1598,16 +1596,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							had_modifying_event = true;
 							stop_criteria = false;
 						}else{
-							//printf("Non consecutive order in blocks for concat...\n");
+							printf("Non consecutive order in blocks for concat...\n");
 						}
 					}else{
-						//printf("Genomes involved different number concat...\n"); //getchar();
+						printf("Genomes involved different number concat...\n"); //getchar();
 					}
 				}else{
-					//printf("Frags differ in strand for concat...\n"); //getchar();
+					printf("Frags differ in strand for concat...\n"); //getchar();
 				}	
 			}else{
-				//printf("Different synteny levels for concat...\n"); //getchar();
+				printf("Different synteny levels for concat...\n"); //getchar();
 			}
 
 			//Advance pointers
