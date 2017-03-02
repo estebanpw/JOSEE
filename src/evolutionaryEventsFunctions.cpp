@@ -748,6 +748,66 @@ bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequenc
 	return true;
 }
 
+void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance, 
+	uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept, uint64_t * indel_type,
+	events_queue * operations_queue){
+
+	uint64_t indel_used = 0;	
+	memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
+	distance_between_blocks(indel_distance, A, B);
+	
+	/*
+	printf("Got some concat here\n");
+	if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
+	if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
+	if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
+	getchar();
+	*/
+
+	//Add only those that were involved
+	indel_used = 0;
+	Synteny_block * sb_ptr = A->sb;
+	while(sb_ptr != NULL){
+		
+		if(genomes_block_count[sb_ptr->b->genome->id] != 0){ 
+			indel_kept[indel_used] = indel_distance[sb_ptr->b->genome->id];
+			indel_used++;
+		}
+	}
+	//Sort indels
+	qsort(indel_kept, indel_used, sizeof(uint64_t), compare_distances_indel);
+	//Get median
+	uint64_t median = (uint64_t) median_from_vector(indel_kept, indel_used);
+	//Generate table of types
+	sb_ptr = A->sb;
+	uint64_t diff;
+	memset(indel_type, 0, n_sequences*sizeof(uint64_t));
+	while(sb_ptr != NULL){
+		//If genome was involved we have to add offset to the concat
+		if(genomes_block_count[sb_ptr->b->genome->id] != 0){ 
+			if(indel_distance[sb_ptr->b->genome->id] > median){
+				indel_type[sb_ptr->b->genome->id] = INSERTION;
+				//subtract the difference
+				diff = indel_distance[sb_ptr->b->genome->id] - median;
+				sb_ptr->b->start -= diff;
+				sb_ptr->b->end -= diff;
+				
+
+			}else if(indel_distance[sb_ptr->b->genome->id] < median){
+				indel_type[sb_ptr->b->genome->id] = DELETION;
+
+
+			}else{
+				indel_type[sb_ptr->b->genome->id] = NOTHING;
+
+
+			}
+		}
+	}
+}
+
+
+
 void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list ** C){
 	//printf("I would like to concat\n");
 	//printf("And it would look like this:\n");
@@ -1109,7 +1169,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//To check for indels (distances between blocks in concat)
 	uint64_t * indel_distance = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
-	if(indel_distance == NULL) terror("Could not allocate indels distance vector");
+	uint64_t * indel_kept = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	uint64_t * indel_type = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
+	if(indel_distance == NULL || indel_type == NULL || indel_kept == NULL) terror("Could not allocate indels distance vector");
 
 	//To check which genomes have reversion
 	bool * genomes_affected = (bool *) std::malloc(n_sequences*sizeof(bool));
@@ -1553,20 +1615,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							printf("Got some concat here\n");
 							getchar();
-							//First check if there are any indels
-							memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
-							distance_between_blocks(indel_distance, A, B);
 							
-							for(i=0;i<n_sequences;i++){
-								printf("D[%"PRIu64"] -:: %"PRIu64"\n", i, indel_distance[i]);
-							}
-							/*
-							printf("Got some concat here\n");
-							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
-							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
-							if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
-							getchar();
-							*/
+
+
 							concat_synteny_blocks(&A, &B, &C);
 							/*
 							printf("Just in case after\n");
@@ -1579,12 +1630,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							current_concats++;
 							
 							//Add offset to orders
-							Synteny_block * sb_ptr = A->sb;
+							sb_ptr = A->sb;
 							while(sb_ptr != NULL){
 								//If genome was involved we have to add offset to the concat
 								if(genomes_block_count[sb_ptr->b->genome->id] != 0){ 
 									printf("ENDINGSSSSSSS %"PRIu64"\n", A->id);
 									getchar();
+									//Add here also the coordinate indel
 									rearrangement _r = {0, -2, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, A->id, 1, sb_ptr->b->genome->id};
 									operations_queue->insert_event(_r);
 
@@ -1663,11 +1715,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(pairs_diff);
 	std::free(pairs_diff_integer);
 	std::free(indel_distance);
+	std::free(indel_kept);
+	std::free(indel_type);
 	std::free(cons_order_A_B_T1);
 	std::free(cons_order_A_B_T2);
 	std::free(cons_order_B_C_T1);
 	std::free(cons_order_B_C_T2);
 	std::free(genomes_affected);
+	
 	
 	delete sm_A;
 	delete sm_B;

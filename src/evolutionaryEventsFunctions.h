@@ -81,6 +81,15 @@ void apply_queue_operation(rearrangement * _r, Synteny_list * sl);
 */
 uint64_t synteny_level_across_lists(uint64_t args_count, ...);
 
+
+/*
+	Returns a list indicating which block breakpoints should be trimmed
+	0 -> not present 
+	1 -> no trimm 
+	2,3 -> insertion / deletion
+*/
+void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance, uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept);
+
 /*
 	Concatenates three synteny blocks into one
 */

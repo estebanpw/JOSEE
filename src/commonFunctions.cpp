@@ -1107,4 +1107,20 @@ int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
     
 }
 
+int compare_distances_indel(const void * a, const void * b){
+    
+    if( *(uint64_t *) a > *(uint64_t *) b) return 1;
+    if(*(uint64_t *) a == *(uint64_t *) b) return 0;
+    return -1;
+}
+
+long double median_from_vector(uint64_t * v, uint64_t l){
+    if(l % 2 != 0){
+        //its not pair
+        return (long double) v[l/2];
+    }else{
+        //Pair
+        return ((long double) v[(l-1)/2] + (long double) v[(l-1)/2 + 1])/2;
+    }
+}
 

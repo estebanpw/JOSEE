@@ -143,4 +143,14 @@ inline void strrev(char *p, char *d, uint32_t k);
 */
 int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected);
 
+/*
+	Compare function for distances to sort
+*/
+int compare_distances_indel(const void * a, const void * b);
+
+/*
+	Computes the median from a sorted vector
+*/
+long double median_from_vector(uint64_t * v, uint64_t l);
+
 #endif /* COMMON_FUNCTIONS_H */

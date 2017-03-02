@@ -748,7 +748,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
     idx = READBUF + 1;
     char c;
     
-    
+    uint64_t _m_len = 0;
     FILE * current; 
 
     //Read sequences and load into array
@@ -794,10 +794,10 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
             
         }
         //Realloc final size
-        all_sequences[i] = (char *) std::realloc(all_sequences[i], curr_pos);
-        if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+        //all_sequences[i] = (char *) std::realloc(all_sequences[i], curr_pos);
+        //if(all_sequences[i] == NULL) terror("Could not realloc sequence");
+		if(_m_len < curr_pos) _m_len = curr_pos;
         this->sequences[i].seq = all_sequences[i]; //Assign the current sequence to its correspondent
-
 
         fclose(current);
     }
@@ -805,7 +805,13 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
     std::free(temp_seq_buffer);
     std::free(n_reallocs);
 
+	
+
     for(i=0;i<this->n_sequences;i++){
+		//Realloc to largest size to enable future insertions
+		all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
+		this->sequences[i].seq = all_sequences[i];
+		
         std::free(all_sequences_names[i]);
     }
     std::free(all_sequences_names);

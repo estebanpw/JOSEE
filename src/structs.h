@@ -33,11 +33,23 @@
 #define REVERSE 2
 #define MIXED 3
 
-#define ORDER_HIGHER_THAN 1
-#define ORDER_SMALLER_THAN 2
-#define ORDER_BETWEEN 3
+#define INSERTION 1
+#define DELETION 2
+#define NOTHING 3
 
 #define POINT 4
+
+// Safe type max and min 
+#define max(a, b) \
+({ __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a > _b ? _a : _b; })
+
+#define min(a, b) \
+({ __typeof__ (a) _a = (a); \
+    __typeof__ (b) _b = (b); \
+    _a < _b ? _a : _b; })
+
 
 //Class prototypes
 class memory_pool;
