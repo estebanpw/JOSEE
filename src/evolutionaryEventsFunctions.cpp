@@ -773,13 +773,14 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 			indel_kept[indel_used] = indel_distance[sb_ptr->b->genome->id];
 			indel_used++;
 		}
+		sb_ptr = sb_ptr->next;
 	}
 	//Sort indels
 	qsort(indel_kept, indel_used, sizeof(uint64_t), compare_distances_indel);
 	//Get median
 	uint64_t median = (uint64_t) median_from_vector(indel_kept, indel_used);
 	//Generate table of types
-	sb_ptr = A->sb;
+	sb_ptr = B->sb;
 	uint64_t diff;
 	memset(indel_type, 0, n_sequences*sizeof(uint64_t));
 	while(sb_ptr != NULL){
@@ -789,20 +790,45 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 				indel_type[sb_ptr->b->genome->id] = INSERTION;
 				//subtract the difference
 				diff = indel_distance[sb_ptr->b->genome->id] - median;
+				printf("My Diff: %"PRIu64"\n", diff);
+				
+				//Modify sequence 
+				
+
+				//Modify last block
 				sb_ptr->b->start -= diff;
 				sb_ptr->b->end -= diff;
-				
+								
+
+				//Add to queue
+				rearrangement _r = { -((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, B->id, 1, sb_ptr->b->genome->id};
+				operations_queue->insert_event(_r);
 
 			}else if(indel_distance[sb_ptr->b->genome->id] < median){
 				indel_type[sb_ptr->b->genome->id] = DELETION;
+				diff = median - indel_distance[sb_ptr->b->genome->id];
+				printf("My Diff: %"PRIu64"\n", diff);
 
+				//Modify sequence 
+
+				//Modify last block
+				sb_ptr->b->start += diff;
+				sb_ptr->b->end += diff;
+				
+				//Add to queue
+				rearrangement _r = { ((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, B->id, 1, sb_ptr->b->genome->id};
+				operations_queue->insert_event(_r);
 
 			}else{
 				indel_type[sb_ptr->b->genome->id] = NOTHING;
-
-
 			}
 		}
+		sb_ptr = sb_ptr->next;
+	}
+
+	printf("Median: %"PRIu64"\n", median);
+	for(uint64_t i=0;i<n_sequences;i++){
+		printf("TYP-O[%"PRIu64"]: %"PRIu64"\n", i, indel_type[i]);
 	}
 }
 
@@ -1616,16 +1642,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							printf("Got some concat here\n");
 							getchar();
 							
-
+							handle_indels(A, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue);
 
 							concat_synteny_blocks(&A, &B, &C);
-							/*
+							
 							printf("Just in case after\n");
 							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
 							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
 							if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
 							getchar();
-							*/
+							
 							t_concats++;
 							current_concats++;
 							
