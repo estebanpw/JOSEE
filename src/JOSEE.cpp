@@ -168,6 +168,12 @@ int main(int ac, char **av) {
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
 
+
+    //Write output sequences and finish %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    for(i=0;i<n_files;i++){
+        fprintf(out_file, ">seq %"PRIu64" with len %"PRIu64"\n", i, seq_manager->get_sequence_by_label(i)->len);
+        seq_manager->print_sequence_region(out_file, i, 0, seq_manager->get_sequence_by_label(i)->len);
+    }
     
 
     // DEBUG %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

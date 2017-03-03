@@ -748,13 +748,73 @@ bool genomes_involved_in_synteny(uint64_t * genomes_counters, uint64_t n_sequenc
 	return true;
 }
 
-void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance, 
+void remove_insertion_DNA(Block * a, Block * b, Block * c, uint64_t diff){
+	uint64_t half_diff = diff/2;
+	//printf("########->>>\n");printBlock(a);printBlock(b);printBlock(c);
+	uint64_t b_point_AB = (a->end + b->start)/2;
+	uint64_t b_point_BC = (b->end + c->start)/2;
+
+	printf("At seq: %"PRIu64"\n", a->genome->id);
+	if(diff % 2 == 0){
+		printf("(1)Moving %"PRIu64" to %"PRIu64"\n", b_point_BC, b_point_BC-half_diff);
+		memmove(&a->genome->seq[b_point_BC-half_diff], &a->genome->seq[b_point_BC], a->genome->len - b_point_BC);
+		a->genome->len -= half_diff;
+		printf("Moving %"PRIu64" to %"PRIu64" a total ch of %"PRIu64" while having len: %"PRIu64"\n", b_point_AB+half_diff, b_point_AB, a->genome->len - b_point_AB + half_diff, a->genome->len);
+		memmove(&a->genome->seq[b_point_AB], &a->genome->seq[b_point_AB+half_diff], a->genome->len - (b_point_AB + half_diff));
+		a->genome->len -= half_diff;
+	}else{
+		printf("(2)Moving %"PRIu64" to %"PRIu64"\n", b_point_BC, b_point_BC-half_diff);
+		//Add extra one for the integer division
+		memmove(&a->genome->seq[b_point_BC-half_diff-1], &a->genome->seq[b_point_BC], a->genome->len - b_point_BC - 1);
+		a->genome->len -= (half_diff + 1);
+		printf("Moving %"PRIu64" to %"PRIu64"\n", b_point_AB+half_diff, b_point_AB);
+		memmove(&a->genome->seq[b_point_AB], &a->genome->seq[b_point_AB+half_diff], a->genome->len - (b_point_AB + half_diff));
+		a->genome->len -= half_diff;
+	}
+	getchar();
+}
+
+void remove_deletion_DNA(Block * a, Block * b, Block * c, uint64_t diff){
+	uint64_t half_diff = diff/2;
+	uint64_t i;
+
+	printf("At seq: %"PRIu64"\n", a->genome->id);
+	if(diff % 2 == 0){
+		printf("(1()Adding %"PRIu64" to %"PRIu64"\n", b->end, b->end+half_diff);
+		memmove(&a->genome->seq[b->end+half_diff], &a->genome->seq[b->end], a->genome->len - b->end);
+		a->genome->len += half_diff;
+		//Fill
+		for(i=0;i<half_diff;i++) a->genome->seq[i+b->end] = 'N';
+
+		printf("Adding %"PRIu64" to %"PRIu64"\n", b->start, b->start+half_diff);
+		memmove(&a->genome->seq[b->start+half_diff], &a->genome->seq[b->start], a->genome->len - b->start);
+		a->genome->len += half_diff;
+		//Fill
+		for(i=0;i<half_diff;i++) a->genome->seq[i+b->start] = 'N';
+		
+	}else{
+		printf("(2)Adding %"PRIu64" to %"PRIu64"\n", b->end, b->end+half_diff+1);
+		memmove(&a->genome->seq[b->end+half_diff+1], &a->genome->seq[b->end], a->genome->len - (b->end + 1));
+		a->genome->len += (half_diff + 1);
+		//Fill
+		for(i=0;i<half_diff+1;i++) a->genome->seq[i+b->end] = 'N';
+		printf("Adding %"PRIu64" to %"PRIu64"\n", b->start, b->start+half_diff);
+		memmove(&a->genome->seq[b->start+half_diff], &a->genome->seq[b->start], a->genome->len - b->start);
+		a->genome->len += half_diff;
+		//Fill
+		for(i=0;i<half_diff;i++) a->genome->seq[i+b->start] = 'N';
+	}
+	getchar();
+	
+}
+
+void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_t * indel_distance, 
 	uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept, uint64_t * indel_type,
 	events_queue * operations_queue){
 
 	uint64_t indel_used = 0;	
 	memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
-	distance_between_blocks(indel_distance, A, B);
+	distance_between_blocks(indel_distance, A, C);
 	
 	/*
 	printf("Got some concat here\n");
@@ -780,7 +840,7 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 	//Get median
 	uint64_t median = (uint64_t) median_from_vector(indel_kept, indel_used);
 	//Generate table of types
-	sb_ptr = B->sb;
+	sb_ptr = C->sb;
 	uint64_t diff;
 	memset(indel_type, 0, n_sequences*sizeof(uint64_t));
 	while(sb_ptr != NULL){
@@ -793,7 +853,9 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 				printf("My Diff: %"PRIu64"\n", diff);
 				
 				//Modify sequence 
-				
+				//The diff can be removed either from breakpoint A-B or B-C
+				//So remove "diff" from the end of A-> and the starting of <-C
+				remove_insertion_DNA(sb_ptr->b->prev->prev, sb_ptr->b->prev, sb_ptr->b, diff);
 
 				//Modify last block
 				sb_ptr->b->start -= diff;
@@ -801,7 +863,7 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 								
 
 				//Add to queue
-				rearrangement _r = { -((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, B->id, 1, sb_ptr->b->genome->id};
+				rearrangement _r = { -((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, C->id, 1, sb_ptr->b->genome->id};
 				operations_queue->insert_event(_r);
 
 			}else if(indel_distance[sb_ptr->b->genome->id] < median){
@@ -810,13 +872,14 @@ void handle_indels(Synteny_list * A, Synteny_list * B, uint64_t * indel_distance
 				printf("My Diff: %"PRIu64"\n", diff);
 
 				//Modify sequence 
+				remove_deletion_DNA(sb_ptr->b->prev->prev, sb_ptr->b->prev, sb_ptr->b, diff);
 
 				//Modify last block
 				sb_ptr->b->start += diff;
 				sb_ptr->b->end += diff;
 				
 				//Add to queue
-				rearrangement _r = { ((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, B->id, 1, sb_ptr->b->genome->id};
+				rearrangement _r = { ((int64_t)(diff)), 0, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, C->id, 1, sb_ptr->b->genome->id};
 				operations_queue->insert_event(_r);
 
 			}else{
@@ -1468,7 +1531,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printf("!!!!!!!!!!!!\n");
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
-								getchar();
+								//getchar();
 								
 
 								//To reverse the transposition we have to align the B synteny block
@@ -1558,7 +1621,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							// UNTIL HERE
 
 							t_duplications++;
-							getchar();
+							//getchar();
 							stop_criteria = false;
 						}
 					}
@@ -1587,7 +1650,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
-							getchar();
+							//getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
 							int make_change;
@@ -1640,9 +1703,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 							printf("Got some concat here\n");
-							getchar();
+							//getchar();
 							
-							handle_indels(A, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue);
+							handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue);
 
 							concat_synteny_blocks(&A, &B, &C);
 							
@@ -1650,7 +1713,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
 							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
 							if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
-							getchar();
+							//getchar();
 							
 							t_concats++;
 							current_concats++;
@@ -1661,7 +1724,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								//If genome was involved we have to add offset to the concat
 								if(genomes_block_count[sb_ptr->b->genome->id] != 0){ 
 									printf("ENDINGSSSSSSS %"PRIu64"\n", A->id);
-									getchar();
+									//getchar();
 									//Add here also the coordinate indel
 									rearrangement _r = {0, -2, sb_ptr->b->id, 0xFFFFFFFFFFFFFFFF, A->id, 1, sb_ptr->b->genome->id};
 									operations_queue->insert_event(_r);
@@ -1669,7 +1732,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								}
 								sb_ptr = sb_ptr->next;
 							}
-							getchar();
+							//getchar();
 							//Make the machine dont stop
 							had_modifying_event = true;
 							stop_criteria = false;
@@ -1730,6 +1793,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){
 		std::free(qfmat[i]);
+		std::free(qf_submat[i]);
 		std::free(qfmat_state[i]);
 	}
 	std::free(qf_submat);

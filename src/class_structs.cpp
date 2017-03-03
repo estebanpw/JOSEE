@@ -811,6 +811,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
 		//Realloc to largest size to enable future insertions
 		all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
 		this->sequences[i].seq = all_sequences[i];
+		this->sequences[i].seq[_m_len-1] = '\0';
 		
         std::free(all_sequences_names[i]);
     }
@@ -937,12 +938,15 @@ void sequence_manager::print_annotations(){
 	}
 }
 
-void sequence_manager::print_sequence_region(uint64_t label, uint64_t from, uint64_t to){
+void sequence_manager::print_sequence_region(FILE * fout, uint64_t label, uint64_t from, uint64_t to){
 	uint64_t i;
-	for(i=from;i<to;i++){
-		printf("%c", this->sequences[label].seq[i]);
+	uint64_t j=0;
+	for(i=from;i<to-1;i++){
+		j++;
+		if(j % PRINT_RATE == 0) fprintf(fout, "\n");
+		fprintf(fout, "%c", this->sequences[label].seq[i]);
 	}
-	printf("\n");
+	fprintf(fout, "\n");
 }
 
 sequence_manager::~sequence_manager(){
@@ -957,6 +961,7 @@ sequence_manager::~sequence_manager(){
 		}
 		std::free(this->annotation_lists);
 	}
+	std::free(this->sequences);
 }
 
 dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
@@ -1137,6 +1142,7 @@ void events_queue::print_queue(){
 
 events_queue::~events_queue(){
 	delete this->rea_queue;
+	delete this->aggregated_r;
 }
 
 

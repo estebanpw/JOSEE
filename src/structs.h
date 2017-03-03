@@ -20,6 +20,7 @@
 #define INIT_TRIM_FRAGS 10000
 #define TABLE_RATE 100 //hash table lengh divisor
 #define INIT_CANDIDATES_ALIGN 100 //For wordbucket list
+#define PRINT_RATE 70
 
 #define MAX_MEM_POOLS 256
 #define POOL_SIZE 1024*1024*128 //128 MB
@@ -227,7 +228,7 @@ public:
     uint64_t get_annotations_number_in_list(uint64_t label){ return this->n_annotations[label]; }
     void read_dna_sequences(char * paths_to_files);
     void read_annotations();
-    void print_sequence_region(uint64_t label, uint64_t from, uint64_t to);
+    void print_sequence_region(FILE * fout, uint64_t label, uint64_t from, uint64_t to);
     ~sequence_manager();
 };
 
