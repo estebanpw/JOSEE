@@ -431,7 +431,7 @@ void printDebugBlockOrderByGenome(Synteny_list * sl, uint64_t genome_id){
                 Block * b_ptr = sb_ptr->b;
                 bool change = false;
                 while(b_ptr != NULL){
-                    printf("%"PRIu64", ", b_ptr->order);
+                    printBlock(b_ptr);
                     if(b_ptr->next == NULL){
                         change = true;
                     }

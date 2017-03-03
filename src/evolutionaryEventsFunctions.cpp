@@ -771,7 +771,7 @@ void remove_insertion_DNA(Block * a, Block * b, Block * c, uint64_t diff){
 		memmove(&a->genome->seq[b_point_AB], &a->genome->seq[b_point_AB+half_diff], a->genome->len - (b_point_AB + half_diff));
 		a->genome->len -= half_diff;
 	}
-	getchar();
+	//getchar();
 }
 
 void remove_deletion_DNA(Block * a, Block * b, Block * c, uint64_t diff){
@@ -804,13 +804,13 @@ void remove_deletion_DNA(Block * a, Block * b, Block * c, uint64_t diff){
 		//Fill
 		for(i=0;i<half_diff;i++) a->genome->seq[i+b->start] = 'N';
 	}
-	getchar();
+	//getchar();
 	
 }
 
 void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_t * indel_distance, 
 	uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept, uint64_t * indel_type,
-	events_queue * operations_queue){
+	events_queue * operations_queue, uint64_t * t_insertions, uint64_t * t_deletions){
 
 	uint64_t indel_used = 0;	
 	memset(indel_distance, 0, n_sequences*sizeof(uint64_t));
@@ -848,6 +848,7 @@ void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_
 		if(genomes_block_count[sb_ptr->b->genome->id] != 0){ 
 			if(indel_distance[sb_ptr->b->genome->id] > median){
 				indel_type[sb_ptr->b->genome->id] = INSERTION;
+				*t_insertions = *t_insertions + 1;
 				//subtract the difference
 				diff = indel_distance[sb_ptr->b->genome->id] - median;
 				printf("My Diff: %"PRIu64"\n", diff);
@@ -868,6 +869,7 @@ void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_
 
 			}else if(indel_distance[sb_ptr->b->genome->id] < median){
 				indel_type[sb_ptr->b->genome->id] = DELETION;
+				*t_deletions = *t_deletions + 1;
 				diff = median - indel_distance[sb_ptr->b->genome->id];
 				printf("My Diff: %"PRIu64"\n", diff);
 
@@ -1081,7 +1083,7 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 
 			//Check if the previous block corresponds to A or to K1
 			if(blocks_to_move[i]->prev->present_in_synteny == K1){
-				printf("Chose the k1 wpath\n"); getchar();
+				printf("Chose the k1 wpath\n"); //getchar();
 				sb_ptr_A = A->sb;
 				sb_ptr_C = C->sb;
 
@@ -1146,13 +1148,13 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 						}
 					}else{
 						printf("Problem at transposition: there is something in between\n"); 
-						printBlock(sb_ptr_A->b->next);
-						printBlock(sb_ptr_C->b);
-						getchar();
+						//if(sb_ptr_A->b != NULL && sb_ptr_A->b->next != NULL) printBlock(sb_ptr_A->b->next); else printf("First is null\n");
+						//if(sb_ptr_C->b != NULL) printBlock(sb_ptr_C->b); else printf("Second is null\n");
+						//getchar();
 					}
 				}
 			}else{
-				printf("Chose the A wpath\n"); getchar();
+				printf("Chose the A wpath\n"); //getchar();
 				//It belongs to A
 				sb_ptr_K1 = K1->sb;
 				sb_ptr_K2 = K2->sb;
@@ -1218,9 +1220,9 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 						}
 					}else{
 						printf("Problem at transposition: there is something in between\n"); 
-						printBlock(sb_ptr_A->b->next);
-						printBlock(sb_ptr_C->b);
-						getchar();
+						//if(sb_ptr_A->b != NULL && sb_ptr_A->b->next != NULL) printBlock(sb_ptr_A->b->next); else printf("First is null\n");
+						//if(sb_ptr_C->b != NULL) printBlock(sb_ptr_C->b); else printf("Second is null\n");
+						//getchar();
 					}
 				}
 
@@ -1322,14 +1324,17 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//To have some statistics
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
 	uint64_t t_inversions = 0, t_duplications = 0, t_transpositions = 0;
+	uint64_t t_insertions = 0, t_deletions = 0;
 
 
 	while(!stop_criteria){
 		
 		//Display current iteration
-		printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-		printf("\tTotal inversions: %"PRIu64".\n\tTotal duplications: %"PRIu64"\n", t_inversions, t_duplications);
-		printf("\tTotal transpositions: %"PRIu64"\n", t_transpositions);
+		printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+		printf("\tTotal inversions: \t%"PRIu64".\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, t_duplications);
+		printf("\tTotal transpositions: \t%"PRIu64"\n", t_transpositions);
+		printf("\tTotal insertions: \t%"PRIu64"\n", t_insertions);
+		printf("\tTotal deletions: \t%"PRIu64"\n", t_deletions);
 		current_concats = 0;
 		getchar();
 
@@ -1705,7 +1710,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							printf("Got some concat here\n");
 							//getchar();
 							
-							handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue);
+							handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue, &t_insertions, &t_deletions);
+							
 
 							concat_synteny_blocks(&A, &B, &C);
 							
@@ -1786,9 +1792,11 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		}
 	}
 
-	printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: %"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-	printf("\tTotal inversions: %"PRIu64".\n\tTotal duplications: %"PRIu64"\n", t_inversions, t_duplications);
-	printf("\tTotal transpositions: %"PRIu64"\n", t_transpositions);
+	printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
+	printf("\tTotal inversions: \t%"PRIu64".\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, t_duplications);
+	printf("\tTotal transpositions: \t%"PRIu64"\n", t_transpositions);
+	printf("\tTotal insertions: \t%"PRIu64"\n", t_insertions);
+	printf("\tTotal deletions: \t%"PRIu64"\n", t_deletions);
 
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){

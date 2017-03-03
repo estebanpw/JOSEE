@@ -97,7 +97,7 @@ void remove_deletion_DNA(Block * a, Block * b, Block * c, uint64_t diff);
 	1 -> no trimm 
 	2,3 -> insertion / deletion
 */
-void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_t * indel_distance, uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept);
+void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_t * indel_distance, uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept, uint64_t * indel_type, events_queue * operations_queue, uint64_t * t_insertions, uint64_t * t_deletions);
 
 /*
 	Concatenates three synteny blocks into one
