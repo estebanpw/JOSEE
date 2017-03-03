@@ -1064,7 +1064,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	}
 }
 
-void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue){
+bool reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue){
 	uint64_t i;
 
 	// Remember: T1 holds those blocks with furthest distance (i.e. contained in K1 K2)
@@ -1145,12 +1145,19 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 
 						}else{
 							printf("Problem at transposition: breach not long enough\n");
+							return false;
 						}
 					}else{
 						printf("Problem at transposition: there is something in between\n"); 
 						//if(sb_ptr_A->b != NULL && sb_ptr_A->b->next != NULL) printBlock(sb_ptr_A->b->next); else printf("First is null\n");
 						//if(sb_ptr_C->b != NULL) printBlock(sb_ptr_C->b); else printf("Second is null\n");
 						//getchar();
+						printDebugBlockOrderByGenome(A, 0);
+						printDebugBlockOrderByGenome(A, 1);
+						printDebugBlockOrderByGenome(A, 2);
+						printDebugBlockOrderByGenome(A, 3);
+						//getchar();
+						return false;
 					}
 				}
 			}else{
@@ -1217,12 +1224,19 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 
 						}else{
 							printf("Problem at transposition: breach not long enough\n");
+							return false;
 						}
 					}else{
 						printf("Problem at transposition: there is something in between\n"); 
 						//if(sb_ptr_A->b != NULL && sb_ptr_A->b->next != NULL) printBlock(sb_ptr_A->b->next); else printf("First is null\n");
 						//if(sb_ptr_C->b != NULL) printBlock(sb_ptr_C->b); else printf("Second is null\n");
 						//getchar();
+						printDebugBlockOrderByGenome(A, 0);
+						printDebugBlockOrderByGenome(A, 1);
+						printDebugBlockOrderByGenome(A, 2);
+						printDebugBlockOrderByGenome(A, 3);
+						//getchar();
+						return false;
 					}
 				}
 
@@ -1233,6 +1247,7 @@ void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 						
 		}
 	}
+	return true;
 }
 
 
@@ -1537,6 +1552,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								printSyntenyBlock(sl_after->sb);
 								printf("Detected transposition at B\n");
 								//getchar();
+								// Debug ~~ check if the chain is broken
 								
 
 								//To reverse the transposition we have to align the B synteny block
@@ -1561,16 +1577,18 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								}
 
 								if(in_T1 < in_T2){
-									reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
+									stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
 								}else{
-									reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);
+									stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);
 									
 								}
 								
-
-								t_transpositions++;
+								if(stop_criteria == false){
+									t_transpositions++;
+								}
+								
 								//getchar();
-								stop_criteria = false;
+								//stop_criteria = false;
 							}else{
 								//printf("Different synteny in ALL for transposition\n");
 							}

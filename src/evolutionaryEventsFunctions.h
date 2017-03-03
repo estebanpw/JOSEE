@@ -124,7 +124,7 @@ void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_id
 /*
 	Reverses a transposition by displacing the affected blocks to the midpoint of the original syntenys
 */
-void reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue);
+bool reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue);
 /*
 	Detects candidates for evolutionary events
 */

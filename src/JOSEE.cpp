@@ -159,12 +159,6 @@ int main(int ac, char **av) {
         fprintf(stdout, "[INFO] Wrote blocks and breakpoints to output files. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     }
 
-    // Debug ~~ check if the chain is broken
-    printDebugBlockOrderByGenome(synteny_block_list, 0);
-    printDebugBlockOrderByGenome(synteny_block_list, 1);
-    printDebugBlockOrderByGenome(synteny_block_list, 2);
-    printDebugBlockOrderByGenome(synteny_block_list, 3);
-    exit(-1);
 
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
