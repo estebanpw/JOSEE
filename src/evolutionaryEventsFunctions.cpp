@@ -11,6 +11,7 @@
 #include "structs.h"
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
+#include "alignment_functions.h"
 
 
 
@@ -1326,6 +1327,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	  2*seq_man->get_number_of_sequences()*sizeof(unsigned char) +
 	  seq_man->get_number_of_sequences()*sizeof(Slist *));
 	*/
+	//For NW computation
+	char * seq_for_reverse = (char *) std::malloc(seq_man->get_maximum_length()*sizeof(char));
+	if(seq_for_reverse == NULL) terror("Could not allocate reverse sequence");
+	struct cell * mc, * f0, * f1;
+	mc = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+	f0 = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+	f1 = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+	if(mc == NULL || f0 == NULL || f1 == NULL) terror("Could not allocate rows for NW");
 
 	
 	// For handling rearragement operations
@@ -1560,7 +1569,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						
 								memset(genomes_affected, false, n_sequences*sizeof(bool));
 
-								read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+								//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+								fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1);
+								printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+
 								mp->reset_to(0,0);
 								//Note: The "genomes_affected" should hold which one are the blocks that moved (i.e. genome ids)
 								UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
@@ -1670,7 +1682,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//Clear out array of genomes affected
 							memset(genomes_affected, false, n_sequences*sizeof(bool));
 
-							read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+							//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+							//printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+							fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1);
+							printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 							mp->reset_to(0,0);
 							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
 							//getchar();
@@ -1838,7 +1853,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(cons_order_B_C_T1);
 	std::free(cons_order_B_C_T2);
 	std::free(genomes_affected);
-	
+	std::free(seq_for_reverse);
+	std::free(mc);
+	std::free(f0);
+	std::free(f1);
 	
 	delete sm_A;
 	delete sm_B;

@@ -278,6 +278,10 @@ uint64_t sizeofASequence(){
     return sizeof(char *);
 }
 
+uint64_t sizeofCell(){
+    return 7*sizeof(uint64_t) + sizeof(int64_t);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;
@@ -374,6 +378,10 @@ void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint
         }
         printf("\n");
     }
+}
+
+void printCell(struct cell * c){
+    fprintf(stdout, "S:%"PRId64", @(%"PRIu64", %"PRIu64") to (%"PRIu64", %"PRIu64") I:%"PRIu64", GI:%"PRIu64", GE:%"PRIu64"\n", c->score, c->xs, c->ys, c->xe, c->ye, c->ident, c->igaps, c->egaps);
 }
 
 void printUnstatedDoubleMatrix(double ** qfmat, uint64_t n_seqs, unsigned char * skip_i){

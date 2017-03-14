@@ -102,6 +102,11 @@ uint64_t sizeofRearrangement();
 	To compute sizeof Rearrangement without padding
 */
 uint64_t sizeofASequence();
+
+/*
+	To compute sizeof a Cell without padding
+*/
+uint64_t sizeofCell();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */
@@ -167,6 +172,10 @@ void printQuickfrag(Quickfrag * qf);
 */
 void printQuickFragMatrix(Quickfrag ** qfmat, unsigned char ** qfmat_state, uint64_t n_seqs);
 
+/*
+	Print a cell struct
+*/
+void printCell(struct cell * c);
 /*
 	Print a submatrix from a quickfrags matrix
 */

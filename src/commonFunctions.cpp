@@ -8,6 +8,7 @@
 #include <math.h>
 #include "structs.h"
 #include "comparisonFunctions.h"
+#include "alignment_functions.h"
 
 
 void terror(const char *s) {
@@ -969,9 +970,58 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     
 }
 
+//void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state)
+
+void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell * mc, struct cell * f0, struct cell * f1){
+    Synteny_block * sb_ptr = sbl->sb;
+    Synteny_block * sb_ptr_intern;
+    struct cell alignment;
+    struct cell alignment_reverse;
+    Quickfrag qf;
+
+    uint64_t i,j;
+    for(i=0;i<seq_man->get_number_of_sequences();i++){
+        for(j=0;j<seq_man->get_number_of_sequences();j++) qfmat_state[i][j] = 0;
+    }
+
+    while(sb_ptr != NULL){
+        sb_ptr_intern = sb_ptr->next;
+        while(sb_ptr_intern != NULL){
+            printf("aligning :"); printBlock(sb_ptr->b); printBlock(sb_ptr_intern->b);
+            alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
+            
+            memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
+            inplace_reverse_and_complement(&seq_for_reverse[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
+            alignment_reverse = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &seq_for_reverse[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
+            
+           
+            if(alignment_reverse.ident > alignment.ident) alignment = alignment_reverse;
+            qf.x_start = alignment.xs;
+            qf.y_start = alignment.ys;
+            qf.t_len = alignment.xe - alignment.xs;
+            qf.diag = 0; // Not needed
+            qf.sim = 100 - (long double)(alignment.ident * 100) / (long double) qf.t_len;
+            qf.x = sb_ptr->b->genome;
+            qf.y = sb_ptr_intern->b->genome;
+
+            printf("Best is:\n");
+            printCell(&alignment);
+
+            memcpy(&qfmat[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id], &qf, sizeofQuickfrag());
+            memcpy(&qfmat[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id], &qf, sizeofQuickfrag());
+            qfmat_state[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id] = 1;
+            qfmat_state[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id] = 1;
+            sb_ptr_intern = sb_ptr_intern->next;
+        }
+        sb_ptr = sb_ptr->next;
+    }
+    printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+}
+
 int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected){
 
 
+    //printQuickFragMatrix(M, qfmat_state, 2);
 
     uint64_t i, j, i_p, j_p;
     double f_min = -1;

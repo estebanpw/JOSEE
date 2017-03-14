@@ -40,7 +40,8 @@
 
 #define POINT 4
 
-
+#define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
+#define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
 //Class prototypes
 class memory_pool;
@@ -93,6 +94,18 @@ struct FragFile {
     char strand;
     //E-value of fragment
     long double evalue;
+};
+
+//Struct for NW two rows
+struct cell{
+	int64_t score;
+	uint64_t xe;
+	uint64_t ye;
+	uint64_t xs;
+	uint64_t ys;
+	uint64_t igaps;
+	uint64_t egaps;
+	uint64_t ident;
 };
 
 //Sequence descriptor

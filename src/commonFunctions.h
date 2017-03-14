@@ -119,6 +119,10 @@ void align_region(sequence_manager * seq_man, Synteny_block * unlinked_sb, uint3
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state);
 
 /*
+	Same as read_words_and_align but for NW 
+*/
+void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell * mc, struct cell * f0, struct cell * f1);
+/*
 	Complements a nucleotide 
 */
 inline char complement(char c);
