@@ -1018,7 +1018,7 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
     printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 }
 
-int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected){
+Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
 
 
     //printQuickFragMatrix(M, qfmat_state, 2);
@@ -1150,11 +1150,52 @@ int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 
     //Print clusters
     printf("Phylogenetic Clustering: \n");printDendrogramList(dendrogram[i_min]);
+    printf("\n");
 
 
-
-    return -1; //PROVISIONAL TODO
+    return dendrogram[i_min]; 
     
+}
+
+void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected){
+    Slist * d = dendrogram;
+    Slist * prev, * next;
+    
+    while(d != NULL){
+        //if(d->s == NULL) printf(" ] "); else printf(" %"PRIu64" ", d->s->id);
+        prev = d;
+        d = d->next;
+        if(d != NULL) next = d->next;
+
+        if(prev != NULL && d != NULL && next != NULL){
+            if(prev->s != NULL && d->s != NULL && next->s != NULL){
+                switch(e){
+                    case inversion: 
+                    {
+                        //check for strands
+                        
+                        strand_matrix * sm_B = (strand_matrix *) data;
+                        printf("%u %u %u %u\n", sm_B->get_strands(next->s->id, d->s->id), sm_B->get_strands(d->s->id, prev->s->id), sm_B->get_strands(next->s->id, prev->s->id), sm_B->get_strands(prev->s->id, d->s->id));
+                        sm_B->print_strand_matrix();
+                        if(sm_B->get_strands(next->s->id, d->s->id) == sm_B->get_strands(d->s->id, prev->s->id)){
+                            //The reversion happened in 'prev'
+                            genomes_affected[prev->s->id] = true;
+                        }                        
+                        if(sm_B->get_strands(next->s->id, prev->s->id) == sm_B->get_strands(prev->s->id, d->s->id)){
+                            //The reversion happened in 'd'
+                            genomes_affected[d->s->id] = true;
+                        }
+
+                    }
+                    break;
+                }
+            }else{
+                //Collapse
+                // TODO                
+                
+            }
+        }
+    }
 }
 
 int compare_distances_indel(const void * a, const void * b){

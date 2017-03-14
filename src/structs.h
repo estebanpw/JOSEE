@@ -328,6 +328,7 @@ public:
     int is_block_reversed(uint64_t block_number);
     int do_forwards_require_less_changes(uint64_t genome);
     int get_strands_type();
+    int get_strands(uint64_t l1, uint64_t l2);
     uint64_t get_frags_forward(){ return this->acu_frags_forward; }
     uint64_t get_frags_reverse(){ return this->acu_frags_reverse; }
     void reset();

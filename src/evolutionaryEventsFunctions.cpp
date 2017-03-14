@@ -1348,14 +1348,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//To have some statistics
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
 	uint64_t t_inversions = 0, t_duplications = 0, t_transpositions = 0;
-	uint64_t t_insertions = 0, t_deletions = 0;
+	uint64_t t_insertions = 0, t_deletions = 0, unsolvable_reversions = 0;
 
 
 	while(!stop_criteria){
 		
 		//Display current iteration
 		printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-		printf("\tTotal inversions: \t%"PRIu64".\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, t_duplications);
+		printf("\tTotal inversions: \t%"PRIu64" from which %"PRIu64" are unsolvable.\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, unsolvable_reversions, t_duplications);
 		printf("\tTotal transpositions: \t%"PRIu64"\n", t_transpositions);
 		printf("\tTotal insertions: \t%"PRIu64"\n", t_insertions);
 		printf("\tTotal deletions: \t%"PRIu64"\n", t_deletions);
@@ -1575,7 +1575,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 								mp->reset_to(0,0);
 								//Note: The "genomes_affected" should hold which one are the blocks that moved (i.e. genome ids)
-								UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
+								Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 								//Now we know which blocks moved
 								//cons_A_B_T1 has the "further" blocks
 								//whereas cons_A_B_T2 has the closest
@@ -1687,10 +1687,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1);
 							printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 							mp->reset_to(0,0);
-							UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp, genomes_affected);
+							Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+							find_event_location(dendro, inversion, (void *) sm_B, genomes_affected);
 							//getchar();
 							
 							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
+							/*
 							int make_change;
 							for(uint64_t w=0;w<n_sequences;w++){
 								make_change = sm_B->do_forwards_require_less_changes(w);
@@ -1700,8 +1702,21 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									if(make_change == 1) genomes_affected[w] = 1;
 								}
 							}
+							*/
+							unsigned char can_be_undone = 0;
+							for(uint64_t w=0;w<n_sequences;w++){
+								printf("is %"PRIu64" reversed? %d\n", w, genomes_affected[w]);
+								if(genomes_affected[w] == true) can_be_undone = 1;
 
-							reverse_reversion(B, seq_man, genomes_affected);
+							}
+							if(can_be_undone == 1){
+								reverse_reversion(B, seq_man, genomes_affected);
+								stop_criteria = false;
+							}else{
+								//If it is not solvable we can stop processing
+								unsolvable_reversions++;
+							}
+							
 							//Recalculate strand matrix (in case there is a concatenation)
 							sm_B->reset();
 							sm_B->add_fragment_strands(B);
@@ -1709,7 +1724,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//printf("AFTER\n:");printSyntenyBlock(B->sb);
 
 							t_inversions++;
-							stop_criteria = false;
+							
 						}else{
 							//printf("Not consecutive order for inversion\n");
 						}
@@ -1826,7 +1841,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 
 	printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
-	printf("\tTotal inversions: \t%"PRIu64".\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, t_duplications);
+	printf("\tTotal inversions: \t%"PRIu64" from which %"PRIu64" are unsolvable.\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, unsolvable_reversions, t_duplications);
 	printf("\tTotal transpositions: \t%"PRIu64"\n", t_transpositions);
 	printf("\tTotal insertions: \t%"PRIu64"\n", t_insertions);
 	printf("\tTotal deletions: \t%"PRIu64"\n", t_deletions);

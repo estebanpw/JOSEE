@@ -145,8 +145,12 @@ inline void strrev(char *p, char *d, uint32_t k);
 	returns the id of the genome where the reversion happened
 	or -1 if it cant be decided
 */
-int64_t UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp, bool * genomes_affected);
+Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
 
+/*
+	Using the clustered phylogenetic tree, finds where did the event happen (if possible)
+*/
+void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected);
 /*
 	Compare function for distances to sort
 */

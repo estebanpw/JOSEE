@@ -559,9 +559,11 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 
 				if(fl->f->strand == 'f') {
 					this->sm[fl->f->seqX][fl->f->seqY] = FORWARD;
+					this->sm[fl->f->seqY][fl->f->seqX] = FORWARD;
 					this->acu_frags_forward++;
 				}else{
 					this->sm[fl->f->seqX][fl->f->seqY] = REVERSE;
+					this->sm[fl->f->seqY][fl->f->seqX] = REVERSE;
 					this->acu_frags_reverse++;
 				}
 
@@ -573,6 +575,10 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 		}
 	}
 	//printf("==========================================\n");
+}
+
+int strand_matrix::get_strands(uint64_t l1, uint64_t l2){
+	return this->sm[l1][l2];
 }
 
 void strand_matrix::reset(){
