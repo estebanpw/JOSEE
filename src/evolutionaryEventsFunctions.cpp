@@ -1336,6 +1336,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	f1 = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
 	if(mc == NULL || f0 == NULL || f1 == NULL) terror("Could not allocate rows for NW");
 
+	strand_matrix * trans_matrix = new strand_matrix(n_sequences);
+
 	
 	// For handling rearragement operations
 	rearrangement * current_rea;
@@ -1579,6 +1581,14 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								//Now we know which blocks moved
 								//cons_A_B_T1 has the "further" blocks
 								//whereas cons_A_B_T2 has the closest
+								trans_matrix->reset();
+								for(uint64_t w=0;w<n_sequences;w++){
+									//Put group number in diagonal
+									if(cons_order_A_B_T1[w] != NULL) trans_matrix->set_strands(w, w, 1);
+									if(cons_order_A_B_T2[w] != NULL) trans_matrix->set_strands(w, w, 2);
+								}
+								//Now fill each relation
+								
 								
 								//Heuristic: Less changes
 								//Count how many blocks in the groups T1 and T2
@@ -1587,6 +1597,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									if(cons_order_A_B_T1[w] != NULL) in_T1++;
 									if(cons_order_A_B_T2[w] != NULL) in_T2++;
 								}
+								
 
 								if(in_T1 < in_T2){
 									stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
@@ -1845,6 +1856,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	printf("\tTotal transpositions: \t%"PRIu64"\n", t_transpositions);
 	printf("\tTotal insertions: \t%"PRIu64"\n", t_insertions);
 	printf("\tTotal deletions: \t%"PRIu64"\n", t_deletions);
+	getchar();
 
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){

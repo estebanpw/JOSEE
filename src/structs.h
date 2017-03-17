@@ -21,6 +21,7 @@
 #define TABLE_RATE 100 //hash table lengh divisor
 #define INIT_CANDIDATES_ALIGN 100 //For wordbucket list
 #define PRINT_RATE 70
+#define MAX_LINE 2048
 
 #define MAX_MEM_POOLS 256
 #define POOL_SIZE 1024*1024*128 //128 MB
@@ -140,6 +141,8 @@ typedef struct linked_list_pos{
     struct linked_list_pos * next;
 } llpos;
 
+
+
 //A block that belongs to a genome and that has some synteny level (conserved block)
 typedef struct block{
     uint64_t start;     //Starting coordinate
@@ -153,6 +156,13 @@ typedef struct block{
     struct block * next;
     uint64_t id;
 } Block;
+
+//A struct to hold arrays of blocks
+typedef struct holder{
+    Block ** cons_AB;
+    Block ** cons_BC;
+    uint64_t n_sequences;
+} Holder;
 
 //Word struct that identifies a kmer in a sequence
 typedef struct word{
@@ -328,7 +338,8 @@ public:
     int is_block_reversed(uint64_t block_number);
     int do_forwards_require_less_changes(uint64_t genome);
     int get_strands_type();
-    int get_strands(uint64_t l1, uint64_t l2);
+    unsigned char get_strands(uint64_t l1, uint64_t l2);
+    void set_strands(uint64_t l1, uint64_t l2, unsigned char v);
     uint64_t get_frags_forward(){ return this->acu_frags_forward; }
     uint64_t get_frags_reverse(){ return this->acu_frags_reverse; }
     void reset();

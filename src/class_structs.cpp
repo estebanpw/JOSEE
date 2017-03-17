@@ -577,8 +577,12 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 	//printf("==========================================\n");
 }
 
-int strand_matrix::get_strands(uint64_t l1, uint64_t l2){
+unsigned char strand_matrix::get_strands(uint64_t l1, uint64_t l2){
 	return this->sm[l1][l2];
+}
+
+void strand_matrix::set_strands(uint64_t l1, uint64_t l2, unsigned char v){
+	this->sm[l1][l2] = v;
 }
 
 void strand_matrix::reset(){

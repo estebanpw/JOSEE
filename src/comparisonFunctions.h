@@ -107,6 +107,11 @@ uint64_t sizeofASequence();
 	To compute sizeof a Cell without padding
 */
 uint64_t sizeofCell();
+
+/*
+	Size of holder without padding
+*/
+uint64_t sizeofHolder();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */
@@ -137,6 +142,10 @@ void printFragment(struct FragFile * f);
 */
 void printBlock(Block * b);
 
+/*
+	Prints a block to be used in mgvisualizator format
+*/
+void printBlockJoseMode(Block * b, FILE * f);
 /*
 	Prints a Block to stdout with its fragments
 */

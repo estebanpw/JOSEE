@@ -8,7 +8,7 @@
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
 
-#define PRINT_RATE 1000
+//#define PRINT_RATE 1000
 
 
 /*

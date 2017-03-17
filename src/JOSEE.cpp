@@ -15,8 +15,8 @@ int HARD_DEBUG_ACTIVE = 0;
 void print_all();
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, uint32_t * kmer_size);
-
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
+    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write);
 int main(int ac, char **av) {
     
     
@@ -49,11 +49,13 @@ int main(int ac, char **av) {
     uint64_t ht_size = 100; //Default
     //The kmer size for blocks alignment 
     uint32_t kmer_size = 16; //Default
+    //Default behaviour is the trimmed frags do not already exist
+    bool trim_frags_file_write = true;
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size);
+    FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL, * trim_frags_file = NULL;
+    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size, &trim_frags_file, &trim_frags_file_write);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -101,16 +103,34 @@ int main(int ac, char **av) {
     //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     uint64_t ratio_itera = N_ITERA/5;
-    for(i=0;i<N_ITERA;i++){
-        if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
-        aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len);
-        //fprintf(stdout, "FRAGS: %"PRIu64"\n", total_frags);
-        free(loaded_frags); //A new list is being allocated in the function
-        loaded_frags = aux_pointer;
+    //Check if frags had already been computed and exist 
+    if(trim_frags_file != NULL && trim_frags_file_write == false){
+        // Load fragments trimmed
+        fread(&total_frags, sizeof(uint64_t), 1, trim_frags_file);
+        loaded_frags = (struct FragFile *) std::realloc(loaded_frags, total_frags*sizeofFragment());
+        if(loaded_frags == NULL) terror("Could not load existing trimmed frags");
+        fread(loaded_frags, sizeofFragment(), total_frags, trim_frags_file);
+    }else{
+        // Compute fragments trim
+        for(i=0;i<N_ITERA;i++){
+            if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
+            aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len);
+            //fprintf(stdout, "FRAGS: %"PRIu64"\n", total_frags);
+            free(loaded_frags); //A new list is being allocated in the function
+            loaded_frags = aux_pointer;
+        }
     }
+    
+    
     //Compute final coverage
     get_coverage_from_genome_grid(map_table, seq_manager, n_files, min_len);
-    seq_manager->print_sequences_data();
+    //Write frags if it was set
+    if(trim_frags_file != NULL && trim_frags_file_write == true){
+        //Write number of frags and frags
+        fwrite(&total_frags, sizeof(uint64_t), 1, trim_frags_file);
+        fwrite(loaded_frags, sizeofFragment(), total_frags, trim_frags_file);
+    }
+    //seq_manager->print_sequences_data();
     end = clock();
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
 
@@ -139,6 +159,8 @@ int main(int ac, char **av) {
     begin = clock();
     Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp, &last_s_id);
     //traverse_synteny_list(synteny_block_list);
+    traverse_synteny_list_and_write(synteny_block_list, n_files);
+    
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
@@ -233,6 +255,9 @@ int main(int ac, char **av) {
         fclose(out_blocks);
         fclose(out_breakpoints);
     }
+    if(trim_frags_file != NULL){
+        fclose(trim_frags_file);
+    }
     
 
     delete ht;
@@ -252,6 +277,9 @@ void print_all(){
     fprintf(stdout, "           -hash_table_divisor [Integer:   1<=X] (default 100)\n");
     fprintf(stdout, "           -kmer               [Integer:   1<=X] (default 16)\n");
     fprintf(stdout, "           -write_blocks_bps   [Path without format extension]\n");
+    fprintf(stdout, "           -reuse_trim_frags   [Path to destination output file]\n");
+    fprintf(stdout, "                               Notice that this will save the file if\n");
+    fprintf(stdout, "                               it does not exist and load it if it does\n");
     fprintf(stdout, "           -annotations        [Path without format extension]\n");
     fprintf(stdout, "           --debug     Turns debug on\n");
     fprintf(stdout, "           --help      Shows the help for program usage\n");
@@ -259,7 +287,8 @@ void print_all(){
 
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
-    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, uint32_t * kmer_size){
+    FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
+    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write){
     
     int pNum = 0;
     while(pNum < argc){
@@ -274,6 +303,17 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
             strncpy(path_frags, av[pNum+1], strlen(av[pNum+1]));
             path_frags[strlen(av[pNum+1])] = '\0';
             if(multifrags==NULL) terror("Could not open multifrags file");
+        }
+        if(strcmp(av[pNum], "-reuse_trim_frags") == 0){
+            if(exists_file(av[pNum+1]) == 0){
+                *trim_frags_file = fopen64(av[pNum+1], "wb");
+                *trim_frags_file_write = true;
+                if(trim_frags_file == NULL) terror("Could not open trimmed frags file");
+            }else{
+                *trim_frags_file = fopen64(av[pNum+1], "rb");
+                *trim_frags_file_write = false;
+                if(trim_frags_file == NULL) terror("Could not open existing trimmed frags file");
+            }
         }
         if(strcmp(av[pNum], "-pathfiles") == 0){
             strncpy(path_files, av[pNum+1], strlen(av[pNum+1]));

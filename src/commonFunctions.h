@@ -12,6 +12,11 @@ void terror(const char *s);
 char buffered_fgetc(char *buffer, uint64_t *pos, uint64_t *read, FILE *f);
 
 /*
+	Checks if a file exists (1) if so (0) otherwise
+*/
+int exists_file(const char * file_name);
+
+/*
 	Load all fragments and transform global coordinates to local
 	n_frags should keep the number of fragments read
 */
@@ -41,6 +46,10 @@ void print_maptable_portion(unsigned char ** maptable, uint64_t from, uint64_t t
 */
 void traverse_synteny_list(Synteny_list * sbl);
 
+/*
+	Traverses the synteny list and writes output as to be used in mgvisualizator
+*/
+void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences);
 /*
 	Travels the synteny list until finding the synteny block to which the
 	given block corresponds to

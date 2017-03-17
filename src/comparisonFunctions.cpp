@@ -282,6 +282,10 @@ uint64_t sizeofCell(){
     return 7*sizeof(uint64_t) + sizeof(int64_t);
 }
 
+uint64_t sizeofHolder(){
+    return sizeof(Block **)*2 + sizeof(uint64_t);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;
@@ -318,6 +322,10 @@ void printFragment(struct FragFile * f){
 
 void printBlock(Block * b){
     fprintf(stdout, "BLOCK::(%"PRIu64", %"PRIu64"): order[%"PRIu64"] len[%"PRIu64"] @genome[%"PRIu64"] #%"PRIu64"\n", b->start, b->end, b->order, b->end-b->start+1, b->genome->id, b->id);
+}
+
+void printBlockJoseMode(Block * b, FILE * f){
+    fprintf(f, "%" PRIu64"\t%" PRIu64"\t%" PRIu64"\t%" PRIu64"\t%" PRIu64"\t%"PRIu64"\n", b->id, b->start, b->end, b->end-b->start, b->genome->id, b->present_in_synteny->id);
 }
 
 void printFragsFromBlock(Block * b){

@@ -26,6 +26,15 @@ char buffered_fgetc(char *buffer, uint64_t *pos, uint64_t *read, FILE *f) {
     return buffer[*pos-1];
 }
 
+int exists_file(const char * file_name){
+    FILE * file;
+    if ((file = fopen64(file_name, "r")) != NULL){
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
+
 void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, struct FragFile ** loaded_frags){
     
     struct FragFile temp_frag;
@@ -185,6 +194,35 @@ void traverse_synteny_list(Synteny_list * sbl){
         ptr_sbl = ptr_sbl->next;
         getchar();
     }
+}
+
+void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences){
+    FILE * writer;
+    for(uint64_t i=0;i<n_sequences;i++){
+        char name[MAX_LINE];
+        name[0] = '\0';
+        sprintf(name, "%s_%" PRIu64"%s", "blocks_", i, ".txt");
+        writer = fopen64(name, "wt");
+        if(writer == NULL) throw "Could not open synteny list write output";
+        fprintf(writer, "bID\tini\tfin\tlong\tgen\tsyn\n");
+        Synteny_list * ptr_sbl = sbl;
+        Synteny_block * ptr_sb;
+        //bool forward = true;
+        while(ptr_sbl != NULL){
+            //fprintf(stdout, "SBL:\n");
+            ptr_sb = ptr_sbl->sb;
+            while(ptr_sb != NULL){
+                //fprintf(stdout, "\t");printBlock(ptr_sb->b);
+                if(i==ptr_sb->b->genome->id) printBlockJoseMode(ptr_sb->b, writer);
+                ptr_sb = ptr_sb->next;
+            }
+            
+            ptr_sbl = ptr_sbl->next;
+        }
+        fclose(writer);
+    }
+
+
 }
 
 Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b){
@@ -1178,16 +1216,38 @@ void find_event_location(Slist * dendrogram, Event e, void * data, bool * genome
                         printf("%u %u %u %u\n", sm_B->get_strands(next->s->id, d->s->id), sm_B->get_strands(d->s->id, prev->s->id), sm_B->get_strands(next->s->id, prev->s->id), sm_B->get_strands(prev->s->id, d->s->id));
                         sm_B->print_strand_matrix();
                         if(sm_B->get_strands(next->s->id, d->s->id) == sm_B->get_strands(d->s->id, prev->s->id)){
-                            //The reversion happened in 'prev'
+                            //A reversion happened in 'prev'
                             genomes_affected[prev->s->id] = true;
                         }                        
                         if(sm_B->get_strands(next->s->id, prev->s->id) == sm_B->get_strands(prev->s->id, d->s->id)){
-                            //The reversion happened in 'd'
+                            //A reversion happened in 'd'
                             genomes_affected[d->s->id] = true;
                         }
 
                     }
                     break;
+                    case transposition:
+                    {
+                        strand_matrix * h = (strand_matrix *) data;
+                        h->print_strand_matrix();
+                        if((h->get_strands(next->s->id, next->s->id) == h->get_strands(d->s->id, d->s->id)) == (h->get_strands(d->s->id, d->s->id) == h->get_strands(prev->s->id, prev->s->id))){
+                            //A transposition happened in 'prev'
+                            genomes_affected[prev->s->id] = true;
+                        }
+                        if((h->get_strands(next->s->id, next->s->id) == h->get_strands(prev->s->id, prev->s->id)) == (h->get_strands(prev->s->id, prev->s->id) == h->get_strands(d->s->id, d->s->id))){
+                            //A transposition  happened in 'd'
+                            genomes_affected[d->s->id] = true;
+                        }
+
+                    }
+                    /*
+                    case duplication: {}
+                    break;
+                    case insertion: {}
+                    break;
+                    case deletion: {}
+                    break;
+                    */
                 }
             }else{
                 //Collapse
