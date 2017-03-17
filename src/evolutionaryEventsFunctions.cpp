@@ -1434,6 +1434,22 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(ptr->b.next != NULL && ptr->b.next->present_in_synteny != NULL) C = ptr->b.next->present_in_synteny;
 		block_ptr = &ptr->b;
 
+		/*
+		while(block_ptr != NULL){
+
+			block_ptr = block_ptr->next;
+			printf("---------------\n");
+			if(B != NULL) B = block_ptr->present_in_synteny;
+			if(block_ptr->prev != NULL && block_ptr->prev->present_in_synteny != NULL) A = block_ptr->prev->present_in_synteny; else A = NULL;
+			if(block_ptr->next != NULL && block_ptr->next->present_in_synteny != NULL) C = block_ptr->next->present_in_synteny; else C = NULL;
+			if(A != NULL) printSyntenyBlock(A->sb);
+			if(B != NULL) printSyntenyBlock(B->sb);
+			if(C != NULL) printSyntenyBlock(C->sb);
+			printf("--------------\n");
+		}
+		*/
+		
+
 		//Set offset orders to zero
 		//memset(order_offsets, 0, n_sequences*sizeof(int64_t));
 
@@ -1452,7 +1468,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(C != NULL) sm_C->add_fragment_strands(C);
 		//sm_D->add_fragment_strands(D);
 		//sm_E->add_fragment_strands(E);
-		//#ifdef VERBOSE
+		#ifdef VERBOSE
 		printf("BEFORE ALL !!!!!!!!!!!!!!!!!!!!!!!!!!\n");
 		printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
 		printf("BEFORE$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
@@ -1461,7 +1477,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C====with %"PRIu64"===000000\n", C->id);}
 
 		operations_queue->print_queue();
-		//#endif
+		#endif
 		//Apply queue actions for A and B (they wont be applied at iteration restart)
 		//And only if last action was not a concat (since if it was a concat there was no new synteny block!)
 		if(!had_modifying_event){
@@ -1955,29 +1971,32 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			#endif
 			
 
+			printf("------------------------\n");
+			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000\n");}
+			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000\n");}
+			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000\n");}
+
 			//printf("AHA\n");printBlock(block_ptr);
 
 			if(block_ptr != NULL){
-				printf("enter here at least\n");
+				block_ptr = block_ptr->next;
 				while(block_ptr != NULL && block_ptr->present_in_synteny == NULL) block_ptr = block_ptr->next; 
+
 				if(block_ptr != NULL){
-					printf("please\n");
 					B = block_ptr->present_in_synteny;
-					if(block_ptr->prev != NULL && block_ptr->prev->present_in_synteny != NULL) A = block_ptr->prev->present_in_synteny;
-					if(block_ptr->next != NULL && block_ptr->next->present_in_synteny != NULL) C = block_ptr->next->present_in_synteny;
+					if(block_ptr->prev != NULL && block_ptr->prev->present_in_synteny != NULL) A = block_ptr->prev->present_in_synteny; else A = NULL;
+					if(block_ptr->next != NULL && block_ptr->next->present_in_synteny != NULL) C = block_ptr->next->present_in_synteny; else C = NULL;
 					sm_A->reset();
 					sm_B->reset();
 					sm_C->reset();
-					if(A != NULL){ printf("A is null\n"); sm_A->add_fragment_strands(A); }
-					if(B != NULL){ printf("B is null\n"); sm_B->add_fragment_strands(B); }
-					if(C != NULL){ printf("C is null\n"); sm_C->add_fragment_strands(C); }
+					if(A != NULL){ sm_A->add_fragment_strands(A); }
+					if(B != NULL){ sm_B->add_fragment_strands(B); }
+					if(C != NULL){ sm_C->add_fragment_strands(C); }
 				}else{
 					//We reached to end of genome, get next
-					printf("why so quick\n");
 					A = NULL; B = NULL; C = NULL;
 				}
 			}else{
-				printf("stopping at first\n");
 				stop_criteria = true;
 			} 
 				
