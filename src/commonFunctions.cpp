@@ -173,7 +173,7 @@ void traverse_synteny_list(Synteny_list * sbl){
     Synteny_block * ptr_sb;
     //bool forward = true;
     while(ptr_sbl != NULL){
-        fprintf(stdout, "SBL:\n");
+        fprintf(stdout, "SBL:%"PRIu64"\n", ptr_sbl->id);
         ptr_sb = ptr_sbl->sb;
         while(ptr_sb != NULL){
             fprintf(stdout, "\t");printBlock(ptr_sb->b);
@@ -1025,7 +1025,9 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
     while(sb_ptr != NULL){
         sb_ptr_intern = sb_ptr->next;
         while(sb_ptr_intern != NULL){
+            #ifdef VERBOSE
             printf("aligning :"); printBlock(sb_ptr->b); printBlock(sb_ptr_intern->b);
+            #endif
             alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
             
             memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
@@ -1042,8 +1044,10 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             qf.x = sb_ptr->b->genome;
             qf.y = sb_ptr_intern->b->genome;
 
+            #ifdef VERBOSE
             printf("Best is:\n");
             printCell(&alignment);
+            #endif
 
             memcpy(&qfmat[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id], &qf, sizeofQuickfrag());
             memcpy(&qfmat[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id], &qf, sizeofQuickfrag());
