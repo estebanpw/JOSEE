@@ -186,7 +186,7 @@ int main(int ac, char **av) {
     begin = clock();
     detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
-    traverse_synteny_list(synteny_block_list);
+    //traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     

@@ -1126,8 +1126,8 @@ rearrangement * events_queue::get_aggregated_event(Block * b, uint64_t s_id){
 				//A round was completed, this event does not apply anymore
 				this->rea_itera = this->rea_queue->erase(this->rea_itera);	
 				_pop = true;
-			}else if(this->rea_itera->b1_id <= b->id && b->id < this->rea_itera->b2_id){//If its in range
-			//}else if(this->rea_itera->b1_id <= b->end && b->start <= this->rea_itera->b2_id){//If its in range
+			//}else if(this->rea_itera->b1_id <= b->id && b->id < this->rea_itera->b2_id){//If its in range
+			}else if(this->rea_itera->b1_id <= b->end && b->start <= this->rea_itera->b2_id){//If its in range
 			
 				#ifdef VERBOSE
 				printf("\tIncluded R:"); printRearrangement(&(*this->rea_itera));

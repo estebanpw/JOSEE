@@ -468,9 +468,12 @@ inline char complement(char c){
     break;
     case ('T'): return 'A';
     break;
+    case ('N'): return 'N';
+    break;
     }
+    printf("The beast: (%c) this is bullshit\n", c);
     terror("Unrecognized nucleotide in hit");
-    return 0; //I know it will never get here, but the compiler des not.
+    return 0; //I know it will never get here, but the compiler does not.
 
 }
 
@@ -590,13 +593,20 @@ void inplace_dna_switch(char *a, char *b, uint64_t l1, uint64_t l2, uint64_t t){
 void inplace_reverse_and_complement(char *d, uint64_t l){
     uint64_t i;
     char c;
+    printf("wtf\n");
     for(i=0;i<l/2;i++){
         c = d[i];
         d[i] = d[l-i-1];
         d[l-i-1] = c;
+        printf("%c%c", d[i], d[l-i-1]);
     }
+    
+    printf("\n");
     for(i=0;i<l;i++){
+        printf("eeee: %d", (int)d[i]);
         d[i] = complement(d[i]);
+        
+
     }
 }
 
@@ -1031,7 +1041,9 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
             
             memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
-            inplace_reverse_and_complement(&seq_for_reverse[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
+
+                        
+            inplace_reverse_and_complement(&seq_for_reverse[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start -1);
             alignment_reverse = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &seq_for_reverse[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
             
            
