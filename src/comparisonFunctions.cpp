@@ -271,7 +271,7 @@ uint64_t sizeofE_duplication(){
 }
 
 uint64_t sizeofRearrangement(){
-    return 4*sizeof(uint64_t) + sizeof(unsigned char) + 2*sizeof(int64_t);
+    return 5*sizeof(uint64_t) + 2*sizeof(int64_t);
 }
 
 uint64_t sizeofASequence(){

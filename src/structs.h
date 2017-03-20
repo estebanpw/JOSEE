@@ -365,7 +365,7 @@ struct rearrangement{
     uint64_t b1_id; //Range start of blocks affected
     uint64_t b2_id; //Range end of blocks affected
     uint64_t ends_at; //Ending id
-    unsigned char type;
+    uint64_t type;
     uint64_t affects_who; //-1 for all, either specify genome label
 };
 

@@ -1040,7 +1040,7 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             qf.y_start = alignment.ys;
             qf.t_len = alignment.xe - alignment.xs;
             qf.diag = 0; // Not needed
-            qf.sim = 100 - (long double)(alignment.ident * 100) / (long double) qf.t_len;
+            qf.sim = 100 - (long double)(MIN(100, (uint64_t)alignment.ident * 100)) / (long double) qf.t_len;
             qf.x = sb_ptr->b->genome;
             qf.y = sb_ptr_intern->b->genome;
 
