@@ -54,8 +54,7 @@ bool consecutive_block_order(uint64_t * pairs_diff, uint64_t args_count, ...);
 	(diff 1 and diff 2) then a transposition can exist
 	If result is true, then cons_order_T1 and cons_order_T2 hold the separated groups respectively
 */
-bool consecutive_block_order_except_one(uint64_t * pairs_diff, uint64_t n_sequences, Block ** cons_order_T1, Block ** cons_order_T2, uint64_t args_count, ...);
-
+bool consecutive_block_order_except_one(int64_t * pairs_diff, uint64_t n_sequences, Block ** cons_order_T1, Block ** cons_order_T2, bool * the_variables_switch, uint64_t args_count, ...);
 /*
 	Checks whether the separated groups from T1 and T2 have the same genomes
 	A pointer to a block of the synteny list to be retrieved is returned
@@ -100,11 +99,18 @@ void remove_deletion_DNA(Block * a, Block * b, Block * c, uint64_t diff);
 void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_t * indel_distance, uint64_t n_sequences, uint64_t * genomes_block_count, uint64_t * indel_kept, uint64_t * indel_type, events_queue * operations_queue, uint64_t * t_insertions, uint64_t * t_deletions);
 
 /*
+	Handle indels by always adding N's to the max
+*/
+void handle_indels_add_max(Synteny_list * A, Synteny_list * B, uint64_t * genomes_block_count, uint64_t * indel_distance, uint64_t * indel_kept, uint64_t n_sequences);
+/*
 	Concatenates three synteny blocks into one
 */
 void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list ** C);
 
-
+/*
+	Concatenates two synteny_blocks
+*/
+void concat_two_synteny_blocks(Synteny_list ** A, Synteny_list ** B);
 /*
 	Computes the strand matrix for a synteny block to compute reversions
 	The strand_matrix is assumed to have length n*n where n is the number of sequences

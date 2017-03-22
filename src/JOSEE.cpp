@@ -159,7 +159,7 @@ int main(int ac, char **av) {
     begin = clock();
     Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp, &last_s_id);
     traverse_synteny_list_and_write(synteny_block_list, n_files);
-    traverse_synteny_list(synteny_block_list);
+    //traverse_synteny_list(synteny_block_list);
     end = clock();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     

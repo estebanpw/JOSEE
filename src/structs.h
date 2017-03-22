@@ -41,6 +41,9 @@
 
 #define POINT 4
 
+#define UINT64_T_MAX 0xFFFFFFFFFFFFFFFF
+#define SEQUENCE_INDELS_LEN 1000*1000*10 // 10 M
+
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 

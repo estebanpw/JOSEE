@@ -819,7 +819,10 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
 
     for(i=0;i<this->n_sequences;i++){
 		//Realloc to largest size to enable future insertions
-		all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
+		
+		//all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
+		//Realloc to a lot for testing
+		all_sequences[i] = (char *) std::realloc(all_sequences[i],SEQUENCE_INDELS_LEN*sizeof(char));
 		this->sequences[i].seq = all_sequences[i];
 		this->sequences[i].seq[_m_len-1] = '\0';
 		
