@@ -122,11 +122,16 @@ void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 */
 void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id);
 
+
 /*
 	Reverses a reversion by changing the sequence in place (the DNA) and the strand of fragments that involve the genomes
 */
 void reverse_reversion(Synteny_list * B, sequence_manager * sm, bool * genome_ids_affected);
 
+/*
+	I believe this method of reverting a transposition is easier
+*/
+bool reverse_tranposition_made_simple(Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences);
 /*
 	Reverses a transposition by displacing the affected blocks to the midpoint of the original syntenys
 */

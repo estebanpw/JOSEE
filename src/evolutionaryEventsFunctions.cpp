@@ -1094,11 +1094,12 @@ void concat_two_synteny_blocks(Synteny_list ** A, Synteny_list ** B){
 	uint64_t i;
 	Synteny_block * start_sb_ptr = (*A)->sb;
 	Synteny_block * mid_ptr = (*B)->sb;
-	Synteny_block * end_sb_ptr = (*B)->sb;
 	Frags_list * fl_A, * fl_B;
 
 	for(i=0;i<(*A)->synteny_level;i++){
-		start_sb_ptr->b->end = end_sb_ptr->b->end;
+		start_sb_ptr->b->end = mid_ptr->b->end;
+		start_sb_ptr->b->next = mid_ptr->b;
+		mid_ptr->b->prev = start_sb_ptr->b;
 		//Append frags lists
 		//Find last pointer in A
 		fl_A = start_sb_ptr->b->f_list;
@@ -1114,15 +1115,22 @@ void concat_two_synteny_blocks(Synteny_list ** A, Synteny_list ** B){
 
 		start_sb_ptr = start_sb_ptr->next;
 		mid_ptr = mid_ptr->next;
-		end_sb_ptr = end_sb_ptr->next;
 	}
 
-	// All involved blocks in B and C must have their synteny changed
+	// Disconnect blocks from B!!!
+	
 	Synteny_block * sb_ptr = (*B)->sb;
 	while(sb_ptr != NULL){
-		sb_ptr->b->present_in_synteny = (*A);
+		if(sb_ptr->b->prev != NULL){
+			sb_ptr->b->prev->next = sb_ptr->b->next;
+		}
+		if(sb_ptr->b->next != NULL){
+			sb_ptr->b->next->prev = sb_ptr->b->prev;
+		}
+		//sb_ptr->b->present_in_synteny = (*A);
 		sb_ptr = sb_ptr->next;
 	}
+	
 
 }
 
@@ -1242,8 +1250,9 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	}
 }
 
-bool reverse_tranposition_made_simple(Synteny_list * A, Synteny_list * B, Synteny_list * C, Block ** blocks_to_move, uint64_t n_sequences){
-	Synteny_list * K1, * K2;
+bool reverse_tranposition_made_simple(Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences){
+	Synteny_list * A, * B, * C, * K1, * K2; // We will just make as if A,B,C are the static ones (respect to blocks to stay)
+											// And K1, K2 are the new "destination" syntenys
 	Block * left_ptr, * right_ptr;
 	uint64_t i;
 	for(i=0;i<n_sequences;i++){
@@ -1263,13 +1272,132 @@ bool reverse_tranposition_made_simple(Synteny_list * A, Synteny_list * B, Synten
 			K1 = left_ptr->present_in_synteny;
 			K2 = right_ptr->present_in_synteny;
 
-			// Now just move the block to 
-			if(K1 == A && K2 == C){ //This is we are moving the blocks from B to somewhere else
-				A = K1;
-				C = K2; // We require to know which one to move 
+			break;
+		}
+	}
+	for(i=0;i<n_sequences;i++){
+		if(blocks_to_stay[i] != NULL){
+
+			// This block stays. Who is the synteny that is previous and next?
+			left_ptr = blocks_to_stay[i]->prev;
+			while(left_ptr != NULL && left_ptr->present_in_synteny == NULL){
+				left_ptr = left_ptr->prev;
+			}
+
+			right_ptr = blocks_to_stay[i]->next;
+			while(right_ptr != NULL && right_ptr->present_in_synteny == NULL){
+				right_ptr = right_ptr->prev;
+			}
+			// I have previous and posterior block with Syntenys
+			A = left_ptr->present_in_synteny;
+			C = right_ptr->present_in_synteny;
+
+			break;
+		}
+	}
+
+	Synteny_block * sb_ptr_A, * sb_ptr_C;
+	// I should have here A, C as destination synteny blocks, and K1, K2 as soruce ones
+	if(A != NULL && C != NULL && K1 != NULL && K2 != NULL){
+		for(i=0;i<n_sequences;i++){
+			if(blocks_to_move[i] != NULL){
+
+				// Actually perform the moving
+				sb_ptr_A = A->sb;
+				sb_ptr_C = C->sb;
+
+				while(sb_ptr_A != NULL && sb_ptr_A->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_A = sb_ptr_A->next;
+				}
+				//Have the previous block in A
+				//Find the post block in C 
+				while(sb_ptr_C != NULL && sb_ptr_C->b->genome->id != blocks_to_move[i]->genome->id){
+					sb_ptr_C = sb_ptr_C->next;
+				}
+				//Check that both are not null 
+				if(sb_ptr_A != NULL && sb_ptr_C != NULL){
+
+					printf("Static: A: "); printBlock(sb_ptr_A->b);
+					printf("Next of A: "); printBlock(sb_ptr_A->b->next);
+					printf("Static: C: "); printBlock(sb_ptr_C->b);
+					printf("Moving b : "); printBlock(blocks_to_move[i]);
+					//Check that there is place 
+					if(sb_ptr_A->b->next == sb_ptr_C->b){
+						//Sufficient room?
+						uint64_t l_breach = sb_ptr_C->b->start - sb_ptr_A->b->end;
+						uint64_t l_move = blocks_to_move[i]->end - blocks_to_move[i]->start;
+						uint64_t d_breach_midpoint = (sb_ptr_A->b->end + (l_breach/2));
+						if(l_breach >= l_move){
+							//Calculate middle point where to copy
+							//And exchange dna
+							inplace_dna_switch(blocks_to_move[i]->genome->seq, blocks_to_move[i]->genome->seq, d_breach_midpoint-(l_move/2), blocks_to_move[i]->start, l_move);
+
+							uint64_t start_previous = blocks_to_move[i]->start;
+							//Now we have to change blocks coordinates
+							blocks_to_move[i]->start = d_breach_midpoint-(l_move/2);
+							blocks_to_move[i]->end = blocks_to_move[i]->start + l_move;
+							//Update prev and next
+							Block * b_comes_after = blocks_to_move[i]->next;
+							Block * b_comes_before = blocks_to_move[i]->prev;
+							blocks_to_move[i]->prev->next = blocks_to_move[i]->next;
+							b_comes_after->prev = b_comes_before;
+							sb_ptr_A->b->next = blocks_to_move[i];
+							sb_ptr_C->b->prev = blocks_to_move[i];
+							blocks_to_move[i]->prev = sb_ptr_A->b;
+							blocks_to_move[i]->next = sb_ptr_C->b;
+
+							
+							// Change order of surroundings
+							// Tell if the block is moving forward or backwards
+							if(start_previous < blocks_to_move[i]->start){
+								// Forward 
+								#ifdef VERBOSE
+								printf("Forward move\n");
+								#endif
+								blocks_to_move[i]->order = sb_ptr_A->b->order;
+								//b_comes_after->order = b_comes_after->order - 1;
+								apply_operation(blocks_to_move[i], 0, -1, b_comes_after->start, sb_ptr_A->b->start);
+							}else{
+								// Backward
+								#ifdef VERBOSE
+								printf("Backward move\n");
+								#endif
+								blocks_to_move[i]->order = sb_ptr_A->b->order + 1;
+								//sb_ptr_C->b->order += 1;
+								apply_operation(blocks_to_move[i], 0, 1, sb_ptr_C->b->start, b_comes_after->start-1);
+
+							}
+							//blocks_to_move[i]->order = sb_ptr_A->b->order + 1;
+							//b_comes_after->order = b_comes_after->order - 1;
+							//And the one in C as well 
+							//blocks_to_move[i]->next->order = sb_ptr_A->b->order + 1;
+
+							//Insert queue operation to change orders and coordinates
+							//if(going_backwards){
+							//rearrangement _r = { 0, (int64_t)1, blocks_to_move[i]->next->start, b_comes_after->start, A->id, 1, blocks_to_move[i]->genome->id};
+							//operations_queue->insert_event(_r);
+							//apply_operation(blocks_to_move[i], 0, 1, blocks_to_move[i]->next->start, b_comes_after->start);
+						}else{
+							#ifdef VERBOSE
+							fprintf(stdout, "Breach not long enough for transposition\n");
+							getchar();
+							#endif
+							return false;
+						}
+					}else{
+						#ifdef VERBOSE
+						fprintf(stdout, "Block in between for transposition\n");
+						getchar();
+						#endif
+						return false;
+					}
+				}
+
 			}
 		}
 	}
+	return true;
+	
 }
 
 bool reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, Synteny_list * K1, Synteny_list * K2, Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences, events_queue * operations_queue){
@@ -1907,14 +2035,15 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						//That is, blocks can be separated using only two order discriminators
 						//Now check that they are grouped the same way in both "clusters"
 					
-						
+						if(the_variables_switch){
+							Block ** aux = cons_order_A_B_T1;
+							cons_order_A_B_T1 = cons_order_A_B_T2;
+							cons_order_A_B_T2 = aux;
+						}
 
 						Block * retrieve_synteny = NULL;
-						if(the_variables_switch){
-							retrieve_synteny = compare_order_clusters(cons_order_A_B_T2, cons_order_A_B_T1, cons_order_B_C_T1, cons_order_B_C_T2, n_sequences);	
-						}else{
-							retrieve_synteny = compare_order_clusters(cons_order_A_B_T1, cons_order_A_B_T2, cons_order_B_C_T1, cons_order_B_C_T2, n_sequences);
-						}
+						retrieve_synteny = compare_order_clusters(cons_order_A_B_T1, cons_order_A_B_T2, cons_order_B_C_T1, cons_order_B_C_T2, n_sequences);
+						
 
 						//If the synteny block retrieved is not null, 
 
@@ -1982,26 +2111,23 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								}
 								
 
-								if(in_T1 < in_T2){
-									if(the_variables_switch){
-										stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);
-									}else{
-										stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
-									}
-									
+								if(in_T1 < in_T2){									
+									stop_criteria = !reverse_tranposition_made_simple(cons_order_A_B_T1, cons_order_A_B_T2, n_sequences);
+									//stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);
 								}else{
-									if(the_variables_switch){
-										stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T1, cons_order_A_B_T2, n_sequences, operations_queue);
-									}else{
-										stop_criteria = !reverse_tranposition(A, B, C, sl_prev, sl_after, cons_order_A_B_T2, cons_order_A_B_T1, n_sequences, operations_queue);	
-									}
-									
+									stop_criteria = !reverse_tranposition_made_simple(cons_order_A_B_T2, cons_order_A_B_T1, n_sequences);
 								}
 								
 								if(stop_criteria == false){
 									t_transpositions++;
 								}
-								
+								#ifdef VERBOSE
+								printf("Just in case after\n");
+								if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000with %"PRIu64"\n", A->id);}
+								if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000with %"PRIu64"\n", B->id);}
+								if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======000000with %"PRIu64"\n", C->id);}
+								getchar();
+								#endif
 								
 								//stop_criteria = false;
 							}else{
@@ -2161,6 +2287,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				printf("Different synteny for inversion\n");
 				#endif
 			}
+			
 
 			// Concatenation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			// @IMPORTANT: Currently blocks are not being removed or recomputed
@@ -2194,7 +2321,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							#ifdef VERBOSE
 							printf("Just in case after\n");
 							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000with %"PRIu64"\n", A->id);}
-							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000with %"PRIu64"\n", B->id);}
 							getchar();
 							#endif
 							
