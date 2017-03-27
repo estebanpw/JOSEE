@@ -1654,6 +1654,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Data structures needed
 	uint64_t i;
 	uint64_t n_sequences = seq_man->get_number_of_sequences();
+	uint64_t n_sequences_squared = n_sequences * n_sequences;
 
 	//First id in the synteny_list
 	//uint64_t first_s_id = sbl->id;
@@ -1728,13 +1729,27 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	  seq_man->get_number_of_sequences()*sizeof(Slist *));
 	*/
 	//For NW computation
-	char * seq_for_reverse = (char *) std::malloc(seq_man->get_maximum_length()*sizeof(char));
-	if(seq_for_reverse == NULL) terror("Could not allocate reverse sequence");
-	struct cell * mc, * f0, * f1;
-	mc = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
-	f0 = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
-	f1 = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
-	if(mc == NULL || f0 == NULL || f1 == NULL) terror("Could not allocate rows for NW");
+	char ** seq_for_reverse = (char **) std::malloc(n_sequences * sizeof(char *));
+	for(i=0;i<n_sequences;i++){
+		seq_for_reverse[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		if(seq_for_reverse[i] == NULL) terror("Could not allocate reverse sequence");
+	}
+	
+	struct cell ** mc, ** f0, ** f1;
+	mc = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
+	f0 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
+	f1 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
+
+	for(i=0;i<n_sequences;i++){
+		mc[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+		f0[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+		f1[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+		if(mc[i] == NULL || f0[i] == NULL || f1[i] == NULL) terror("Could not allocate rows for NW");
+	}
+	pthread_t * threads = (pthread_t *) malloc(n_sequences * sizeof(pthread_t));
+	if(threads == NULL) terror("Could not create threads");
+
+	
 
 	strand_matrix * trans_matrix = new strand_matrix(n_sequences);
 
@@ -2124,7 +2139,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									memset(genomes_affected, false, n_sequences*sizeof(bool));
 
 									//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
-									fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1);
+									fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1, threads);
 									#ifdef VERBOSE
 									printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 									#endif
@@ -2153,7 +2168,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									}
 									
 
-									e_transposition et;
 									Block aux_copy[n_sequences];
 									if(in_T1 < in_T2){
 										// Backup blocks that will be modified
@@ -2333,7 +2347,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 							//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 							//printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
-							fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1);
+							fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1, threads);
 							#ifdef VERBOSE
 							printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 							#endif
@@ -2628,7 +2642,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		std::free(qfmat[i]);
 		std::free(qf_submat[i]);
 		std::free(qfmat_state[i]);
+		std::free(mc[i]);
+		std::free(f0[i]);
+		std::free(f1[i]);
+		std::free(seq_for_reverse[i]);
 	}
+
 	std::free(qf_submat);
 	std::free(qfmat);
 	std::free(qfmat_state);
@@ -2649,7 +2668,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(mc);
 	std::free(f0);
 	std::free(f1);
-	
+	std::free(threads);
+
 	delete sm_A;
 	delete sm_B;
 	delete sm_C;

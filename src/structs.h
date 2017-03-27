@@ -221,7 +221,23 @@ typedef struct wordbucket{
     struct wordbucket * next;
 } Wordbucket;
 
-
+// For pthreads alignment of NW
+struct alignment_arguments{
+    char * seq_A;
+    uint64_t start_A;
+    uint64_t end_A;
+    char * seq_B;
+    uint64_t start_B;
+    uint64_t end_B;
+    int64_t iGap;
+    int64_t eGap;
+    struct cell * mc;
+    struct cell * f0;
+    struct cell * f1;
+    struct cell * alignment;
+    struct cell * alignment_reverse;
+    char * seq_for_reverse;
+};
 
 typedef struct annotation{
     uint64_t start;

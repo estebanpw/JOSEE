@@ -1,6 +1,8 @@
 #ifndef COMMON_FUNCTIONS_H
 #define COMMON_FUNCTIONS_H
+#include <pthread.h>
 #include "structs.h"
+
 /**
  * Print the error message 's' and exit(-1)
  */
@@ -128,9 +130,13 @@ void align_region(sequence_manager * seq_man, Synteny_block * unlinked_sb, uint3
 void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state);
 
 /*
+	Computes the NW alignment of a sequence (included reverse) (to be used with pthreads)
+*/
+void compute_NW_on_pthreads(void * a);
+/*
 	Same as read_words_and_align but for NW 
 */
-void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell * mc, struct cell * f0, struct cell * f1);
+void * fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell ** mc, struct cell ** f0, struct cell ** f1, pthread_t * threads);
 /*
 	Complements a nucleotide 
 */

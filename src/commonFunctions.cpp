@@ -1016,23 +1016,63 @@ void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny
     
 }
 
-//void read_words_from_synteny_block_and_align(sequence_manager * seq_man, Synteny_list * sbl, uint32_t kmer_size, dictionary_hash * dhw, Quickfrag ** qfmat, unsigned char ** qfmat_state)
+/*
+struct alignment_arguments{
+    char * seq_A;
+    uint64_t start_A;
+    uint64_t end_A;
+    char * seq_B;
+    uint64_t start_B;
+    uint64_t end_B;
+    int64_t iGap;
+    int64_t eGap;
+    struct cell * mc;
+    struct cell * f0;
+    struct cell * f1;
+    struct cell * alignment;
+    struct cell * alignment_reverse;
+    char * seq_for_reverse;
+};
+*/
 
-void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell * mc, struct cell * f0, struct cell * f1){
+void * compute_NW_on_pthreads(void * a){
+
+    alignment_arguments * aa = (alignment_arguments *) a;
+
+    *aa->alignment = NWscore2rows(aa->seq_A, 0, aa->end_A, aa->seq_B, 0, aa->end_B, aa->iGap, aa->eGap, aa->mc, aa->f0, aa->f1);
+    memcpy(aa->seq_for_reverse, aa->seq_B, aa->end_B);
+    inplace_reverse_and_complement(aa->seq_for_reverse, aa->end_B - 2);
+    *aa->alignment_reverse = NWscore2rows(aa->seq_A, 0, aa->end_A, aa->seq_for_reverse, 0, aa->end_B, aa->iGap, aa->eGap, aa->mc, aa->f0, aa->f1);
+
+    return NULL;
+}
+
+
+void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell ** mc, struct cell ** f0, struct cell ** f1, pthread_t * threads){
     Synteny_block * sb_ptr = sbl->sb;
     Synteny_block * sb_ptr_intern;
-    struct cell alignment;
-    struct cell alignment_reverse;
-    Quickfrag qf;
+    uint64_t n_sequences = seq_man->get_number_of_sequences();
+    struct cell alignment[n_sequences];
+    struct cell alignment_reverse[n_sequences];
+    Quickfrag qf[n_sequences];
+    unsigned char active_threads[n_sequences];
+    alignment_arguments aa[n_sequences];
 
     uint64_t i,j;
     for(i=0;i<seq_man->get_number_of_sequences();i++){
-        for(j=0;j<seq_man->get_number_of_sequences();j++) qfmat_state[i][j] = 0;
+        active_threads[i] = 0;
+        for(j=0;j<seq_man->get_number_of_sequences();j++){
+            
+            qfmat_state[i][j] = 0;  
+        } 
     }
 
+    uint64_t index = 0;
     while(sb_ptr != NULL){
         sb_ptr_intern = sb_ptr->next;
         while(sb_ptr_intern != NULL){
+
+
             #ifdef VERBOSE
             printf("aligning :"); printBlock(sb_ptr->b); printBlock(sb_ptr_intern->b);
             #endif
@@ -1043,6 +1083,31 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             }
             */
 
+            
+            aa[index].seq_A = &sb_ptr->b->genome->seq[sb_ptr->b->start];
+            aa[index].start_A = 0;
+            aa[index].end_A = sb_ptr->b->end - sb_ptr->b->start;
+            aa[index].seq_B = &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start];
+            aa[index].start_B = 0;
+            aa[index].end_B = sb_ptr_intern->b->end - sb_ptr_intern->b->start;
+            aa[index].iGap = (int64_t) iGap;
+            aa[index].eGap = (int64_t) eGap;
+            aa[index].mc = mc[index];
+            aa[index].f0 = f0[index];
+            aa[index].f1 = f1[index];
+            aa[index].alignment = &alignment[index];
+            aa[index].alignment_reverse = &alignment_reverse[index];
+            aa[index].seq_for_reverse = seq_for_reverse[index];
+
+            int error;
+            if( 0 != (error = pthread_create(&threads[index], NULL, compute_NW_on_pthreads, (void *) &aa[index] ))){
+                fprintf(stdout, "Thread %"PRIu64" returned %d:", index, error); terror("Could not launch");
+            }                       
+            /*
+            compute_NW_on_pthreads(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, (int64_t) iGap, (int64_t) eGap, mc[index], f0[index], f1[index], &alignment[index], &alignment_reverse[index], seq_for_reverse[index]);
+            */
+
+            /*
             alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, (int64_t) iGap, (int64_t) eGap, mc, f0, f1);
             // problem here with \0 (solved)
             memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
@@ -1050,27 +1115,50 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
                         
             inplace_reverse_and_complement(&seq_for_reverse[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start -2);
             alignment_reverse = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &seq_for_reverse[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
+            */
+            active_threads[index] = 1;
+            index++; // The index controls the pthread that is launched
+        }
+        sb_ptr = sb_ptr->next;
+    }
+
+    // Make wait/join here 
+    for(i=0;i<n_sequences;i++){
+        if(active_threads[i] == 1) pthread_join(threads[i], NULL);
+    }
+
+    // Restart pthread index 
+    index = 0;
+    sb_ptr = sbl->sb;
+    while(sb_ptr != NULL){
+        sb_ptr_intern = sb_ptr->next;
+        while(sb_ptr_intern != NULL){
             
+    
            
-            if(alignment_reverse.ident > alignment.ident) alignment = alignment_reverse;
-            qf.x_start = alignment.xs;
-            qf.y_start = alignment.ys;
-            qf.t_len = alignment.xe - alignment.xs;
-            qf.diag = 0; // Not needed
-            qf.sim = 100 - (long double)(MIN(100, (uint64_t)alignment.ident * 100)) / (long double) qf.t_len;
-            qf.x = sb_ptr->b->genome;
-            qf.y = sb_ptr_intern->b->genome;
+            if(alignment_reverse[index].ident > alignment[index].ident) alignment[index] = alignment_reverse[index];
+            qf[index].x_start = alignment[index].xs;
+            qf[index].y_start = alignment[index].ys;
+            qf[index].t_len = alignment[index].xe - alignment[index].xs;
+            qf[index].diag = 0; // Not needed
+            qf[index].sim = 100 - (long double)(MIN(100, (uint64_t)alignment[index].ident * 100)) / (long double) qf[index].t_len;
+            qf[index].x = sb_ptr->b->genome;
+            qf[index].y = sb_ptr_intern->b->genome;
 
             #ifdef VERBOSE
             printf("Best is:\n");
-            printCell(&alignment);
+            printCell(&alignment[index]);
+            getchar();
             #endif
 
-            memcpy(&qfmat[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id], &qf, sizeofQuickfrag());
-            memcpy(&qfmat[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id], &qf, sizeofQuickfrag());
+            memcpy(&qfmat[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id], &qf[index], sizeofQuickfrag());
+            memcpy(&qfmat[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id], &qf[index], sizeofQuickfrag());
             qfmat_state[sb_ptr->b->genome->id][sb_ptr_intern->b->genome->id] = 1;
             qfmat_state[sb_ptr_intern->b->genome->id][sb_ptr->b->genome->id] = 1;
             sb_ptr_intern = sb_ptr_intern->next;
+
+            // Controls pthread
+            index++;
         }
         sb_ptr = sb_ptr->next;
     }
