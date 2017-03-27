@@ -796,7 +796,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
                         }
                     }
                 }
-                curr_pos++; //one for the *
+                //curr_pos++; //one for the *
 
             }else{
                 c = buffered_fgetc(temp_seq_buffer, &idx, &r, current);
@@ -822,9 +822,11 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
 		
 		//all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
 		//Realloc to a lot for testing
-		all_sequences[i] = (char *) std::realloc(all_sequences[i],SEQUENCE_INDELS_LEN*sizeof(char));
+		all_sequences[i] = (char *) std::realloc(all_sequences[i], SEQUENCE_INDELS_LEN*sizeof(char));
 		this->sequences[i].seq = all_sequences[i];
-		this->sequences[i].seq[_m_len-1] = '\0';
+		this->sequences[i].seq[_m_len] = '\0';
+
+		//this->print_sequence_region(stdout, i, 0, _m_len-1);
 		
         std::free(all_sequences_names[i]);
     }
@@ -955,9 +957,9 @@ void sequence_manager::print_sequence_region(FILE * fout, uint64_t label, uint64
 	uint64_t i;
 	uint64_t j=0;
 	for(i=from;i<to-1;i++){
+		if(j!= 0 && j % PRINT_RATE == 0) fprintf(fout, "\n");
+		if(this->sequences[label].seq[i] != '\0') fprintf(fout, "%c", this->sequences[label].seq[i]);
 		j++;
-		if(j % PRINT_RATE == 0) fprintf(fout, "\n");
-		fprintf(fout, "%c", this->sequences[label].seq[i]);
 	}
 	fprintf(fout, "\n");
 }
@@ -1123,7 +1125,7 @@ rearrangement * events_queue::get_aggregated_event(Block * b, uint64_t s_id){
 			if(s_id <= this->rea_itera->ends_at) { this->rea_itera->type--; printf("disable life\n"); }
 			if(this->rea_itera->type == 0 && s_id > this->rea_itera->ends_at){
 				#ifdef VERBOSE
-				printf("popped out like a mad dog on %"PRIu64": ", s_id); printRearrangement(&(*this->rea_itera));
+				printf("popped out %"PRIu64": ", s_id); printRearrangement(&(*this->rea_itera));
 				#endif
 				
 				//A round was completed, this event does not apply anymore

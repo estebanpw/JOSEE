@@ -473,8 +473,7 @@ inline char complement(char c){
     }
     printf("T B: (%c) ____\n", c);
     terror("Unrecognized nucleotide in hit");
-    return 0; //I know it will never get here, but the compiler does not.
-
+    return 0; 
 }
 
 
@@ -1037,7 +1036,14 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             #ifdef VERBOSE
             printf("aligning :"); printBlock(sb_ptr->b); printBlock(sb_ptr_intern->b);
             #endif
-            alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, iGap, eGap, mc, f0, f1);
+            /*
+            for(uint64_t z=0;z<(sb_ptr->b->end - sb_ptr->b->start); z++){
+                printf("%c", sb_ptr->b->genome->seq[sb_ptr->b->start+z]);
+                getchar();
+            }
+            */
+
+            alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, (int64_t) iGap, (int64_t) eGap, mc, f0, f1);
             // problem here with \0
             memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
 
@@ -1126,8 +1132,9 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 
     j_p = i_p;
     while(nodes_in_dendro < i_p){
-
+        #ifdef VERBOSE
         printUnstatedDoubleMatrix(submat, i_p, skip_i);
+        #endif
 
         //Find smallest
         for(i=0;i<i_p;i++){

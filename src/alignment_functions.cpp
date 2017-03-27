@@ -13,7 +13,7 @@ int valOfNucl(char c){
 Calculates NW table with two rows and stores a cellpath of scores, identities, gaps and starting and ending positions
 */
 
-struct cell NWscore2rows(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uint64_t Ystart, uint64_t Yend, int iGap, int eGap, struct cell * mc, struct cell * f0, struct cell * f1){
+struct cell NWscore2rows(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uint64_t Ystart, uint64_t Yend, int64_t iGap, int64_t eGap, struct cell * mc, struct cell * f0, struct cell * f1){
     
     uint64_t i, j, k, iCounter=0, jCounter, currEgapR, currEgapG;
 	int64_t scoreDiagonal = INT64_MIN, scoreLeft = INT64_MIN, scoreRight = INT64_MIN, score = INT64_MIN;

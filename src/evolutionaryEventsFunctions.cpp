@@ -899,13 +899,14 @@ void handle_indels_add_max(Synteny_list * A, Synteny_list * B, uint64_t * genome
 				ed.deletion = sb_ptr->b;
 				ed.removed = diff;
 				event_log_output->register_event(deletion, (void *) &ed);
-				memmove(&sb_ptr->b->genome->seq[sb_ptr->b->start], &sb_ptr->b->genome->seq[sb_ptr->b->start+diff], sb_ptr->b->end-sb_ptr->b->start);
+				memmove(&sb_ptr->b->genome->seq[sb_ptr->b->start+diff], &sb_ptr->b->genome->seq[sb_ptr->b->start], sb_ptr->b->genome->len - sb_ptr->b->start);
 				for(i=sb_ptr->b->start;i<(sb_ptr->b->start+diff);i++){
 					sb_ptr->b->genome->seq[i] = 'N';
 				}
 				apply_operation(sb_ptr->b, (int64_t) diff, 0, sb_ptr->b->end, UINT64_T_MAX);
 				sb_ptr->b->start += diff;
 				sb_ptr->b->end += diff;
+				sb_ptr->b->genome->len += diff;
 			}
 		}
 		sb_ptr = sb_ptr->next;
@@ -1186,9 +1187,10 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	#ifdef VERBOSE
 	printf("How could be wrong: %"PRIu64", %"PRIu64", %"PRIu64", %"PRIu64"\n", dup->start, dup->end, dup->genome->len, dup->genome->len - dup->end);
 	#endif
-	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end], dup->genome->len - dup->end);
+	memmove(&dna_ptr[dup->start], &dna_ptr[dup->end+1], dup->genome->len - dup->end + 1);
 	//Change max len 
-	dup->genome->len -= (dup->end - dup->start);
+	dup->genome->len -= (dup->end - dup->start + 1);
+	memset(&dna_ptr[dup->genome->len], 0x0, dup->end-dup->start);
 	Block * who_was_next = NULL;
 
 	//Remove references from synteny list
@@ -2402,6 +2404,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 						if(consecutive_block_order(pairs_diff, 2, A, B)){
 							#ifdef VERBOSE
 							printf("Got some concat here\n");
+							if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======000000with %"PRIu64"\n", A->id);}
+							if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======000000with %"PRIu64"\n", B->id);}
+							
 							#endif
 							//getchar();
 							
