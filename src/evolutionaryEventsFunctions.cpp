@@ -1218,13 +1218,13 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	printf("ENDINGSSSSSSS %"PRIu64"\n", A->id);
 	//getchar();
 	#endif
-	rearrangement _r = { -((int64_t)(dup->end - dup->start)), -1, dup->end, 0xFFFFFFFFFFFFFFFF, B->id, 1, dup->genome->id};
+	//rearrangement _r = { -((int64_t)(dup->end - dup->start)), -1, dup->end, 0xFFFFFFFFFFFFFFFF, B->id, 1, dup->genome->id};
 	//operations_queue->insert_event(_r);
 	apply_operation(dup, -((int64_t)(dup->end - dup->start)), -1, dup->end, 0xFFFFFFFFFFFFFFFF);
 
 	//in case there were blocks after (now without order)
 	
-	
+	/*
 	while(who_was_next->present_in_synteny == dup->present_in_synteny){
 		//Remove what was added
 		#ifdef VERBOSE
@@ -1248,6 +1248,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 
 		sb_ptr = sb_ptr->next;
 	}
+	*/
 }
 
 bool reverse_tranposition_made_simple(Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences){
