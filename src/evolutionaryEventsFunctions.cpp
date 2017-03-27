@@ -1212,7 +1212,6 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 	//Change max len 
 	dup->genome->len -= (dup->end - dup->start);
 	memset(&dna_ptr[dup->genome->len], 0x0, dup->end-dup->start);
-	Block * who_was_next = NULL;
 
 	//Remove references from synteny list
 	Synteny_block * sb_ptr = B->sb;
@@ -1235,7 +1234,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 
 	
 	//Remove block from ht
-	who_was_next = dup->next;
+	//who_was_next = dup->next;
 	ht->remove_block(dup);
 
 
@@ -1279,7 +1278,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 }
 
 bool reverse_tranposition_made_simple(Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences){
-	Synteny_list * A, * B, * C, * K1, * K2; // We will just make as if A,B,C are the static ones (respect to blocks to stay)
+	Synteny_list * A, * C, * K1, * K2; // We will just make as if A,B,C are the static ones (respect to blocks to stay)
 											// And K1, K2 are the new "destination" syntenys
 	Block * left_ptr, * right_ptr;
 	uint64_t i;
@@ -1654,7 +1653,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Data structures needed
 	uint64_t i;
 	uint64_t n_sequences = seq_man->get_number_of_sequences();
-	uint64_t n_sequences_squared = n_sequences * n_sequences;
 
 	//First id in the synteny_list
 	//uint64_t first_s_id = sbl->id;
@@ -1664,7 +1662,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//Until nothing else cant be done, keep iterating
 	bool stop_criteria = false; 
-	bool had_modifying_event = false;
 
 	//For telling whether the same number of blocks per genome is involved in synteny
 	uint64_t * genomes_block_count = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
@@ -1755,7 +1752,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	
 	// For handling rearragement operations
-	rearrangement * current_rea;
+	//rearrangement * current_rea;
 	events_queue * operations_queue = new events_queue(n_sequences);
 
 	//Lists of synteny blocks to address evolutionary events
@@ -2486,7 +2483,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							#endif
 							//getchar();
 							//Make the machine dont stop
-							had_modifying_event = true;
+							//had_modifying_event = true;
 							stop_criteria = false;
 
 							// Repoint
