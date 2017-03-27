@@ -13,7 +13,7 @@ int DEBUG_ACTIVE = 0;
 int HARD_DEBUG_ACTIVE = 0;
 
 void print_all();
-void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
+void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE ** out_file_log,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
     uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write);
@@ -54,8 +54,8 @@ int main(int ac, char **av) {
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    FILE * frags_file, * lengths_file, * out_file, * out_blocks = NULL, * out_breakpoints = NULL, * trim_frags_file = NULL;
-    init_args(ac, av, &frags_file, &out_file, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size, &trim_frags_file, &trim_frags_file_write);
+    FILE * frags_file, * lengths_file, * out_file, * out_file_log, * out_blocks = NULL, * out_breakpoints = NULL, * trim_frags_file = NULL;
+    init_args(ac, av, &frags_file, &out_file, &out_file_log, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size, &trim_frags_file, &trim_frags_file_write);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -184,7 +184,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id);
+    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id, out_file_log);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     //traverse_synteny_list(synteny_block_list);
     end = clock();
@@ -250,6 +250,7 @@ int main(int ac, char **av) {
     std::free(loaded_frags);
 
     fclose(out_file);
+    fclose(out_file_log);
     if(out_blocks != NULL){
         fclose(out_blocks);
         fclose(out_breakpoints);
@@ -284,7 +285,7 @@ void print_all(){
     fprintf(stdout, "           --help      Shows the help for program usage\n");
 }
 
-void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
+void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE ** out_file_log,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
     uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write){
@@ -340,7 +341,11 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file,
         }
         if(strcmp(av[pNum], "-out") == 0){
             *out_file = fopen64(av[pNum+1], "wt");
+            char tmp[MAX_LINE];
+            sprintf(&tmp[0], "%s.log", av[pNum+1]);
+            *out_file_log = fopen64(tmp, "wt");
             if(out_file==NULL) terror("Could not open output file");
+            if(out_file_log==NULL) terror("Could not open output log file");
         }
         if(strcmp(av[pNum], "-min_len_trimming") == 0){
             *min_len_trimming = (uint64_t) atoi(av[pNum+1]);

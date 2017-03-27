@@ -1168,6 +1168,7 @@ ee_log::ee_log(FILE * logfile){
 	this->logfile = logfile;
 	this->write_buffer = (char *) std::malloc(WRITE_BUFFER_CAPACITY*sizeof(char));
 	if(this->write_buffer == NULL) terror("Could not allocate writing buffer for ee log");
+	this->write_buffer[0] = '\0';
 	this->write_index = 0;
 	this->event_count = 0;
 
@@ -1202,30 +1203,47 @@ void ee_log::register_event(Event e, void * event_data){
 			e_duplication * e_dup = (e_duplication *) event_data;
 			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
 			this->write(this->tmp);
-			sprintf(&this->tmp[0], "DUPLICATION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\tFROM ORIGINAL\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]", e_dup->orig->genome->id, e_dup->dup->start, e_dup->dup->end, e_dup->orig->genome->id, e_dup->orig->start, e_dup->orig->end);
+			sprintf(&this->tmp[0], "DUPLICATION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\tFROM ORIGINAL\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_dup->orig->genome->id, e_dup->dup->start, e_dup->dup->end, e_dup->orig->genome->id, e_dup->orig->start, e_dup->orig->end);
 			this->write(this->tmp);
 		}
 		break;
 		case transposition: {
+			e_transposition * e_tran = (e_transposition *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "TRANSPOSITION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\tFROM ORIGINAL\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_tran->transposed->genome->id, e_tran->transposed->start, e_tran->transposed->end, e_tran->before_trans->genome->id, e_tran->before_trans->start, e_tran->before_trans->end);
+			this->write(this->tmp);
 
 		}
 		break;
 		case insertion: {
-
+			e_insertion * e_ins = (e_insertion *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "INSERTION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_ins->insertion->genome->id, e_ins->insertion->start, e_ins->insertion->end);
+			this->write(this->tmp);
 		}
 		break;
 		case deletion: {
-
+			e_deletion * e_del = (e_deletion *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "DELETION\t@%"PRIu64"\t[%"PRIu64", %"PRIu64"] INSERTED %"PRIu64" bp(s)\n", e_del->deletion->genome->id, e_del->deletion->start, e_del->deletion->end, e_del->removed);
+			this->write(this->tmp);
 		}
 		break;
 		default: {
-
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "Unrecognized event\n");
+			this->write(this->tmp);
 		}
 	}
+	this->event_count++;
 }
 
 ee_log::~ee_log(){
-	this->write("\n$END");
+	fprintf(this->logfile, "%s\n$END", this->write_buffer);
 	std::free(this->write_buffer);
 }
 

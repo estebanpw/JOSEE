@@ -361,6 +361,20 @@ struct e_duplication{
     Block * dup; //A block that has been detected as duplication
 };
 
+struct e_transposition{
+    Block * before_trans; 
+    Block * transposed;    
+};
+
+struct e_insertion{
+    Block * insertion;
+};
+
+struct e_deletion{
+    Block * deletion;
+    uint64_t removed;
+};
+
 // Struct to modify blocks given previous rearrangments
 struct rearrangement{
     int64_t mod_coordinates; //coordinate offset to add

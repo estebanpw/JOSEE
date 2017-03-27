@@ -1068,7 +1068,9 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
         }
         sb_ptr = sb_ptr->next;
     }
+    #ifdef VERBOSE
     printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+    #endif
 }
 
 Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp){
@@ -1202,8 +1204,10 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
     }
 
     //Print clusters
+    #ifdef VERBOSE
     printf("Phylogenetic Clustering: \n");printDendrogramList(dendrogram[i_min]);
     printf("\n");
+    #endif
 
 
     return dendrogram[i_min]; 

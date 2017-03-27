@@ -101,7 +101,7 @@ void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_
 /*
 	Handle indels by always adding N's to the max
 */
-void handle_indels_add_max(Synteny_list * A, Synteny_list * B, uint64_t * genomes_block_count, uint64_t * indel_distance, uint64_t * indel_kept, uint64_t n_sequences);
+void handle_indels_add_max(Synteny_list * A, Synteny_list * B, uint64_t * genomes_block_count, uint64_t * indel_distance, uint64_t * indel_kept, uint64_t n_sequences, ee_log * event_log_output);
 /*
 	Concatenates three synteny blocks into one
 */
@@ -144,5 +144,5 @@ void apply_operation(Block * b, int64_t coordinates, int64_t order, uint64_t ran
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log);
 
