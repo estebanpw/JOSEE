@@ -1044,7 +1044,7 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char * seq_for_reverse
             */
 
             alignment = NWscore2rows(&sb_ptr->b->genome->seq[sb_ptr->b->start], 0, sb_ptr->b->end - sb_ptr->b->start, &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], 0, sb_ptr_intern->b->end - sb_ptr_intern->b->start, (int64_t) iGap, (int64_t) eGap, mc, f0, f1);
-            // problem here with \0
+            // problem here with \0 (solved)
             memcpy(&seq_for_reverse[sb_ptr_intern->b->start], &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start], sb_ptr_intern->b->end - sb_ptr_intern->b->start);
 
                         

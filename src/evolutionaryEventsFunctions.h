@@ -81,6 +81,12 @@ void apply_queue_operation(rearrangement * _r, Synteny_list * sl);
 uint64_t synteny_level_across_lists(uint64_t args_count, ...);
 
 /*
+	Returns false if there are repeated IDs in the synteny lists provided
+	true otherwise
+*/
+bool different_synteny_id_across_lists(uint64_t args_count, ...);
+
+/*
 	Remove DNA seq from an insertion 
 */
 void remove_insertion_DNA(Block * a, Block * b, Block * c, uint64_t diff);

@@ -548,6 +548,7 @@ strand_matrix::strand_matrix(uint64_t sequences){
 void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 	Synteny_block * sb_ptr;
 	Frags_list * fl;
+	
 	if(sbl != NULL){
 		sb_ptr = sbl->sb;
 		//printf("A block...\n");
@@ -566,7 +567,10 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 					this->sm[fl->f->seqY][fl->f->seqX] = REVERSE;
 					this->acu_frags_reverse++;
 				}
-
+				#ifdef VERBOSE
+				printf("Infinite loop? %" PRIu64"\n", sb_ptr->b->id);
+				printFragment(fl->f);
+				#endif
 				fl = fl->next;
 			}
 			
