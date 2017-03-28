@@ -190,7 +190,12 @@ typedef struct synteny_list{
     uint64_t id;
 } Synteny_list;
 
-
+struct triplet{
+    Synteny_list * A;
+    Synteny_list * B;
+    Synteny_list * C;
+    struct triplet * next;
+};
 //Class for allocating memory only once and requesting particular amounts of bytes
 class memory_pool{
 
@@ -332,6 +337,10 @@ public:
     ~dictionary_hash();
 private:
     uint64_t compute_hash(char * kmer);
+};
+
+class markdown_even_hash{
+    triplet ** array;
 };
 
 typedef struct slist{

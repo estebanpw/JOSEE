@@ -1,3 +1,5 @@
+#define __STDC_FORMAT_MACROS
+
 #include "alignment_functions.h"
 
 
