@@ -1118,6 +1118,7 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_revers
             */
             active_threads[index] = 1;
             index++; // The index controls the pthread that is launched
+            sb_ptr_intern = sb_ptr_intern->next;
         }
         sb_ptr = sb_ptr->next;
     }

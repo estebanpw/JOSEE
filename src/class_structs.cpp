@@ -567,10 +567,7 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 					this->sm[fl->f->seqY][fl->f->seqX] = REVERSE;
 					this->acu_frags_reverse++;
 				}
-				#ifdef VERBOSE
-				printf("Infinite loop? %" PRIu64"\n", sb_ptr->b->id);
-				printFragment(fl->f);
-				#endif
+				
 				fl = fl->next;
 			}
 			
