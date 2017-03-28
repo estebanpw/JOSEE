@@ -288,6 +288,10 @@ uint64_t sizeofHolder(){
     return sizeof(Block **)*2 + sizeof(uint64_t);
 }
 
+uint64_t sizeofTriplet(){
+    return 3*sizeof(Synteny_list *) + sizeof(triplet *);
+}
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;

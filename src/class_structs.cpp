@@ -1252,3 +1252,77 @@ ee_log::~ee_log(){
 	std::free(this->write_buffer);
 }
 
+
+markdown_event_hash::markdown_event_hash(uint64_t size){
+	this->array = (triplet **) std::calloc(size, size*sizeof(triplet *));
+	if(this->array == NULL) terror("Could not allocate triplet array for markdown");
+	this->mp = new memory_pool(POOL_SIZE);
+	this->size = size;
+}
+
+void markdown_event_hash::put(triplet * k){
+	uint64_t hash = this->compute_hash(k);
+	triplet * ptr = this->array[hash];
+	if(ptr == NULL){
+		// Put new 
+		this->array[hash] = (triplet *) mp->request_bytes(sizeofTriplet());
+		this->array[hash]->A = k->A;
+		this->array[hash]->B = k->B;
+		this->array[hash]->C = k->C;
+		this->array[hash]->next = NULL;
+	}else{
+		// Traverse and find 
+		while(ptr != NULL){
+			if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+				// Found, break and do nothing
+				return;
+			}
+			ptr = ptr->next;
+		}
+		// Out of the loop implies insertion 
+		triplet * aux = (triplet *) mp->request_bytes(sizeofTriplet());
+		aux->A = k->A;
+		aux->B = k->B;
+		aux->C = k->C;
+		aux->next = this->array[hash];
+		this->array[hash] = aux;
+	}
+}
+
+triplet * markdown_event_hash::find_triplet(triplet * k){
+	uint64_t hash = this->compute_hash(k);
+	triplet * ptr = this->array[hash];
+	while(ptr != NULL){
+		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+			// Found, break and do nothing
+			return ptr;
+		}
+		ptr = ptr->next;
+	}
+	return NULL;
+}
+
+void markdown_event_hash::remove(triplet * k){
+	uint64_t hash = this->compute_hash(k);
+	triplet * ptr = this->array[hash];
+	triplet * previous = this->array[hash];
+	while(ptr != NULL){
+		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+			// Found, break
+			break;
+		}
+		previous = ptr;
+		ptr = ptr->next;
+	}
+	if(ptr != NULL) previous->next = ptr->next;
+	
+}
+
+uint64_t markdown_event_hash::compute_hash(triplet * k){
+	return ((k->A->id + k->B->id + k->C->id) % this->size);
+}
+
+markdown_event_hash::~markdown_event_hash(){
+	std::free(this->array);
+	delete this->mp;
+}

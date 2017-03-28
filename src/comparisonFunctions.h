@@ -112,6 +112,11 @@ uint64_t sizeofCell();
 	Size of holder without padding
 */
 uint64_t sizeofHolder();
+
+/*
+	Likewise for triplets.
+*/
+uint64_t sizeofTriplet();
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */

@@ -339,8 +339,20 @@ private:
     uint64_t compute_hash(char * kmer);
 };
 
-class markdown_even_hash{
+class markdown_event_hash{
+private:
     triplet ** array;
+    uint64_t size;
+    memory_pool * mp;
+public:
+    markdown_event_hash(uint64_t size);
+    void put(triplet * k);
+    triplet * find_triplet(triplet * k);
+    void remove(triplet * k);
+    ~markdown_event_hash();
+
+private:
+    uint64_t compute_hash(triplet * k);
 };
 
 typedef struct slist{
