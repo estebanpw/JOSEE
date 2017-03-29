@@ -1776,10 +1776,15 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
 	uint64_t t_inversions = 0, t_duplications = 0, t_transpositions = 0;
 	uint64_t t_insertions = 0, t_deletions = 0, unsolvable_reversions = 0;
+	uint64_t rows_without_changes = 0;
+	bool something_happened = true;
 
 
-	while(!stop_criteria || current_genome_start < n_sequences){
+	while(rows_without_changes < n_sequences){
 		
+		if(!something_happened) rows_without_changes++; else rows_without_changes = 0;
+		something_happened = false;
+
 		//Display current iteration
 		printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t\t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
 		printf("\tTotal inversions: \t%"PRIu64" from which %"PRIu64" are unsolvable.\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, unsolvable_reversions, t_duplications);
@@ -1821,7 +1826,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		getchar();
 		#endif
 
-		if(stop_criteria) current_genome_start++;
+		current_genome_start = (current_genome_start + 1) % n_sequences;
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
 		
@@ -1831,30 +1836,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(ptr->b.next != NULL && ptr->b.next->present_in_synteny != NULL && ptr->b.next->present_in_synteny != B) C = ptr->b.next->present_in_synteny;
 		block_ptr = &ptr->b;
 
-		/*
-		while(block_ptr != NULL){
-
-			block_ptr = block_ptr->next;
-			printf("---------------\n");
-			if(B != NULL) B = block_ptr->present_in_synteny;
-			if(block_ptr->prev != NULL && block_ptr->prev->present_in_synteny != NULL) A = block_ptr->prev->present_in_synteny; else A = NULL;
-			if(block_ptr->next != NULL && block_ptr->next->present_in_synteny != NULL) C = block_ptr->next->present_in_synteny; else C = NULL;
-			if(A != NULL) printSyntenyBlock(A->sb);
-			if(B != NULL) printSyntenyBlock(B->sb);
-			if(C != NULL) printSyntenyBlock(C->sb);
-			printf("--------------\n");
-		}
-		*/
 		
-
-		//Set offset orders to zero
-		//memset(order_offsets, 0, n_sequences*sizeof(int64_t));
-
-		//Copy pointers of first consecutive blocks
-		//if(A != NULL) B = A->next; else return; // A must exist (minimum)
-		//if(B != NULL) C = B->next;
-		//if(C != NULL) D = C->next;
-		//if(D != NULL) E = D->next;
 
 		//Generate their strand matrices
 		sm_A->reset();
@@ -1863,70 +1845,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		if(A != NULL) sm_A->add_fragment_strands(A);
 		if(B != NULL) sm_B->add_fragment_strands(B);
 		if(C != NULL) sm_C->add_fragment_strands(C);
-		//sm_D->add_fragment_strands(D);
-		//sm_E->add_fragment_strands(E);
-		/*
-		#ifdef VERBOSE
-		printf("BEFORE ALL !!!!!!!!!!!!!!!!!!!!!!!!!!\n");
-		printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-		printf("BEFORE$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-		if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A====with %"PRIu64"===000000\n", A->id);}
-		if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B====with %"PRIu64"===000000\n", B->id);}
-		if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C====with %"PRIu64"===000000\n", C->id);}
-
-		operations_queue->print_queue();
-		#endif
-		*/
-		//Apply queue actions for A and B (they wont be applied at iteration restart)
-		//And only if last action was not a concat (since if it was a concat there was no new synteny block!)
-
-		/*
-		if(!had_modifying_event){
-			if(A != NULL){
-				#ifdef VERBOSE
-				printf("RESTART AT A &&&&&&&&&&&&&&&&&&&&&&\n");	
-				#endif
-				sb_ptr = A->sb;
-				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, A->id);
-					#ifdef VERBOSE
-					printf("In block: "); printBlock(sb_ptr->b);
-					#endif
-					if(current_rea != NULL){
-						#ifdef VERBOSE
-						printf("Applying to A (%"PRIu64")...:", A->id); printRearrangement(current_rea);
-						#endif
-						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-					}
-					sb_ptr = sb_ptr->next;
-				}
-			}
-			if(B != NULL){
-				#ifdef VERBOSE
-				printf("RESTART AT B &&&&&&&&&&&&&&&&&&&&&&\n");	
-				#endif
-				sb_ptr = B->sb;
-				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
-					
-					#ifdef VERBOSE
-					printf("In block: "); printBlock(sb_ptr->b);
-					#endif
-					if(current_rea != NULL){
-						#ifdef VERBOSE
-						printf("Applying to B (%"PRIu64")...:", B->id); printRearrangement(current_rea);
-						#endif
-						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-					}
-					sb_ptr = sb_ptr->next;
-				}
-			}
-		}
-		*/
+		
+		
 
 		//had_modifying_event = false; //It would have been applied here
 
@@ -1942,125 +1862,6 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C====with %"PRIu64"===000000 %p \n", C->id, C);}
 			
 			//operations_queue->print_queue();
-			#endif
-
-			//Traverse rearrangement queue and apply modifications
-			/*
-			if(B != NULL){
-				#ifdef VERBOSE
-				printf("In the GOOD AT B &&&&&&&&&&&&&&&&&&&%"PRIu64",\n", B->id);	
-				#endif
-				sb_ptr = B->sb;
-				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
-					#ifdef VERBOSE
-					printf("In block: "); printBlock(sb_ptr->b);
-					#endif
-					if(current_rea != NULL){
-						#ifdef VERBOSE
-						printf("Applying to B (%"PRIu64")...:", B->id); printRearrangement(current_rea);
-						#endif
-						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-					}
-					sb_ptr = sb_ptr->next;
-				}
-			}
-			*/
-			/*
-			if(C != NULL){
-				#ifdef VERBOSE
-				printf("In the GOOD  AT C &&&&&&&&&&&&&&&&&&&&&& %"PRIu64",\n", C->id);	
-				#endif
-				sb_ptr = C->sb;
-				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, C->id);
-					#ifdef VERBOSE
-					printf("In block: "); printBlock(sb_ptr->b);
-					#endif
-					if(current_rea != NULL){
-						#ifdef VERBOSE
-						printf("Applying to C (%"PRIu64")...:", C->id); printRearrangement(current_rea);
-						#endif
-						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-					}
-					sb_ptr = sb_ptr->next;
-				}
-			}
-			*/
-			/*
-			if(had_modifying_event){
-				if(B != NULL){
-					#ifdef VERBOSE
-					printf("In the GOOD AT B &&&&&&&&&&&&&&&&&&&&&&\n");	
-					#endif
-					sb_ptr = B->sb;
-					while(sb_ptr != NULL){
-						current_rea = operations_queue->get_aggregated_event(sb_ptr->b, B->id);
-						#ifdef VERBOSE
-						printf("In block: "); printBlock(sb_ptr->b);
-						#endif
-						if(current_rea != NULL){
-							#ifdef VERBOSE
-							printf("Applying to B (%"PRIu64")...:", B->id); printRearrangement(current_rea);
-							#endif
-							sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-							sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-							sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-						}
-						sb_ptr = sb_ptr->next;
-					}
-				}
-			}
-			if(C != NULL){
-				#ifdef VERBOSE
-				printf("In the GOOD  AT C &&&&&&&&&&&&&&&&&&&&&&\n");	
-				#endif
-				sb_ptr = C->sb;
-				while(sb_ptr != NULL){
-					current_rea = operations_queue->get_aggregated_event(sb_ptr->b, C->id);
-					#ifdef VERBOSE
-					printf("In block: "); printBlock(sb_ptr->b);
-					#endif
-					if(current_rea != NULL){
-						#ifdef VERBOSE
-						printf("Applying to C (%"PRIu64")...:", C->id); printRearrangement(current_rea);
-						#endif
-						sb_ptr->b->order = (uint64_t)((int64_t) sb_ptr->b->order + current_rea->mod_order);
-						sb_ptr->b->start = (uint64_t)((int64_t) sb_ptr->b->start + current_rea->mod_coordinates);
-						sb_ptr->b->end = (uint64_t)((int64_t) sb_ptr->b->end + current_rea->mod_coordinates);
-					}
-					sb_ptr = sb_ptr->next;
-				}
-				
-				
-			}
-			*/
-			//getchar();
-			//rearrangement r = {1,2,3,4};
-			//operations_queue->insert_event(r);
-			//getchar();
-			
-
-
-			//Recompute order of the last one added to the list (because of concatenation)
-			//recompute_orders_from_offset(order_offsets, 1, C);
-			//if(!had_modifying_event) recompute_orders_from_offset(order_offsets, 1, B);
-			
-			//printDebugBlockOrderByGenome(E, 0);
-			
-			
-			//printf("Traversing after QUEUE\n");
-			//traverse_synteny_list(sbl);
-			#ifdef VERBOSE
-			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-			printf("AFTER$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
-			if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A====with %"PRIu64"===000000\n", A->id);}
-			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B====with %"PRIu64"===000000\n", B->id);}
-			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C====with %"PRIu64"===000000\n", C->id);}
 			#endif
 			
 			//if(D != NULL){ printSyntenyBlock(D->sb); printf("=was D=======000000\n");}
@@ -2229,6 +2030,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									
 									if(stop_criteria == false){
 										t_transpositions++;
+										something_happened = true;
 									}
 									#ifdef VERBOSE
 									printf("Just in case after\n");
@@ -2317,6 +2119,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							t_duplications++;
 							//getchar();
 							stop_criteria = false;
+							something_happened = true;
 						}
 					}
 					//getchar();
@@ -2401,6 +2204,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								if(can_be_undone == 1){
 									reverse_reversion(B, seq_man, genomes_affected);
 									stop_criteria = false;
+									something_happened = true;
 								}else{
 									//If it is not solvable we can stop processing
 									//Mark it to avoid recomputation 
@@ -2480,6 +2284,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							
 							t_concats++;
 							current_concats++;
+							something_happened = true;
 							
 							//Add offset to orders
 							sb_ptr = A->sb;
@@ -2561,15 +2366,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				}else{
 					//We reached to end of genome, get next
 					#ifdef VERBOSE
-					printf("Reached end ~~~~~~ undefined?\n");
-					A = NULL; B = NULL; C = NULL;
+					printf("Reached end ~~~~~~ \n");
 					#endif
+					A = NULL; B = NULL; C = NULL;
 				}
 			}else{
 				#ifdef VERBOSE
 				printf("Stop criteria assigned true\n");
-				stop_criteria = true;
 				#endif
+				stop_criteria = true;
+				
 			} 
 			#ifdef VERBOSE
 			printf("$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$\n");
@@ -2578,71 +2384,17 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======00with %"PRIu64"\n", B->id);}
 			if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======00with %"PRIu64"\n", C->id);}
 			printf("Fetching next iteration\n");
+			printf("current unchanges %" PRIu64"\n", rows_without_changes);
 			getchar();
 			#endif	
 
-			/*
-			if(had_modifying_event){
-				A = sbl; sm_A->reset(); sm_A->add_fragment_strands(A);
-				sm_B->reset(); sm_C->reset();
-				if(A != NULL){ B = A->next; sm_B->add_fragment_strands(B); }
-				if(B != NULL){ C = B->next; sm_C->add_fragment_strands(C); }
-			}else{
-				if(C != NULL && C->next != NULL){
-					C = C->next; sm_C->reset(); sm_C->add_fragment_strands(C);
-					goto _out_l;
-				}else if(B != NULL && B->next != NULL){
-					B = B->next; sm_B->reset(); sm_B->add_fragment_strands(B);
-					if(B != NULL){ C = B->next; sm_C->add_fragment_strands(C);}
-					goto _out_l;
-				}else{
-
-					//#ifdef VERBOSE
-					printf("Here, advancing A with id: %"PRIu64"\n", A->id);
-					//printSyntenyBlock(A->sb);
-					//#endif
-					if(A != NULL){
-						A = A->next; sm_A->reset(); sm_A->add_fragment_strands(A);
-						if(A != NULL){ B = A->next; sm_B->add_fragment_strands(B); }
-						if(B != NULL){ C = B->next; sm_C->add_fragment_strands(C); }
-						goto _out_l;
-					}
-				}
-			}
-			*/
-
-			/*
-			if(!had_modifying_event) A = A->next;
-
-			sm_A->reset();
-			sm_A->add_fragment_strands(A);
 			
-			if(A != NULL){
-				if(!had_modifying_event){
-					B = A->next;
-					sm_B->reset();
-					sm_B->add_fragment_strands(B);
-				}
-				
-			}else{
-				B = NULL;
-			}
-			if(B != NULL){
-				C = B->next;
-				sm_C->reset();
-				sm_C->add_fragment_strands(C);
-			}else{
-				C = NULL;
-			}
-			*/
-			/*
-			_out_l:
-			;
-			*/
-			//printf("skipping\n"); // To enable label
 			
 		}
 	}
+	#ifdef VERBOSE
+	printf("exiting with %" PRIu64"\n", rows_without_changes);
+	#endif
 
 	printf("\nAfter %"PRIu64" step(s):\n\tTotal concats: \t\t%"PRIu64", this round: %"PRIu64"\n", current_step++, t_concats, current_concats);
 	printf("\tTotal inversions: \t%"PRIu64" from which %"PRIu64" are unsolvable.\n\tTotal duplications: \t%"PRIu64"\n", t_inversions, unsolvable_reversions, t_duplications);
