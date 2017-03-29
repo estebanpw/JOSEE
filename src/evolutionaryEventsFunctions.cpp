@@ -1665,6 +1665,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Until nothing else cant be done, keep iterating
 	bool stop_criteria = false; 
 
+	//To mark events if they could not be solved
+	markdown_event_hash * mark_events = new markdown_event_hash(MAX(*last_s_id/5, 10));
+
 	//For telling whether the same number of blocks per genome is involved in synteny
 	uint64_t * genomes_block_count = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
 	if(genomes_block_count == NULL) terror("Could not allocate genome blocks counter");
@@ -2336,83 +2339,96 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
 					if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
-						if(consecutive_block_order(pairs_diff, 3, A, B, C)){
-							#ifdef VERBOSE
-							printf("Attention: this looks like a reversion\n");
-							#endif
-
-							//Clear out array of genomes affected
-							memset(genomes_affected, false, n_sequences*sizeof(bool));
-
-							//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
-							//printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
-							fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1, threads);
-							#ifdef VERBOSE
-							printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
-							#endif
-							mp->reset_to(0,0);
-							Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-							find_event_location(dendro, inversion, (void *) sm_B, genomes_affected);
-							//getchar();
-							
-							// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
-							/*
-							int make_change;
-							for(uint64_t w=0;w<n_sequences;w++){
-								make_change = sm_B->do_forwards_require_less_changes(w);
-								if(sm_B->get_frags_forward() >= sm_B->get_frags_reverse()){
-									if(make_change == -1) genomes_affected[w] = 1;
-								}else{
-									if(make_change == 1) genomes_affected[w] = 1;
-								}
-							}
-							*/
-
-							
-							unsigned char can_be_undone = 0;
-							for(uint64_t w=0;w<n_sequences;w++){
+						
+						// Check that we did not try to align it first 
+						triplet t; t.A = A; t.B = B; t.C = C;
+						if( mark_events->find_triplet(&t) == NULL){
+							if(consecutive_block_order(pairs_diff, 3, A, B, C)){
 								#ifdef VERBOSE
-								printf("is %"PRIu64" reversed? %d\n", w, genomes_affected[w]);
+								printf("Attention: this looks like a reversion\n");
 								#endif
-								if(genomes_affected[w] == true){
-									e_inversion ei;
-									Synteny_block * ptr_to_register = B->sb;
-									while(ptr_to_register != NULL){
-										if(ptr_to_register->b->genome->id == w){
-											ei.inv = ptr_to_register->b;
-											event_log_output->register_event(inversion, (void *) &ei);
-											break;
-										}
-										ptr_to_register = ptr_to_register->next;
+
+								//Clear out array of genomes affected
+								memset(genomes_affected, false, n_sequences*sizeof(bool));
+
+								//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
+								//printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+								fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1, threads);
+								#ifdef VERBOSE
+								printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
+								#endif
+								mp->reset_to(0,0);
+								Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+								find_event_location(dendro, inversion, (void *) sm_B, genomes_affected);
+								//getchar();
+								
+								// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
+								/*
+								int make_change;
+								for(uint64_t w=0;w<n_sequences;w++){
+									make_change = sm_B->do_forwards_require_less_changes(w);
+									if(sm_B->get_frags_forward() >= sm_B->get_frags_reverse()){
+										if(make_change == -1) genomes_affected[w] = 1;
+									}else{
+										if(make_change == 1) genomes_affected[w] = 1;
 									}
-									can_be_undone = 1;
-								} 
+								}
+								*/
 
-							}
+								
+								unsigned char can_be_undone = 0;
+								for(uint64_t w=0;w<n_sequences;w++){
+									#ifdef VERBOSE
+									printf("is %"PRIu64" reversed? %d\n", w, genomes_affected[w]);
+									#endif
+									if(genomes_affected[w] == true){
+										e_inversion ei;
+										Synteny_block * ptr_to_register = B->sb;
+										while(ptr_to_register != NULL){
+											if(ptr_to_register->b->genome->id == w){
+												ei.inv = ptr_to_register->b;
+												event_log_output->register_event(inversion, (void *) &ei);
+												break;
+											}
+											ptr_to_register = ptr_to_register->next;
+										}
+										can_be_undone = 1;
+									} 
 
-							
+								}
+								
 
-							if(can_be_undone == 1){
-								reverse_reversion(B, seq_man, genomes_affected);
-								stop_criteria = false;
+								if(can_be_undone == 1){
+									reverse_reversion(B, seq_man, genomes_affected);
+									stop_criteria = false;
+								}else{
+									//If it is not solvable we can stop processing
+									//Mark it to avoid recomputation 
+									triplet t;
+									t.A = A; t.B = B; t.C = C;
+									mark_events->put(&t); 
+									unsolvable_reversions++;
+								}
+								
+								//Recalculate strand matrix (in case there is a concatenation)
+								sm_B->reset();
+								sm_B->add_fragment_strands(B);
+
+								//printf("AFTER\n:");printSyntenyBlock(B->sb);
+
+								t_inversions++;
+								
 							}else{
-								//If it is not solvable we can stop processing
-								unsolvable_reversions++;
+								#ifdef VERBOSE
+								printf("Not consecutive order for inversion\n");
+								#endif
 							}
-							
-							//Recalculate strand matrix (in case there is a concatenation)
-							sm_B->reset();
-							sm_B->add_fragment_strands(B);
-
-							//printf("AFTER\n:");printSyntenyBlock(B->sb);
-
-							t_inversions++;
-							
 						}else{
 							#ifdef VERBOSE
-							printf("Not consecutive order for inversion\n");
-							#endif
+							printf("This triplet has already been tried to solve without success\n");
+							#endif 
 						}
+						
 					}
 				}else{
 					#ifdef VERBOSE
@@ -2488,6 +2504,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							//had_modifying_event = true;
 							stop_criteria = false;
 
+							
 							// Repoint
 							B = A;
 							A = NULL; C = NULL;
@@ -2676,7 +2693,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//delete sm_E;
 
 	delete operations_queue;
-
+	delete mark_events;
 	delete mp;
 	delete words_dictionary;
 
