@@ -1872,10 +1872,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 			// Transpositions %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 			
 			
-			if(A != NULL && B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C)){
+			if(A != NULL && B != NULL && C != NULL && synteny_level_across_lists(3, A, B, C) >= 3){
 				//same synteny, check the number of genomes involved
 				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
-				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C)){
+				triplet t_current; t_current.A = A; t_current.B = B; t_current.C = C;
+				// Also check that the either the triplet does not exist (has not already been tried) or if there were changes try again, because maybe changes somewhere else affected this one
+				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 3, A, B, C) && (mark_events->find_triplet(&t_current) == NULL || rows_without_changes == 0)){
 					
 					//Check that A and B have their order consecutive except for the transposed
 					//Same for B and C (there can only be one transposed atm)
@@ -2031,6 +2033,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									if(stop_criteria == false){
 										t_transpositions++;
 										something_happened = true;
+									}else{
+										triplet t;
+										t.A = A; t.B = B; t.C = C;
+										mark_events->put(&t); 
 									}
 									#ifdef VERBOSE
 									printf("Just in case after\n");
@@ -2060,7 +2066,10 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					}
 				}else{
 					#ifdef VERBOSE
-					printf("Sorry, genomes involved differ in transposition\n");
+					if(mark_events->find_triplet(&t_current) != NULL) printf("triplet exists for transposition\n"); 
+					else if(rows_without_changes != 0) printf("No changes for transposition\n");
+					else printf("Sorry, genomes involved differ in transposition\n");
+					getchar();
 					#endif
 				}
 			}else{
