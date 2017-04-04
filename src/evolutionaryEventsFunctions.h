@@ -147,6 +147,12 @@ bool reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 	Applies an operation queue for all blocks at once
 */
 void apply_operation(Block * b, int64_t coordinates, int64_t order, uint64_t range1, uint64_t range2);
+
+/*
+	Builds an artificial synteny block from blocks and theirs nexts
+*/
+Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp);
+
 /*
 	Detects candidates for evolutionary events
 */

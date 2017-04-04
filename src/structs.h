@@ -9,6 +9,8 @@
 #pragma pack(push, 1)
 
 #define SEQ_REALLOC 5000000
+//#define MAX_READ_SIZE 5000 //Maximum length of read to have a portion of the table allocated
+#define MAX_WINDOW_SIZE 1000 //Maximum window length to explore NW table
 #define SYN_TABLE_REALLOC 10000
 #define INIT_SEQS 20
 #define INIT_ANNOTS 5000
@@ -43,6 +45,9 @@
 
 #define UINT64_T_MAX 0xFFFFFFFFFFFFFFFF
 #define SEQUENCE_INDELS_LEN 1000*1000*10 // 10 M
+
+#define IGAP -5
+#define EGAP -2
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -112,6 +117,28 @@ struct cell{
 	uint64_t ident;
 };
 
+//Struct for full NW
+struct cell_f{
+    int64_t score;
+    uint64_t xfrom;
+    uint64_t yfrom;
+};
+struct positioned_cell{
+    int64_t score;
+    uint64_t xpos;
+    uint64_t ypos;
+};
+struct best_cell{
+    struct positioned_cell c;
+    uint64_t j_prime;
+};
+typedef struct{
+    uint64_t identities;
+    uint64_t length;
+    uint64_t igaps;
+    uint64_t egaps;
+} BasicAlignment;
+
 //Sequence descriptor
 typedef struct sequence{
     uint64_t id;    //Label of the sequence
@@ -174,6 +201,11 @@ typedef struct word{
     char strand;
     Block * b;
 } Word;
+
+typedef struct point{
+    uint64_t x;
+    uint64_t y;
+} Point;
 
 //A synteny block is a collection of blocks
 typedef struct synteny_block{
@@ -456,6 +488,27 @@ public:
 
 private:
     void write(const char * data);
+
+};
+
+// Struct for reducing parameters in multiple alignment function 
+struct arguments_multiple_alignment{
+    sequence_manager * seq_man;
+    char ** seq_for_reverse;
+    Synteny_list * sbl;
+    Quickfrag ** qfmat;
+    unsigned char ** qfmat_state;
+    int iGap;
+    int eGap;
+    struct cell ** mc;
+    struct cell ** f0;
+    struct cell ** f1;
+    pthread_t * threads;
+    double ** submat;
+    memory_pool * mp;
+
+    char ** all_sequences;
+    char ** reconstructs;
 
 };
 

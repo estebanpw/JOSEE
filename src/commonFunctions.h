@@ -163,6 +163,11 @@ inline void strrev(char *p, char *d, uint32_t k);
 Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char ** qfmat_state, uint64_t N, memory_pool * mp);
 
 /*
+	Computes a multiple alignment between all sequences in an artificial (or existing) synteny list
+*/
+void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al);
+
+/*
 	Using the clustered phylogenetic tree, finds where did the event happen (if possible)
 */
 void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected);

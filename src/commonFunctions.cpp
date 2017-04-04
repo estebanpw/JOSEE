@@ -1312,6 +1312,31 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
     
 }
 
+
+void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
+        
+    // First generate the guidance tree to tell how to pair sequences 
+    fill_quickfrag_matrix_NW(arg_mul_al->seq_man, arg_mul_al->seq_for_reverse, arg_mul_al->sbl, arg_mul_al->qfmat, arg_mul_al->qfmat_state, arg_mul_al->iGap, arg_mul_al->eGap, arg_mul_al->mc, arg_mul_al->f0, arg_mul_al->f1, arg_mul_al->threads);
+    Slist * tree = UPGMA_joining_clustering(arg_mul_al->qfmat, arg_mul_al->submat, arg_mul_al->qfmat_state, arg_mul_al->seq_man->get_number_of_sequences(), arg_mul_al->mp);
+
+    // Traverse tree and make pairwise alignments 
+    Slist * d = tree;
+    while(d != NULL){
+        if(d->s == NULL) printf(" ] "); else printf(" %"PRIu64" ", d->s->id);
+        getchar();
+        /*
+        if(d->s == NULL){
+
+        }else{
+
+        }
+        */
+        d = d->next;
+    }
+
+}
+
+
 void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected){
     Slist * d = dendrogram;
     Slist * prev, * next;

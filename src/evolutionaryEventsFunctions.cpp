@@ -1647,7 +1647,34 @@ bool reverse_tranposition(Synteny_list * A, Synteny_list * B, Synteny_list * C, 
 	return true;
 }
 
+// Assumes consecutivity of blocks!!
+Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp){
 
+	uint64_t precomputed_sb = sizeofSyntenyBlock();
+	uint64_t precomputed_block = sizeofBlock();
+	Synteny_list * art_list = (Synteny_list *) mp->request_bytes(sizeofSyntenyList());
+	Synteny_block * artificial = NULL, * art_ptr; 
+	Synteny_block * sb_ptr_A = A->sb;
+	while(sb_ptr_A != NULL){
+
+		Synteny_block * aux = (Synteny_block *) mp->request_bytes(precomputed_sb);
+		aux->b = (Block *) mp->request_bytes(precomputed_block);
+		aux->b->start = sb_ptr_A->b->start;
+		aux->b->end = sb_ptr_A->b->next->end;
+		aux->b->genome = sb_ptr_A->b->genome;
+		if(artificial == NULL){
+			artificial = aux;
+		}else{
+			art_ptr->next = aux;
+			art_ptr = art_ptr->next;
+		}
+
+
+		sb_ptr_A = sb_ptr_A->next;
+	}
+	art_list->sb = artificial;
+	return art_list;
+}
 
 
 void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log){
@@ -1658,6 +1685,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 	//First id in the synteny_list
 	//uint64_t first_s_id = sbl->id;
+
 
 	// Output log 
 	ee_log * event_log_output = new ee_log(output_log);
@@ -1772,12 +1800,32 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t current_genome_start = 0; // Label of the genome where we start
 	Synteny_block * sb_ptr;
 
-	//To have some statistics
+	// To have some statistics
 	uint64_t current_step = 0, current_concats = 0, t_concats = 0;
 	uint64_t t_inversions = 0, t_duplications = 0, t_transpositions = 0;
 	uint64_t t_insertions = 0, t_deletions = 0, unsolvable_reversions = 0;
 	uint64_t rows_without_changes = 0;
 	bool something_happened = true;
+
+
+	// To reduce arguments in multiple alignment 
+	arguments_multiple_alignment args_mul_al;
+	args_mul_al.seq_man = seq_man;
+	args_mul_al.qfmat = qfmat;
+	args_mul_al.qfmat_state = qfmat_state;
+	args_mul_al.iGap = IGAP;
+	args_mul_al.eGap = EGAP;
+	args_mul_al.mc = mc;
+	args_mul_al.f0 = f0;
+	args_mul_al.f1 = f1;
+	args_mul_al.threads = threads;
+	args_mul_al.submat = qf_submat;
+	args_mul_al.mp = mp;
+	args_mul_al.all_sequences = NULL; // TODO 
+	args_mul_al.reconstructs = NULL;  // TODO
+	
+
+	
 
 
 	while(rows_without_changes < n_sequences){
@@ -1949,7 +1997,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 									#endif
 
-									mp->reset_to(0,0);
+									//mp->reset_to(0,0);
+									mp->full_reset();
 									//Note: The "genomes_affected" should hold which one are the blocks that moved (i.e. genome ids)
 									Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 									//Now we know which blocks moved
@@ -2169,7 +2218,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								#ifdef VERBOSE
 								printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
 								#endif
-								mp->reset_to(0,0);
+								//mp->reset_to(0,0);
+								mp->full_reset();
 								Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 								find_event_location(dendro, inversion, (void *) sm_B, genomes_affected);
 								//getchar();
@@ -2279,6 +2329,13 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							#endif
 							//getchar();
 							
+							mp->full_reset();
+
+							args_mul_al.sbl = generate_artificial_synteny(A, mp); 
+							generate_multiple_alignment(&args_mul_al);
+
+
+
 							//handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue, &t_insertions, &t_deletions);
 							handle_indels_add_max(A, B, genomes_block_count, indel_distance, indel_kept, n_sequences, event_log_output);
 
