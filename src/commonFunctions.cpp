@@ -647,7 +647,7 @@ void align_region(sequence_manager * seq_man, Synteny_block * unlinked_sb, uint3
     Wordbucket ** hit_list;
 
     //Current pos in sequence
-    uint64_t advanced_steps;
+    uint64_t advanced_steps = 0;
     uint64_t i;
 
     //Results of alignment
@@ -1087,13 +1087,16 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_revers
 
             
             aa[index].seq_A = &sb_ptr->b->genome->seq[sb_ptr->b->start];
+            aa[index].s_x = sb_ptr->b->genome;
             aa[index].start_A = 0;
             aa[index].end_A = sb_ptr->b->end - sb_ptr->b->start;
             aa[index].seq_B = &sb_ptr_intern->b->genome->seq[sb_ptr_intern->b->start];
+            aa[index].s_y = sb_ptr_intern->b->genome;
             aa[index].start_B = 0;
             aa[index].end_B = sb_ptr_intern->b->end - sb_ptr_intern->b->start;
             aa[index].iGap = (int64_t) iGap;
             aa[index].eGap = (int64_t) eGap;
+            printf("I am index: %"PRIu64"\n", index);
             aa[index].mc = mc[index];
             aa[index].f0 = f0[index];
             aa[index].f1 = f1[index];
@@ -1123,13 +1126,39 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_revers
             sb_ptr_intern = sb_ptr_intern->next;
         }
         sb_ptr = sb_ptr->next;
+        // Make wait/join here 
+        for(i=0;i<n_sequences;i++){
+            if(active_threads[i] == 1) pthread_join(threads[i], NULL);
+        }
+        for(i=0;i<index;i++){
+            // Paste data into quickfrag matrix 
+            if(alignment_reverse[i].ident > alignment[i].ident) alignment[i] = alignment_reverse[i];
+
+            qf[i].x_start = alignment[i].xs;
+            qf[i].y_start = alignment[i].ys;
+            qf[i].t_len = MAX(alignment[i].xe - alignment[i].xs, alignment[i].ye - alignment[i].ys);
+            qf[i].diag = 0; // Not needed
+            //qf[i].sim = 100 - (long double) (MIN(100, (uint64_t)alignment[i].ident * 100)) / (long double) qf[i].t_len;
+            qf[i].sim = 100 - (long double) MIN(100, (  (alignment[i].ident * 100)/(long double) qf[i].t_len  ));
+            qf[i].x = aa[i].s_x;
+            qf[i].y = aa[i].s_y;
+
+            #ifdef VERBOSE
+            printf("Best is:\n");
+            printCell(&alignment[i]); printf("Has len: %"PRIu64" and sim %Le\n", MAX(alignment[i].xe - alignment[i].xs, alignment[i].ye - alignment[i].ys), qf[i].sim);
+            getchar();
+            #endif
+
+            memcpy(&qfmat[qf[i].x->id][qf[i].y->id], &qf[i], sizeofQuickfrag());
+            memcpy(&qfmat[qf[i].y->id][qf[i].x->id], &qf[i], sizeofQuickfrag());
+            qfmat_state[qf[i].x->id][qf[i].y->id] = 1;
+            qfmat_state[qf[i].y->id][qf[i].x->id] = 1;
+        }
+        index = 0; // Restart index to align more
     }
 
-    // Make wait/join here 
-    for(i=0;i<n_sequences;i++){
-        if(active_threads[i] == 1) pthread_join(threads[i], NULL);
-    }
-
+    
+    /*
     // Restart pthread index 
     index = 0;
     sb_ptr = sbl->sb;
@@ -1165,6 +1194,9 @@ void fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_revers
         }
         sb_ptr = sb_ptr->next;
     }
+    */
+
+
     #ifdef VERBOSE
     printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
     #endif
@@ -1315,7 +1347,11 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 
 void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
         
+    if(arg_mul_al->f0 == NULL) terror("f0 is null");
+    if(arg_mul_al->f1 == NULL) terror("f1 is null");
+    if(arg_mul_al->mc == NULL) terror("mc is null");
     // First generate the guidance tree to tell how to pair sequences 
+    //fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell ** mc, struct cell ** f0, struct cell ** f1, pthread_t * threads){
     fill_quickfrag_matrix_NW(arg_mul_al->seq_man, arg_mul_al->seq_for_reverse, arg_mul_al->sbl, arg_mul_al->qfmat, arg_mul_al->qfmat_state, arg_mul_al->iGap, arg_mul_al->eGap, arg_mul_al->mc, arg_mul_al->f0, arg_mul_al->f1, arg_mul_al->threads);
     Slist * tree = UPGMA_joining_clustering(arg_mul_al->qfmat, arg_mul_al->submat, arg_mul_al->qfmat_state, arg_mul_al->seq_man->get_number_of_sequences(), arg_mul_al->mp);
 

@@ -108,10 +108,10 @@ int main(int ac, char **av) {
     //Check if frags had already been computed and exist 
     if(trim_frags_file != NULL && trim_frags_file_write == false){
         // Load fragments trimmed
-        fread(&total_frags, sizeof(uint64_t), 1, trim_frags_file);
+        if(0 == fread(&total_frags, sizeof(uint64_t), 1, trim_frags_file)) terror("Incorrect number of fragments to load");
         loaded_frags = (struct FragFile *) std::realloc(loaded_frags, total_frags*sizeofFragment());
         if(loaded_frags == NULL) terror("Could not load existing trimmed frags");
-        fread(loaded_frags, sizeofFragment(), total_frags, trim_frags_file);
+        if(0 == fread(loaded_frags, sizeofFragment(), total_frags, trim_frags_file)) terror("Specified fragments are of size zero");
     }else{
         // Compute fragments trim
         for(i=0;i<N_ITERA;i++){

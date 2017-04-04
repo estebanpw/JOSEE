@@ -6,13 +6,13 @@ BIN=../bin
 all: JOSEE cutter
 
 JOSEE: JOSEE.cpp
-	$(CXX) $(CFLAGS) alignment_functions.cpp commonFunctions.cpp -lm comparisonFunctions.cpp evolutionaryEventsFunctions.cpp class_structs.cpp JOSEE.cpp -lpthread -o $(BIN)/JOSEE
+	$(CXX) $(CFLAGS) alignment_functions.cpp -lm commonFunctions.cpp -lm comparisonFunctions.cpp evolutionaryEventsFunctions.cpp class_structs.cpp JOSEE.cpp -lpthread -o $(BIN)/JOSEE
 
 cutter: cutter.cpp
-	$(CXX) $(CFLAGS) alignment_functions.cpp commonFunctions.cpp -lm comparisonFunctions.cpp class_structs.cpp cutter.cpp -lpthread -o $(BIN)/cutter
+	$(CXX) $(CFLAGS) alignment_functions.cpp -lm commonFunctions.cpp -lm comparisonFunctions.cpp class_structs.cpp cutter.cpp -lpthread -o $(BIN)/cutter
 
 evengen: event_generator.cpp
-	$(CXX) $(CFLAGS) alignment_functions.cpp commonFunctions.cpp -lm comparisonFunctions.cpp class_structs.cpp evolution.cpp event_generator.cpp -lpthread -o $(BIN)/evengen
+	$(CXX) $(CFLAGS) alignment_functions.cpp -lm commonFunctions.cpp -lm comparisonFunctions.cpp class_structs.cpp evolution.cpp event_generator.cpp -lpthread -o $(BIN)/evengen
 
 
 clean:

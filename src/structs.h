@@ -261,6 +261,8 @@ typedef struct wordbucket{
 // For pthreads alignment of NW
 struct alignment_arguments{
     char * seq_A;
+    Sequence * s_x;
+    Sequence * s_y;
     uint64_t start_A;
     uint64_t end_A;
     char * seq_B;

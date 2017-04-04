@@ -1280,7 +1280,7 @@ void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, B
 }
 
 bool reverse_tranposition_made_simple(Block ** blocks_to_move, Block ** blocks_to_stay, uint64_t n_sequences){
-	Synteny_list * A, * C, * K1, * K2; // We will just make as if A,B,C are the static ones (respect to blocks to stay)
+	Synteny_list * A = NULL, * C = NULL, * K1 = NULL, * K2 = NULL; // We will just make as if A,B,C are the static ones (respect to blocks to stay)
 											// And K1, K2 are the new "destination" syntenys
 	Block * left_ptr, * right_ptr;
 	uint64_t i;
@@ -1653,7 +1653,7 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp){
 	uint64_t precomputed_sb = sizeofSyntenyBlock();
 	uint64_t precomputed_block = sizeofBlock();
 	Synteny_list * art_list = (Synteny_list *) mp->request_bytes(sizeofSyntenyList());
-	Synteny_block * artificial = NULL, * art_ptr; 
+	Synteny_block * artificial = NULL, * art_ptr = NULL; 
 	Synteny_block * sb_ptr_A = A->sb;
 	while(sb_ptr_A != NULL){
 
@@ -1664,6 +1664,7 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp){
 		aux->b->genome = sb_ptr_A->b->genome;
 		if(artificial == NULL){
 			artificial = aux;
+			art_ptr = artificial;
 		}else{
 			art_ptr->next = aux;
 			art_ptr = art_ptr->next;
@@ -1769,6 +1770,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	mc = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
 	f0 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
 	f1 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
+	if(mc == NULL || f0 == NULL || f1 == NULL) terror("Could not allocate memory for NW 2 rows");
 
 	for(i=0;i<n_sequences;i++){
 		mc[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
@@ -1811,6 +1813,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	// To reduce arguments in multiple alignment 
 	arguments_multiple_alignment args_mul_al;
 	args_mul_al.seq_man = seq_man;
+	args_mul_al.seq_for_reverse = seq_for_reverse;
 	args_mul_al.qfmat = qfmat;
 	args_mul_al.qfmat_state = qfmat_state;
 	args_mul_al.iGap = IGAP;
