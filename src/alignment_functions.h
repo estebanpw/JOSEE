@@ -46,7 +46,7 @@ void build_unanchored_alignment(int64_t * cell_path_y, char ** seq_piles_up_X, c
 /*
     Computes the multiple alignment of n to m sequences 
 */
-void build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, char ** my_x, char ** my_y, uint64_t nx, uint64_t ny, struct cell_f ** table, struct positioned_cell * mc, char * writing_buffer_alignment, uint64_t xlen, uint64_t ylen, int64_t * cell_path_y, long double * window, int64_t iGap, int64_t eGap, BasicAlignment * ba, char * aux);
+uint64_t build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, char ** my_x, char ** my_y, uint64_t nx, uint64_t ny, struct cell_f ** table, struct positioned_cell * mc, char * writing_buffer_alignment, uint64_t xlen, uint64_t ylen, int64_t * cell_path_y, long double * window, int64_t iGap, int64_t eGap, BasicAlignment * ba, char * aux);
 
 /*
     Calculates a path of positions to travel on a NW matrix

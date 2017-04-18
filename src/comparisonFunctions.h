@@ -117,6 +117,16 @@ uint64_t sizeofHolder();
 	Likewise for triplets.
 */
 uint64_t sizeofTriplet();
+
+/* 
+	Likewise for Cells for NWscore2row
+*/
+uint64_t sizeofCellF();
+
+uint64_t sizeofPositionedCell();
+
+uint64_t sizeofBestCell();
+
 /*
 	Check if two fragments are equal based on sequence ids, coordinates and strand
 */

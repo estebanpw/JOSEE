@@ -44,10 +44,10 @@
 #define POINT 4
 
 #define UINT64_T_MAX 0xFFFFFFFFFFFFFFFF
-#define SEQUENCE_INDELS_LEN 1000*1000*10 // 10 M
+#define SEQUENCE_INDELS_LEN 1000*10 // 1 M
 
-#define IGAP -5
-#define EGAP -2
+#define IGAP -24
+#define EGAP -4
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -508,9 +508,20 @@ struct arguments_multiple_alignment{
     pthread_t * threads;
     double ** submat;
     memory_pool * mp;
-
-    char ** all_sequences;
-    char ** reconstructs;
+    // For full NW
+    char * aux_dummy_sequence; // The one that is not used in the backtrackings
+    char ** recon_X; 
+    char ** recon_Y;
+    char ** recon_Z; 
+    char ** seq_X;
+    char ** seq_Y;
+    char ** seq_Z; 
+    int64_t * cell_path_y;
+    struct positioned_cell * mc_f;
+    struct cell_f ** table_f;
+    char * writing_buffer_alignment;
+    long double window;
+    uint64_t n_sequences;
 
 };
 

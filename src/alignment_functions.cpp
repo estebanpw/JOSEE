@@ -167,14 +167,15 @@ void calculate_y_cell_path(Point p0, Point p1, Point p2, Point p3, int64_t * y_p
             error = error - 1;
         }
     }
-
+    /*
     #ifdef VERBOSE
     for(i=0;i<p3.x;i++){
         printf("%"PRIu64" -> ", y_points[i]);
         if(i % 50 == 0) getchar();
     }
-    #endif
     
+    #endif
+    */
 
 }
 struct best_cell NW(char ** X, uint64_t Xstart, uint64_t Xend, char ** Y, uint64_t Ystart, uint64_t Yend, int64_t iGap, int64_t eGap, struct cell_f ** table, struct positioned_cell * mc, int show, int64_t * cell_path_y, long double * window, uint64_t * current_window_size, uint64_t nx, uint64_t ny){
@@ -225,16 +226,20 @@ struct best_cell NW(char ** X, uint64_t Xstart, uint64_t Xend, char ** Y, uint64
         //Set every column max
         
         mc[i].score = compare_piled_up_chars(list_piled_X, list_piled_Y, nx, ny) + iGap + (i-1)*eGap;
+        /*
         #ifdef VERBOSE
         printf("%02"PRId64" ", mc[i].score);
         #endif
+        */
         mc[i].xpos = 0;
         mc[i].ypos = i;
 
     }
+    /*
     #ifdef VERBOSE
     printf("\n");
     #endif
+    */
     //Set row max
     mf.score = table[0][0].score;
     mf.xpos = 0;
@@ -266,6 +271,7 @@ struct best_cell NW(char ** X, uint64_t Xstart, uint64_t Xend, char ** Y, uint64
         delta_dif_1_0 = MAX(1, (cell_path_y[i] - window_size)) - MAX(1,(cell_path_y[i-1] - window_size)); //j-1
         if(i>1) delta_dif_2_1 = MAX(1, (cell_path_y[i-1] - window_size)) - MAX(1, (cell_path_y[i-2] - window_size)); //j-2
 
+        /*
         #ifdef VERBOSE 
         printf("D1_0: %"PRId64" D2_1: %"PRId64"\n", delta_dif_1_0, delta_dif_2_1);
         #endif
@@ -273,16 +279,19 @@ struct best_cell NW(char ** X, uint64_t Xstart, uint64_t Xend, char ** Y, uint64
         #ifdef VERBOSE
         printf("%02"PRId64" ", mf.score);
         #endif
+        */
         //printf("Check on i: (%"PRIu64") from - to (%"PRIu64", %"PRIu64")\n", i, 0L, Xend);
         //printf("I will go from %"PRIu64" to %"PRIu64"\n", (uint64_t) MAX(1,(cell_path_y[i] - window_size)), (uint64_t) MIN(Yend,(cell_path_y[i] + window_size)));
         //getchar();
 
+        /*
         #ifdef VERBOSE
         int64_t r;
         for(r=0;r<MAX(0,(cell_path_y[i] - window_size)); r++){
             printf("  ");
         }
         #endif
+        */
 
         
 
@@ -392,21 +401,25 @@ struct best_cell NW(char ** X, uint64_t Xstart, uint64_t Xend, char ** Y, uint64
                 //Check for best cell
                 if(table[i][j_prime].score >= bc.c.score){ bc.c.score = table[i][j_prime].score; bc.c.xpos = i; bc.c.ypos = j; bc.j_prime = j_prime; }
                 // Forcing global
-                //bc.c.score = table[i][j_prime].score; bc.c.xpos = i; bc.c.ypos = j; bc.j_prime = j_prime;
+                bc.c.score = table[i][j_prime].score; bc.c.xpos = i; bc.c.ypos = j; bc.j_prime = j_prime;
             }
             #ifdef VERBOSE
             //printf("Put score: %"PRId64"\n\n", table[i][j_prime].score);
+            /*
             printf("(%"PRId64")%02"PRId64" ", j_diag_prime, table[i][j_prime].score); //printf("->(%"PRIu64", %"PRIu64")", i, j); printf("[%c %c]", X[i], Y[j]);
+            */
             //if(scoreDiagonal >= scoreLeft && scoreDiagonal >= scoreRight) printf("*\t");
             //else if(scoreRight > scoreLeft) printf("{\t"); else printf("}\t");
             //getchar();
             #endif
             j_prime++;
         }
+        /*
         #ifdef VERBOSE
         printf("\n");
         getchar();
         #endif
+        */
     }
         
     return bc;
@@ -445,6 +458,7 @@ void backtrackingNW(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uint64_t
             
             
             #ifdef VERBOSE
+            /*
             //printf("Jprime: %"PRId64" :DELTADIF:%"PRId64"\n", j_prime, delta_diff);
             printf("[%c %c]", X[prev_x], Y[prev_y]);
             printf("(%"PRIu64", %"PRIu64") ::: \n", curr_x, curr_y);
@@ -452,6 +466,7 @@ void backtrackingNW(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uint64_t
             //printf("cellp Prev: %"PRId64" Post: %"PRId64"\n", cell_path_y[prev_x], cell_path_y[curr_x]);
             //printf("the difs? %"PRId64" the other: %"PRId64"\n", MAX(0, cell_path_y[prev_x] - (int64_t) window_size), MAX(0, cell_path_y[curr_x] - (int64_t)window_size));
             getchar();
+            */
             #endif
 
         }
@@ -722,7 +737,7 @@ struct cell NWscore2rows(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uin
 
 
 
-void build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, char ** my_x, char ** my_y, uint64_t nx, uint64_t ny, struct cell_f ** table, struct positioned_cell * mc, char * writing_buffer_alignment, uint64_t xlen, uint64_t ylen, int64_t * cell_path_y, long double * window, int64_t iGap, int64_t eGap, BasicAlignment * ba, char * aux){
+uint64_t build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, char ** my_x, char ** my_y, uint64_t nx, uint64_t ny, struct cell_f ** table, struct positioned_cell * mc, char * writing_buffer_alignment, uint64_t xlen, uint64_t ylen, int64_t * cell_path_y, long double * window, int64_t iGap, int64_t eGap, BasicAlignment * ba, char * aux){
  
 
     //Do some printing of alignments here
@@ -744,12 +759,14 @@ void build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, char
         memcpy(&my_x[k][0], &reconstruct_X[k][i], strlen(&reconstruct_X[k][i]));
     }
 
-    
+    uint64_t final_y_len;
     for(k=0;k<ny;k++){
         backtrackingNW(reference, 0, max_len, my_y[k], 0, ylen, table, aux, reconstruct_Y[k], &bc, &i, &j, cell_path_y, curr_window_size, ba);
         i++; j++;    
         //fprintf(stdout, "Y:%"PRIu64" -> %s\n", k, &reconstruct_Y[k][j]);
-        memcpy(&my_y[k][0], &reconstruct_Y[k][j], strlen(&reconstruct_Y[k][i]));
+        final_y_len = strlen(&reconstruct_Y[k][i]);
+        memcpy(&my_y[k][0], &reconstruct_Y[k][j], final_y_len);
+        
     }
-
+    return final_y_len;
 }

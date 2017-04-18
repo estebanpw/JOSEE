@@ -1346,27 +1346,103 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 
 
 void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
-        
-    if(arg_mul_al->f0 == NULL) terror("f0 is null");
-    if(arg_mul_al->f1 == NULL) terror("f1 is null");
-    if(arg_mul_al->mc == NULL) terror("mc is null");
+    /*
+    struct arguments_multiple_alignment{
+    sequence_manager * seq_man;
+    char ** seq_for_reverse;
+    Synteny_list * sbl;
+    Quickfrag ** qfmat;
+    unsigned char ** qfmat_state;
+    int iGap;
+    int eGap;
+    struct cell ** mc;
+    struct cell ** f0;
+    struct cell ** f1;
+    pthread_t * threads;
+    double ** submat;
+    memory_pool * mp;
+    // For full NW
+    char * aux_dummy_sequence; // The one that is not used in the backtrackings
+    char ** recon_X; 
+    char ** recon_Y;
+    char ** recon_Z; 
+    char ** seq_X;
+    char ** seq_Y;
+    char ** seq_Z; 
+    int64_t * cell_path_y;
+    struct positioned_cell * mc_f;
+    struct cell_f ** table_f;
+    char * writing_buffer_alignment;
+    long double window;
+
+    */
     // First generate the guidance tree to tell how to pair sequences 
     //fill_quickfrag_matrix_NW(sequence_manager * seq_man, char ** seq_for_reverse, Synteny_list * sbl, Quickfrag ** qfmat, unsigned char ** qfmat_state, int iGap, int eGap, struct cell ** mc, struct cell ** f0, struct cell ** f1, pthread_t * threads){
     fill_quickfrag_matrix_NW(arg_mul_al->seq_man, arg_mul_al->seq_for_reverse, arg_mul_al->sbl, arg_mul_al->qfmat, arg_mul_al->qfmat_state, arg_mul_al->iGap, arg_mul_al->eGap, arg_mul_al->mc, arg_mul_al->f0, arg_mul_al->f1, arg_mul_al->threads);
     Slist * tree = UPGMA_joining_clustering(arg_mul_al->qfmat, arg_mul_al->submat, arg_mul_al->qfmat_state, arg_mul_al->seq_man->get_number_of_sequences(), arg_mul_al->mp);
 
+    uint64_t current_sequences_in_X = 0;
+    uint64_t current_sequences_in_Y = 0;
+    uint64_t current_sequences_in_Z = 0;
+
+    // Link IDs to synteny blocks 
+    uint64_t starting_pos[arg_mul_al->n_sequences];
+    uint64_t ending_pos[arg_mul_al->n_sequences];
+    Synteny_block * sb_ptr = arg_mul_al->sbl->sb;
+    while(sb_ptr != NULL){
+        starting_pos[sb_ptr->b->genome->id] = sb_ptr->b->start;
+        ending_pos[sb_ptr->b->genome->id] = sb_ptr->b->end;
+        sb_ptr = sb_ptr->next;
+    }
+
     // Traverse tree and make pairwise alignments 
+    BasicAlignment ba;
     Slist * d = tree;
     while(d != NULL){
         if(d->s == NULL) printf(" ] "); else printf(" %"PRIu64" ", d->s->id);
         getchar();
-        /*
-        if(d->s == NULL){
+        
+        if(d->s != NULL){
+            
+            if(current_sequences_in_X == 0){
+                memcpy(&arg_mul_al->seq_X[current_sequences_in_X][0], &d->s->seq[starting_pos[d->s->id]], ending_pos[d->s->id] - starting_pos[d->s->id]);
+                current_sequences_in_X++;
+            }else{
+                memcpy(&arg_mul_al->seq_Y[current_sequences_in_Y][0], &d->s->seq[starting_pos[d->s->id]], ending_pos[d->s->id] - starting_pos[d->s->id]);
+                current_sequences_in_Y++;
+            }
+
+            if(current_sequences_in_Y == 1){
+
+                printf("I am going to gap-bounded align: \n%s\n%s\n", arg_mul_al->seq_X[current_sequences_in_X-1], arg_mul_al->seq_Y[0]);
+
+
+                build_unanchored_alignment(arg_mul_al->cell_path_y, arg_mul_al->seq_X, arg_mul_al->seq_Y, current_sequences_in_X, current_sequences_in_Y);
+                uint64_t xlen = get_max_length_of_sequences(arg_mul_al->seq_X, current_sequences_in_X);
+                uint64_t ylen = get_max_length_of_sequences(arg_mul_al->seq_Y, current_sequences_in_Y);
+                
+                uint64_t final_len = build_multiple_alignment(arg_mul_al->recon_X, arg_mul_al->recon_Y, arg_mul_al->seq_X, arg_mul_al->seq_Y, current_sequences_in_X, current_sequences_in_Y, arg_mul_al->table_f, arg_mul_al->mc_f, arg_mul_al->writing_buffer_alignment, xlen, ylen, arg_mul_al->cell_path_y, &arg_mul_al->window, arg_mul_al->iGap, arg_mul_al->eGap, &ba, arg_mul_al->aux_dummy_sequence);
+
+                // After aligning group X with group Y, move Y to X 
+
+                
+                memcpy(&arg_mul_al->seq_X[current_sequences_in_X][0], &arg_mul_al->seq_Y[0][0], final_len);
+                current_sequences_in_X++;
+                
+                for(uint64_t i=0; i<current_sequences_in_X; i++){
+                    printf("X: %"PRIu64" -> %s\n", i, arg_mul_al->seq_X[i]);
+                }
+                getchar();
+
+                current_sequences_in_Y = 0;
+            }
+            
+
 
         }else{
 
         }
-        */
+        
         d = d->next;
     }
 

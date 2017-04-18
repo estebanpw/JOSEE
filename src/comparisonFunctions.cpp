@@ -292,6 +292,19 @@ uint64_t sizeofTriplet(){
     return 3*sizeof(Synteny_list *) + sizeof(triplet *);
 }
 
+uint64_t sizeofCellF(){
+    return sizeof(int64_t) + 2*sizeof(uint64_t);
+}
+
+uint64_t sizeofPositionedCell(){
+    return sizeof(int64_t) + 2*sizeof(uint64_t);
+}
+
+uint64_t sizeofBestCell(){
+    return sizeofPositionedCell()+sizeof(uint64_t);
+}
+
+
 int isFragmentEqualTo(struct FragFile * a, struct FragFile * b){
     if(a->seqX != b->seqX) return 0;
     if(a->xStart != b->xStart) return 0;

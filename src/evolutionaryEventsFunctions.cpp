@@ -1683,6 +1683,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	//Data structures needed
 	uint64_t i;
 	uint64_t n_sequences = seq_man->get_number_of_sequences();
+	uint64_t max_l_seq = seq_man->get_maximum_length();
 
 	//First id in the synteny_list
 	//uint64_t first_s_id = sbl->id;
@@ -1767,15 +1768,15 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	}
 	
 	struct cell ** mc, ** f0, ** f1;
-	mc = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
-	f0 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
-	f1 = (struct cell **) std::malloc(seq_man->get_maximum_length()*sizeof(struct cell *));
+	mc = (struct cell **) std::malloc(max_l_seq*sizeof(struct cell *));
+	f0 = (struct cell **) std::malloc(max_l_seq*sizeof(struct cell *));
+	f1 = (struct cell **) std::malloc(max_l_seq*sizeof(struct cell *));
 	if(mc == NULL || f0 == NULL || f1 == NULL) terror("Could not allocate memory for NW 2 rows");
 
 	for(i=0;i<n_sequences;i++){
-		mc[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
-		f0[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
-		f1[i] = (struct cell *) std::malloc(seq_man->get_maximum_length()*sizeofCell());
+		mc[i] = (struct cell *) std::malloc(max_l_seq*sizeofCell());
+		f0[i] = (struct cell *) std::malloc(max_l_seq*sizeofCell());
+		f1[i] = (struct cell *) std::malloc(max_l_seq*sizeofCell());
 		if(mc[i] == NULL || f0[i] == NULL || f1[i] == NULL) terror("Could not allocate rows for NW");
 	}
 	pthread_t * threads = (pthread_t *) malloc(n_sequences * sizeof(pthread_t));
@@ -1809,7 +1810,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t rows_without_changes = 0;
 	bool something_happened = true;
 
-
+	
 	// To reduce arguments in multiple alignment 
 	arguments_multiple_alignment args_mul_al;
 	args_mul_al.seq_man = seq_man;
@@ -1824,9 +1825,49 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	args_mul_al.threads = threads;
 	args_mul_al.submat = qf_submat;
 	args_mul_al.mp = mp;
-	args_mul_al.all_sequences = NULL; // TODO 
-	args_mul_al.reconstructs = NULL;  // TODO
-	
+	// For full NW computation 
+	args_mul_al.aux_dummy_sequence = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char)); if(args_mul_al.aux_dummy_sequence == NULL) terror("Could not allocate additional sequences (1)");
+	args_mul_al.recon_X = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_X == NULL) terror("Could not allocate additional sequences (2)");
+    args_mul_al.recon_Y = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_Y == NULL) terror("Could not allocate additional sequences (3)");
+    args_mul_al.recon_Z = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_Z == NULL) terror("Could not allocate additional sequences (4)");
+    args_mul_al.seq_X = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.seq_X == NULL) terror("Could not allocate additional sequences (5)");
+    args_mul_al.seq_Y = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.seq_Y == NULL) terror("Could not allocate additional sequences (6)");
+    args_mul_al.seq_Z = (char **) std::malloc(n_sequences * sizeof(char *));if(args_mul_al.seq_Z == NULL) terror("Could not allocate additional sequences (7)");
+	args_mul_al.cell_path_y = (int64_t *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(int64_t)); if(args_mul_al.cell_path_y == NULL) terror("Could not allocate additional sequences (8)");
+	for(i=0;i<n_sequences;i++){
+		args_mul_al.recon_X[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		args_mul_al.recon_Y[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		args_mul_al.recon_Z[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		args_mul_al.seq_X[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		args_mul_al.seq_Y[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		args_mul_al.seq_Z[i] = (char *) std::malloc(SEQUENCE_INDELS_LEN*sizeof(char));
+		if(args_mul_al.recon_X[i] == NULL || args_mul_al.recon_Y[i] == NULL || args_mul_al.recon_Z[i] == NULL || args_mul_al.seq_X[i] == NULL || args_mul_al.seq_Y[i] == args_mul_al.seq_Z[i]) terror("Could not allocate subloops in additional sequences");
+	}
+	args_mul_al.n_sequences = n_sequences;
+	// Only one table yet (parallelize coming)
+
+	uint64_t bytes_to_request = SEQUENCE_INDELS_LEN*sizeofPositionedCell();
+	bytes_to_request += SEQUENCE_INDELS_LEN*sizeof(struct cell_f *);
+	bytes_to_request += SEQUENCE_INDELS_LEN*sizeof(char);
+	bytes_to_request += SEQUENCE_INDELS_LEN*MAX_WINDOW_SIZE*sizeofCellF();
+
+	fprintf(stdout, "[INFO] RAM requirements for multiple alignment: %"PRIu64" MB\n", bytes_to_request/(1024*1024));
+	args_mul_al.mc_f = (struct positioned_cell *) std::malloc(SEQUENCE_INDELS_LEN * sizeofPositionedCell());
+    args_mul_al.table_f = (struct cell_f **) std::malloc(SEQUENCE_INDELS_LEN * sizeof(struct cell_f *));
+    args_mul_al.writing_buffer_alignment = (char *) std::malloc(SEQUENCE_INDELS_LEN * sizeof(char));
+    if(args_mul_al.mc_f == NULL || args_mul_al.table_f == NULL || args_mul_al.writing_buffer_alignment == NULL) terror("Could not allocate additional NW-tables");
+    for(i=0;i<SEQUENCE_INDELS_LEN;i++){
+        args_mul_al.table_f[i] = (struct cell_f *) std::malloc(MAX_WINDOW_SIZE*sizeofCellF());
+		if(args_mul_al.table_f[i] == NULL) terror("Could not allocate subloop additional NW-tables");
+    }
+    args_mul_al.window = 0.5;
+	/*
+	uint64_t sizeofCellF();
+
+	uint64_t sizeofPositionedCell();
+
+	uint64_t sizeofBestCell();
+	*/
 
 	
 
@@ -2506,6 +2547,32 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	std::free(f0);
 	std::free(f1);
 	std::free(threads);
+
+	
+	for(i=0;i<n_sequences;i++){
+		std::free(args_mul_al.recon_X[i]);
+		std::free(args_mul_al.recon_Y[i]);
+		std::free(args_mul_al.recon_Z[i]);
+		std::free(args_mul_al.seq_X[i]);
+		std::free(args_mul_al.seq_Y[i]);
+		std::free(args_mul_al.seq_Z[i]);
+	}
+	std::free(args_mul_al.aux_dummy_sequence);
+	std::free(args_mul_al.recon_X);
+    std::free(args_mul_al.recon_Y);
+    std::free(args_mul_al.recon_Z);
+    std::free(args_mul_al.seq_X);
+    std::free(args_mul_al.seq_Y);
+    std::free(args_mul_al.seq_Z);
+	std::free(args_mul_al.cell_path_y);
+
+	std::free(args_mul_al.mc_f);
+	for(i=0;i<SEQUENCE_INDELS_LEN;i++){
+		std::free(args_mul_al.table_f[i]);
+	}
+	std::free(args_mul_al.table_f);
+	std::free(args_mul_al.writing_buffer_alignment);
+    
 
 	delete sm_A;
 	delete sm_B;
