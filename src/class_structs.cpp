@@ -1237,6 +1237,12 @@ void ee_log::register_event(Event e, void * event_data){
 			this->write(this->tmp);
 		}
 		break;
+
+		case indel: {
+			terror("INDEL case should not have reached the log");
+		}
+		break;
+
 		default: {
 			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
 			this->write(this->tmp);

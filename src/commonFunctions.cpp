@@ -1449,10 +1449,12 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
 }
 
 
-void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected){
+void find_event_location(Slist * dendrogram, Event e, void * data, Event_handling * genomes_affected, Slist * last_dendro_pointer){
     Slist * d = dendrogram;
     Slist * prev, * next;
-    
+
+    if(last_dendro_pointer != NULL) d = last_dendro_pointer;
+
     while(d != NULL){
         //if(d->s == NULL) printf(" ] "); else printf(" %"PRIu64" ", d->s->id);
         prev = d;
@@ -1461,6 +1463,101 @@ void find_event_location(Slist * dendrogram, Event e, void * data, bool * genome
 
         if(prev != NULL && d != NULL && next != NULL){
             if(prev->s != NULL && d->s != NULL && next->s != NULL){
+
+                last_dendro_pointer = next;
+
+                if(e == inversion){
+                    //check for strands
+                        
+                    strand_matrix * sm_B = (strand_matrix *) data;
+                    printf("%u %u %u %u\n", sm_B->get_strands(next->s->id, d->s->id), sm_B->get_strands(d->s->id, prev->s->id), sm_B->get_strands(next->s->id, prev->s->id), sm_B->get_strands(prev->s->id, d->s->id));
+                    sm_B->print_strand_matrix();
+                    if(sm_B->get_strands(next->s->id, d->s->id) == sm_B->get_strands(d->s->id, prev->s->id)){
+                        //A reversion happened in 'prev'
+                        genomes_affected->genomes_affected[prev->s->id] = true;
+                    }                        
+                    if(sm_B->get_strands(next->s->id, prev->s->id) == sm_B->get_strands(prev->s->id, d->s->id)){
+                        //A reversion happened in 'd'
+                        genomes_affected->genomes_affected[d->s->id] = true;
+                    }
+                    genomes_affected->type_of_event = inversion;
+
+                    return;
+                }
+                else if(e == transposition){
+                    strand_matrix * h = (strand_matrix *) data;
+                    h->print_strand_matrix();
+                    if((h->get_strands(next->s->id, next->s->id) == h->get_strands(d->s->id, d->s->id)) == (h->get_strands(d->s->id, d->s->id) == h->get_strands(prev->s->id, prev->s->id))){
+                        //A transposition happened in 'prev'
+                        genomes_affected->genomes_affected[prev->s->id] = true;
+                    }
+                    if((h->get_strands(next->s->id, next->s->id) == h->get_strands(prev->s->id, prev->s->id)) == (h->get_strands(prev->s->id, prev->s->id) == h->get_strands(d->s->id, d->s->id))){
+                        //A transposition  happened in 'd'
+                        genomes_affected->genomes_affected[d->s->id] = true;
+                    }
+                    genomes_affected->type_of_event = transposition;
+
+                    return;
+                }
+                else if(e == indel){
+
+                    printf("ARE YOU CALLING ME?????????\n\n\n");
+                    Indel_handling * indel_hd = (Indel_handling *) data;
+
+
+
+                    int64_t d_next_prev = (int64_t) labs((int64_t) indel_hd->bp_lengths[next->s->id] - (int64_t) indel_hd->bp_lengths[prev->s->id]);
+                    int64_t d_next_d = (int64_t) labs((int64_t) indel_hd->bp_lengths[next->s->id] - (int64_t) indel_hd->bp_lengths[d->s->id]);
+                    #define RELATIVELY_SIMILAR 0.15
+                    #define VERY_SIMILAR 0.9
+                    
+
+                    // 
+                    printf("printing values of importance:\n");
+                    printf("%"PRId64" (d_next_prev) %Le (C2-1) %Le (C1-1) %Le (C2-2) %Le (C1-2)\n", d_next_prev, (long double) indel_hd->bp_lengths[d->s->id] / (long double) indel_hd->bp_lengths[next->s->id], (long double) indel_hd->bp_lengths[prev->s->id] / (long double) indel_hd->bp_lengths[next->s->id], (long double) indel_hd->bp_lengths[prev->s->id] / (long double) indel_hd->bp_lengths[next->s->id],  (long double) indel_hd->bp_lengths[d->s->id] / (long double) indel_hd->bp_lengths[next->s->id]);
+
+                    if(d_next_prev >= 0){
+                        // possible deletion 
+                        if((long double) indel_hd->bp_lengths[d->s->id] / (long double) indel_hd->bp_lengths[next->s->id] > VERY_SIMILAR){
+                            if(! ((long double) indel_hd->bp_lengths[prev->s->id] / (long double) indel_hd->bp_lengths[next->s->id] > VERY_SIMILAR)){
+                                if(indel_hd->bp_lengths[prev->s->id] > indel_hd->bp_lengths[next->s->id]){
+                                    // There is insertion 
+                                    printf("Def an insertion in %"PRIu64"\n", prev->s->id);
+                                    genomes_affected->type_of_event = insertion;
+                                    genomes_affected->genomes_affected[prev->s->id] = true;
+                                }else{
+                                    // There is deletion
+                                    genomes_affected->type_of_event = deletion;
+                                    printf("Def a deletion in %"PRIu64"\n", prev->s->id);
+                                    genomes_affected->genomes_affected[prev->s->id] = true;
+                                }
+
+                                return;
+                            }
+                        }
+                    }else{
+                        if((long double) indel_hd->bp_lengths[prev->s->id] / (long double) indel_hd->bp_lengths[next->s->id] > VERY_SIMILAR){
+                            if(! ((long double) indel_hd->bp_lengths[d->s->id] / (long double) indel_hd->bp_lengths[next->s->id] > VERY_SIMILAR)){
+                                if(indel_hd->bp_lengths[prev->s->id] > indel_hd->bp_lengths[next->s->id]){
+                                    // There is insertion 
+                                    genomes_affected->type_of_event = insertion;
+                                    printf("Def an insertion in %"PRIu64"\n", d->s->id);
+                                    genomes_affected->genomes_affected[d->s->id] = true;
+                                }else{
+                                    // There is deletion
+                                    genomes_affected->type_of_event = deletion;
+                                    printf("Def a deletion in %"PRIu64"\n", d->s->id);
+                                    genomes_affected->genomes_affected[d->s->id] = true;
+                                }
+
+                                return;
+                            }
+                        }
+                    }
+                }
+
+
+                /*
                 switch(e){
                     case inversion: 
                     {
@@ -1494,15 +1591,16 @@ void find_event_location(Slist * dendrogram, Event e, void * data, bool * genome
                         }
 
                     }
-                    /*
+                    
                     case duplication: {}
                     break;
                     case insertion: {}
                     break;
                     case deletion: {}
                     break;
-                    */
+                    
                 }
+                */
             }else{
                 //Collapse
                 // TODO                

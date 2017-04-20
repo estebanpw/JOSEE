@@ -170,7 +170,7 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al);
 /*
 	Using the clustered phylogenetic tree, finds where did the event happen (if possible)
 */
-void find_event_location(Slist * dendrogram, Event e, void * data, bool * genomes_affected);
+void find_event_location(Slist * dendrogram, Event e, void * data, Event_handling * genomes_affected, Slist * last_dendro_pointer);
 /*
 	Compare function for distances to sort
 */

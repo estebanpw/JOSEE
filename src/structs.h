@@ -61,7 +61,7 @@ class sequence_manager;
 struct synteny_list;
 
 //Enum of events
-enum Event { inversion, duplication, transposition, insertion, deletion };
+enum Event { inversion, duplication, transposition, insertion, deletion, indel, none}; // Indel is generic for insertion or deletion, and has to be decided
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -491,6 +491,16 @@ public:
 private:
     void write(const char * data);
 
+};
+
+struct Event_handling{
+    Event type_of_event;
+    bool * genomes_affected;
+};
+struct Indel_handling{
+    Synteny_block * concat;
+    uint64_t * bp_lengths;
+    uint64_t n_sequences;
 };
 
 // Struct for reducing parameters in multiple alignment function 

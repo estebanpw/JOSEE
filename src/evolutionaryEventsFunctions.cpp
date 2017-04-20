@@ -1713,9 +1713,11 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t * indel_type = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
 	if(indel_distance == NULL || indel_type == NULL || indel_kept == NULL) terror("Could not allocate indels distance vector");
 
-	//To check which genomes have reversion
+	//To check which genomes have events 
+	Event_handling resolution_of_events;
 	bool * genomes_affected = (bool *) std::malloc(n_sequences*sizeof(bool));
 	if(genomes_affected == NULL) terror("Could not allocate vector to keep track of inversions");
+	resolution_of_events.genomes_affected = genomes_affected;
 
 	//To check that blocks are consecutive in their genome
 	uint64_t * pairs_diff = (uint64_t *) std::malloc(n_sequences*sizeof(uint64_t));
@@ -2033,7 +2035,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 									//To reverse the transposition we have to align the B synteny block
 									//To find out which block moved first
 							
-									memset(genomes_affected, false, n_sequences*sizeof(bool));
+									memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
 
 									//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 									fill_quickfrag_matrix_NW(seq_man, seq_for_reverse, B, qfmat, qfmat_state, -5, -2, mc, f0, f1, threads);
@@ -2254,7 +2256,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								#endif
 
 								//Clear out array of genomes affected
-								memset(genomes_affected, false, n_sequences*sizeof(bool));
+								memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
 
 								//read_words_from_synteny_block_and_align(seq_man, B, kmer_size, words_dictionary, qfmat, qfmat_state);
 								//printQuickFragMatrix(qfmat, qfmat_state, seq_man->get_number_of_sequences());
@@ -2265,7 +2267,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								//mp->reset_to(0,0);
 								mp->full_reset();
 								Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
-								find_event_location(dendro, inversion, (void *) sm_B, genomes_affected);
+								Slist * dendro_track = NULL;
+								find_event_location(dendro, inversion, (void *) sm_B, &resolution_of_events, dendro_track);
 								//getchar();
 								
 								// IMPORTANT: UPGMA should modify "genomes_affected" to tell which genomes (blocks) have the reversion in B
@@ -2285,9 +2288,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								unsigned char can_be_undone = 0;
 								for(uint64_t w=0;w<n_sequences;w++){
 									#ifdef VERBOSE
-									printf("is %"PRIu64" reversed? %d\n", w, genomes_affected[w]);
+									printf("is %"PRIu64" reversed? %d\n", w, resolution_of_events.genomes_affected[w]);
 									#endif
-									if(genomes_affected[w] == true){
+									if(resolution_of_events.genomes_affected[w] == true){
 										e_inversion ei;
 										Synteny_block * ptr_to_register = B->sb;
 										while(ptr_to_register != NULL){
@@ -2305,7 +2308,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								
 
 								if(can_be_undone == 1){
-									reverse_reversion(B, seq_man, genomes_affected);
+									reverse_reversion(B, seq_man, resolution_of_events.genomes_affected);
 									stop_criteria = false;
 									something_happened = true;
 								}else{
@@ -2373,12 +2376,42 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							#endif
 							//getchar();
 							
+							/*
+							struct Event_handling{
+								Event type_of_event;
+								bool * genomes_affected;
+							};
+							struct Indel_handling{
+								Synteny_block * concat;
+								uint64_t * bp_lengths;
+								uint64_t n_sequences;
+							};
+							*/
+
 							mp->full_reset();
+							memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
 
 							args_mul_al.sbl = generate_artificial_synteny(A, mp); 
 							generate_multiple_alignment(&args_mul_al);
 
+							// For the phylogenetic tree 
+							uint64_t bp_lengths[n_sequences];
+							Synteny_block * sb_ptr_bp_lengths = A->sb;
+							while(sb_ptr_bp_lengths != NULL){
+								bp_lengths[sb_ptr_bp_lengths->b->genome->id] = sb_ptr_bp_lengths->b->next->start - sb_ptr_bp_lengths->b->end;
+								#ifdef VERBOSE
+								printf("Feeding lengths to concat: %"PRIu64"\n", bp_lengths[sb_ptr_bp_lengths->b->genome->id]);
+								#endif 
+								sb_ptr_bp_lengths = sb_ptr_bp_lengths->next;
+							}
+							Indel_handling handle_indel;
+							handle_indel.concat = A->sb;
+							handle_indel.n_sequences = n_sequences;
+							handle_indel.bp_lengths = bp_lengths;
 
+							Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
+							Slist * dendro_track = NULL;
+							find_event_location(dendro, indel, (void *) &handle_indel,  &resolution_of_events, dendro_track);
 
 							//handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue, &t_insertions, &t_deletions);
 							handle_indels_add_max(A, B, genomes_block_count, indel_distance, indel_kept, n_sequences, event_log_output);
