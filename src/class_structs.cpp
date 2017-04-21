@@ -967,6 +967,17 @@ void sequence_manager::print_sequence_region(FILE * fout, uint64_t label, uint64
 	fprintf(fout, "\n");
 }
 
+void sequence_manager::cut_sequence(uint64_t index, uint64_t at, uint64_t remove){
+
+	memmove(&this->sequences[index].seq[at], &this->sequences[index].seq[at+remove], remove);
+}
+
+void sequence_manager::add_to_sequence(uint64_t index, uint64_t between, const char * copy_from, uint64_t size){
+
+	memmove(&this->sequences[index].seq[between], &this->sequences[index].seq[between+size], size);
+	memcpy(&this->sequences[index].seq[between], &copy_from[0], size);
+}
+
 sequence_manager::~sequence_manager(){
 	uint64_t i;
 	for(i=0;i<this->n_sequences;i++){
@@ -981,6 +992,8 @@ sequence_manager::~sequence_manager(){
 	}
 	std::free(this->sequences);
 }
+
+
 
 dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
 	this->ht_size = init_size;

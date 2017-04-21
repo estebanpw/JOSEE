@@ -310,6 +310,8 @@ public:
     void read_dna_sequences(char * paths_to_files);
     void read_annotations();
     void print_sequence_region(FILE * fout, uint64_t label, uint64_t from, uint64_t to);
+    void cut_sequence(uint64_t index, uint64_t at, uint64_t remove);
+    void add_to_sequence(uint64_t index, uint64_t between, const char * copy_from, uint64_t size);
     ~sequence_manager();
 };
 
@@ -495,12 +497,13 @@ private:
 
 struct Event_handling{
     Event type_of_event;
-    bool * genomes_affected;
+    Sequence ** genomes_affected;
 };
 struct Indel_handling{
     Synteny_block * concat;
     uint64_t * bp_lengths;
     uint64_t n_sequences;
+    uint64_t consensus_measure;
 };
 
 // Struct for reducing parameters in multiple alignment function 
