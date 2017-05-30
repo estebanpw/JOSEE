@@ -1832,6 +1832,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	args_mul_al.recon_X = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_X == NULL) terror("Could not allocate additional sequences (2)");
     args_mul_al.recon_Y = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_Y == NULL) terror("Could not allocate additional sequences (3)");
     args_mul_al.recon_Z = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.recon_Z == NULL) terror("Could not allocate additional sequences (4)");
+	args_mul_al.sequence_ids = (uint64_t *) std::malloc(n_sequences * sizeof(uint64_t));
     args_mul_al.seq_X = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.seq_X == NULL) terror("Could not allocate additional sequences (5)");
     args_mul_al.seq_Y = (char **) std::malloc(n_sequences * sizeof(char *)); if(args_mul_al.seq_Y == NULL) terror("Could not allocate additional sequences (6)");
     args_mul_al.seq_Z = (char **) std::malloc(n_sequences * sizeof(char *));if(args_mul_al.seq_Z == NULL) terror("Could not allocate additional sequences (7)");
@@ -1871,6 +1872,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	uint64_t sizeofBestCell();
 	*/
 
+	// TODO put conditional on memory requesting
 	
 
 
@@ -2392,7 +2394,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
 
 							args_mul_al.sbl = generate_artificial_synteny(A, mp); 
-							generate_multiple_alignment(&args_mul_al);
+							uint64_t copy_length = generate_multiple_alignment(&args_mul_al);
 
 							// For the phylogenetic tree 
 							uint64_t bp_lengths[n_sequences];
@@ -2409,11 +2411,12 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							handle_indel.n_sequences = n_sequences;
 							handle_indel.bp_lengths = bp_lengths;
 
+							
 							Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 							Slist * dendro_track = NULL;
 							find_event_location(dendro, indel, (void *) &handle_indel,  &resolution_of_events, dendro_track);
 
-							//handle_indels(A, B, C, indel_distance, n_sequences, genomes_block_count, indel_kept, indel_type, operations_queue, &t_insertions, &t_deletions);
+							
 							handle_indels_add_max(A, B, genomes_block_count, indel_distance, indel_kept, n_sequences, event_log_output);
 
 							//concat_synteny_blocks(&A, &B, &C);
@@ -2547,6 +2550,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	#ifdef VERBOSE
 	getchar();
 	#endif
+
+	traverse_synteny_list_and_write(sbl, n_sequences, "end");
 
 
 	for(i=0;i<seq_man->get_number_of_sequences();i++){

@@ -520,7 +520,8 @@ struct arguments_multiple_alignment{
     memory_pool * mp;
     // For full NW
     char * aux_dummy_sequence; // The one that is not used in the backtrackings
-    char ** recon_X; 
+    char ** recon_X;
+    uint64_t * sequence_ids;  // Tells which one of the seqs in seq_X is after aligning
     char ** recon_Y;
     char ** recon_Z; 
     char ** seq_X;

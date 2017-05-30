@@ -51,7 +51,7 @@ void traverse_synteny_list(Synteny_list * sbl);
 /*
 	Traverses the synteny list and writes output as to be used in mgvisualizator
 */
-void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences);
+void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences, char * tag);
 /*
 	Travels the synteny list until finding the synteny block to which the
 	given block corresponds to
@@ -165,7 +165,7 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 /*
 	Computes a multiple alignment between all sequences in an artificial (or existing) synteny list
 */
-void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al);
+uint64_t generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al);
 
 /*
 	Using the clustered phylogenetic tree, finds where did the event happen (if possible)

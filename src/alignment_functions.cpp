@@ -764,7 +764,7 @@ uint64_t build_multiple_alignment(char ** reconstruct_X, char ** reconstruct_Y, 
         backtrackingNW(reference, 0, max_len, my_y[k], 0, ylen, table, aux, reconstruct_Y[k], &bc, &i, &j, cell_path_y, curr_window_size, ba);
         i++; j++;    
         //fprintf(stdout, "Y:%"PRIu64" -> %s\n", k, &reconstruct_Y[k][j]);
-        final_y_len = strlen(&reconstruct_Y[k][i]);
+        final_y_len = strlen(&reconstruct_Y[k][j]);
         memcpy(&my_y[k][0], &reconstruct_Y[k][j], final_y_len);
         
     }

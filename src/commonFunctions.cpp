@@ -198,12 +198,12 @@ void traverse_synteny_list(Synteny_list * sbl){
     }
 }
 
-void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences){
+void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences, char * tag){
     FILE * writer;
     for(uint64_t i=0;i<n_sequences;i++){
         char name[MAX_LINE];
         name[0] = '\0';
-        sprintf(name, "%s_%" PRIu64"%s", "blocks_", i, ".txt");
+        sprintf(name, "%s_%" PRIu64"_%s_%s", "blocks_", i, tag, ".txt");
         writer = fopen64(name, "wt");
         if(writer == NULL) throw "Could not open synteny list write output";
         fprintf(writer, "bID\tini\tfin\tlong\tgen\tsyn\n");
@@ -1345,7 +1345,7 @@ Slist * UPGMA_joining_clustering(Quickfrag ** M, double ** submat, unsigned char
 }
 
 
-void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
+uint64_t generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
     /*
     struct arguments_multiple_alignment{
     sequence_manager * seq_man;
@@ -1363,6 +1363,7 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
     memory_pool * mp;
     // For full NW
     char * aux_dummy_sequence; // The one that is not used in the backtrackings
+    uint64_t * sequence_ids;
     char ** recon_X; 
     char ** recon_Y;
     char ** recon_Z; 
@@ -1384,6 +1385,7 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
     uint64_t current_sequences_in_X = 0;
     uint64_t current_sequences_in_Y = 0;
     uint64_t current_sequences_in_Z = 0;
+    memset(arg_mul_al->sequence_ids, 0, arg_mul_al->n_sequences * sizeof(uint64_t));
 
     // Link IDs to synteny blocks 
     uint64_t starting_pos[arg_mul_al->n_sequences];
@@ -1406,6 +1408,7 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
             
             if(current_sequences_in_X == 0){
                 memcpy(&arg_mul_al->seq_X[current_sequences_in_X][0], &d->s->seq[starting_pos[d->s->id]], ending_pos[d->s->id] - starting_pos[d->s->id]);
+                arg_mul_al->sequence_ids[current_sequences_in_X] = d->s->id;
                 current_sequences_in_X++;
             }else{
                 memcpy(&arg_mul_al->seq_Y[current_sequences_in_Y][0], &d->s->seq[starting_pos[d->s->id]], ending_pos[d->s->id] - starting_pos[d->s->id]);
@@ -1414,25 +1417,25 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
 
             if(current_sequences_in_Y == 1){
 
-                printf("I am going to gap-bounded align: \n%s\n%s\n", arg_mul_al->seq_X[current_sequences_in_X-1], arg_mul_al->seq_Y[0]);
+                printf("I am going to gap-bounded align: \nX[-1]%s\nY[0]%s\n", arg_mul_al->seq_X[current_sequences_in_X-1], arg_mul_al->seq_Y[0]);
 
 
                 build_unanchored_alignment(arg_mul_al->cell_path_y, arg_mul_al->seq_X, arg_mul_al->seq_Y, current_sequences_in_X, current_sequences_in_Y);
                 uint64_t xlen = get_max_length_of_sequences(arg_mul_al->seq_X, current_sequences_in_X);
                 uint64_t ylen = get_max_length_of_sequences(arg_mul_al->seq_Y, current_sequences_in_Y);
                 
-                uint64_t final_len = build_multiple_alignment(arg_mul_al->recon_X, arg_mul_al->recon_Y, arg_mul_al->seq_X, arg_mul_al->seq_Y, current_sequences_in_X, current_sequences_in_Y, arg_mul_al->table_f, arg_mul_al->mc_f, arg_mul_al->writing_buffer_alignment, xlen, ylen, arg_mul_al->cell_path_y, &arg_mul_al->window, arg_mul_al->iGap, arg_mul_al->eGap, &ba, arg_mul_al->aux_dummy_sequence);
+                final_len = build_multiple_alignment(arg_mul_al->recon_X, arg_mul_al->recon_Y, arg_mul_al->seq_X, arg_mul_al->seq_Y, current_sequences_in_X, current_sequences_in_Y, arg_mul_al->table_f, arg_mul_al->mc_f, arg_mul_al->writing_buffer_alignment, xlen, ylen, arg_mul_al->cell_path_y, &arg_mul_al->window, arg_mul_al->iGap, arg_mul_al->eGap, &ba, arg_mul_al->aux_dummy_sequence);
 
                 // After aligning group X with group Y, move Y to X 
 
                 
                 memcpy(&arg_mul_al->seq_X[current_sequences_in_X][0], &arg_mul_al->seq_Y[0][0], final_len);
+                arg_mul_al->sequence_ids[current_sequences_in_X] = d->s->id;
                 current_sequences_in_X++;
+                printf("CE IMPRESSIVE -> %s\n", arg_mul_al->seq_Y[0]);
+
                 
-                for(uint64_t i=0; i<current_sequences_in_X; i++){
-                    printf("X: %"PRIu64" -> %s\n", i, arg_mul_al->seq_X[i]);
-                }
-                getchar();
+                
 
                 current_sequences_in_Y = 0;
             }
@@ -1445,6 +1448,14 @@ void generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
         
         d = d->next;
     }
+    // Finished
+    printf("Done with multiple alignment\n");
+    for(uint64_t i=0; i<current_sequences_in_X; i++){
+        printf("X: %"PRIu64" -> %s\n", arg_mul_al->sequence_ids[i], arg_mul_al->seq_X[i]);
+    }
+    getchar();
+
+    return final_len;
 
 }
 
