@@ -472,6 +472,7 @@ inline char complement(char c){
     break;
     case ('N'): return 'N';
     break;
+    case ('-'): return '-'; // Gaps
     }
     printf("T B: (%c) ____\n", c);
     terror("Unrecognized nucleotide in hit");
@@ -1385,6 +1386,7 @@ uint64_t generate_multiple_alignment(arguments_multiple_alignment * arg_mul_al){
     uint64_t current_sequences_in_X = 0;
     uint64_t current_sequences_in_Y = 0;
     uint64_t current_sequences_in_Z = 0;
+    uint64_t final_len;
     memset(arg_mul_al->sequence_ids, 0, arg_mul_al->n_sequences * sizeof(uint64_t));
 
     // Link IDs to synteny blocks 

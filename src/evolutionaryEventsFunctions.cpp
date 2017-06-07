@@ -1113,6 +1113,109 @@ void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list **
 
 }
 
+void concat_two_synteny_blocks_after_multiple_alignment(Synteny_list ** A, Synteny_list ** B, uint64_t copy_length, arguments_multiple_alignment * mul_al){
+	//printf("I would like to concat\n");
+	//printf("And it would look like this:\n");
+	
+
+	uint64_t i;
+	Synteny_block * start_sb_ptr = (*A)->sb;
+	Synteny_block * mid_ptr = (*B)->sb;
+	Frags_list * fl_A, * fl_B;
+
+
+	/*
+    sequence_manager * seq_man;
+    char ** seq_for_reverse;
+    Synteny_list * sbl;
+    Quickfrag ** qfmat;
+    unsigned char ** qfmat_state;
+    int iGap;
+    int eGap;
+    struct cell ** mc;
+    struct cell ** f0;
+    struct cell ** f1;
+    pthread_t * threads;
+    double ** submat;
+    memory_pool * mp;
+    // For full NW
+    char * aux_dummy_sequence; // The one that is not used in the backtrackings
+    char ** recon_X;
+    uint64_t * sequence_ids;  // Tells which one of the seqs in seq_X is after aligning
+    char ** recon_Y;
+    char ** recon_Z; 
+    char ** seq_X;
+    char ** seq_Y;
+    char ** seq_Z; 
+    int64_t * cell_path_y;
+    struct positioned_cell * mc_f;
+    struct cell_f ** table_f;
+    char * writing_buffer_alignment;
+    long double window;
+    uint64_t n_sequences;
+	*/
+
+	// Do the memory swap 
+	for(i=0;i<(*A)->synteny_level;i++){
+
+		uint64_t block_len = start_sb_ptr->b->end - start_sb_ptr->b->start;
+		char * curr_seq = NULL;
+		uint64_t find_id = 0;
+		while(find_id < mul_al->n_sequences && mul_al->sequence_ids[find_id] != start_sb_ptr->b->genome->id) find_id++;
+		if(mul_al->sequence_ids[find_id] != start_sb_ptr->b->genome->id) terror("Did not find genome id after multiple alignment");
+
+		curr_seq = mul_al->seq_X[find_id]; // Get aligned sequence that belongs to genome
+
+		// If they have the same length, just copy, otherwise, grow or shrink and copy
+		uint64_t diff = copy_length - block_len;
+		if(block_len != copy_length){
+			memmove(&start_sb_ptr->b->genome->seq[start_sb_ptr->b->next->end+diff], &start_sb_ptr->b->genome->seq[start_sb_ptr->b->next->end], start_sb_ptr->b->genome->len - start_sb_ptr->b->next->end);
+		}
+
+		memcpy(&start_sb_ptr->b->genome->seq[start_sb_ptr->b->start], &curr_seq[0], copy_length);
+		
+		
+		start_sb_ptr->b->end = start_sb_ptr->b->end + diff;
+		// Modify coordinates and order
+		apply_operation(start_sb_ptr->b, 0, -1, start_sb_ptr->b->start, 0xFFFFFFFFFFFFFFFF);
+		apply_operation(start_sb_ptr->b, (int64_t) diff, 0, start_sb_ptr->b->start, 0xFFFFFFFFFFFFFFFF);
+
+		start_sb_ptr->b->next = mid_ptr->b;
+		mid_ptr->b->prev = start_sb_ptr->b;
+		//Append frags lists
+		//Find last pointer in A
+		fl_A = start_sb_ptr->b->f_list;
+		while(fl_A->next != NULL) fl_A = fl_A->next;
+
+		//Find last pointer in B
+		fl_B = mid_ptr->b->f_list;
+		while(fl_B->next != NULL) fl_B = fl_B->next;
+
+		//Append C to B, and B to A
+		//fl_B->next = end_sb_ptr->b->f_list;
+		fl_A->next = mid_ptr->b->f_list;
+		fl_B->next = NULL;
+
+		start_sb_ptr = start_sb_ptr->next;
+		mid_ptr = mid_ptr->next;
+	}
+
+	// Disconnect blocks from B!!!
+	
+	Synteny_block * sb_ptr = (*B)->sb;
+	while(sb_ptr != NULL){
+		if(sb_ptr->b->prev != NULL){
+			sb_ptr->b->prev->next = sb_ptr->b->next;
+		}
+		if(sb_ptr->b->next != NULL){
+			sb_ptr->b->next->prev = sb_ptr->b->prev;
+		}
+		//sb_ptr->b->present_in_synteny = (*A);
+		sb_ptr = sb_ptr->next;
+	}
+}
+
+
 void concat_two_synteny_blocks(Synteny_list ** A, Synteny_list ** B){
 	//printf("I would like to concat\n");
 	//printf("And it would look like this:\n");
@@ -1926,7 +2029,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 		//In case nothing gets done, stop iterating
 		stop_criteria = true;
 		
-
+		if(ptr == NULL) printf("AHA\n");
 		B = ptr->b.present_in_synteny;
 		if(ptr->b.prev != NULL && ptr->b.prev->present_in_synteny != NULL && ptr->b.prev->present_in_synteny != B) A = ptr->b.prev->present_in_synteny;
 		if(ptr->b.next != NULL && ptr->b.next->present_in_synteny != NULL && ptr->b.next->present_in_synteny != B) C = ptr->b.next->present_in_synteny;
@@ -2388,7 +2491,16 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								uint64_t * bp_lengths;
 								uint64_t n_sequences;
 							};
+
+							struct e_concatenation{
+								Block * involved;
+								uint64_t n_blocks;
+							};
+
 							*/
+
+							
+
 
 							mp->full_reset();
 							memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
@@ -2396,31 +2508,43 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							args_mul_al.sbl = generate_artificial_synteny(A, mp); 
 							uint64_t copy_length = generate_multiple_alignment(&args_mul_al);
 
+							concat_two_synteny_blocks_after_multiple_alignment(&A, &B, copy_length, &args_mul_al);
+
 							// For the phylogenetic tree 
-							uint64_t bp_lengths[n_sequences];
-							Synteny_block * sb_ptr_bp_lengths = A->sb;
-							while(sb_ptr_bp_lengths != NULL){
-								bp_lengths[sb_ptr_bp_lengths->b->genome->id] = sb_ptr_bp_lengths->b->next->start - sb_ptr_bp_lengths->b->end;
-								#ifdef VERBOSE
-								printf("Feeding lengths to concat: %"PRIu64"\n", bp_lengths[sb_ptr_bp_lengths->b->genome->id]);
-								#endif 
-								sb_ptr_bp_lengths = sb_ptr_bp_lengths->next;
+							
+							
+							
+							
+							Synteny_block * all_blocks = A->sb;
+							while(all_blocks != NULL){
+
+								e_concatenation ec;
+								
+								ec.involved = all_blocks->b;
+								event_log_output->register_event(concatenation, (void *) &ec);
+								all_blocks = all_blocks->next;
 							}
+							
+							/*
 							Indel_handling handle_indel;
 							handle_indel.concat = A->sb;
 							handle_indel.n_sequences = n_sequences;
 							handle_indel.bp_lengths = bp_lengths;
+							*/
 
-							
+							/*
 							Slist * dendro = UPGMA_joining_clustering(qfmat, qf_submat, qfmat_state, seq_man->get_number_of_sequences(), mp);
 							Slist * dendro_track = NULL;
 							find_event_location(dendro, indel, (void *) &handle_indel,  &resolution_of_events, dendro_track);
+							*/
 
-							
+							/*
 							handle_indels_add_max(A, B, genomes_block_count, indel_distance, indel_kept, n_sequences, event_log_output);
+							*/
 
 							//concat_synteny_blocks(&A, &B, &C);
-							concat_two_synteny_blocks(&A, &B);
+							
+							//concat_two_synteny_blocks(&A, &B);
 							
 							#ifdef VERBOSE
 							printf("Just in case after\n");
@@ -2433,6 +2557,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							something_happened = true;
 							
 							//Add offset to orders
+							/*
 							sb_ptr = A->sb;
 							while(sb_ptr != NULL){
 								//If genome was involved we have to add offset to the concat
@@ -2447,6 +2572,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								}
 								sb_ptr = sb_ptr->next;
 							}
+							*/
 							#ifdef VERBOSE
 							printf("Finished applying queue\n");
 							#endif

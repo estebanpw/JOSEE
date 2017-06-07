@@ -1237,7 +1237,17 @@ void ee_log::register_event(Event e, void * event_data){
 			this->write(this->tmp);
 		}
 		break;
+		case concatenation: {
+			e_concatenation * e_concat = (e_concatenation *) event_data;
+			sprintf(&this->tmp[0], "$E:%"PRIu64"\n", this->event_count);
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "CONCATENATION\t");
+			this->write(this->tmp);
+			sprintf(&this->tmp[0], "@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_concat->involved->genome->id, e_concat->involved->start, e_concat->involved->end);
+			this->write(this->tmp);
 
+		}
+		break;
 		case indel: {
 			terror("INDEL case should not have reached the log");
 		}

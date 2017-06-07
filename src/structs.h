@@ -61,7 +61,7 @@ class sequence_manager;
 struct synteny_list;
 
 //Enum of events
-enum Event { inversion, duplication, transposition, insertion, deletion, indel, none}; // Indel is generic for insertion or deletion, and has to be decided
+enum Event { inversion, duplication, transposition, insertion, deletion, indel, none, concatenation}; // Indel is generic for insertion or deletion, and has to be decided
 
 //Struct for FragHits, af2png and leeFrag programs
 struct FragFile {
@@ -444,6 +444,10 @@ struct e_insertion{
 struct e_deletion{
     Block * deletion;
     uint64_t removed;
+};
+
+struct e_concatenation{
+    Block * involved;
 };
 
 // Struct to modify blocks given previous rearrangments

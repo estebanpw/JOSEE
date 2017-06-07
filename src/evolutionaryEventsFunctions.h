@@ -114,6 +114,10 @@ void handle_indels_add_max(Synteny_list * A, Synteny_list * B, uint64_t * genome
 void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list ** C);
 
 /*
+	Concats two synteny blocks that have been aligned 
+*/
+void concat_two_synteny_blocks_after_multiple_alignment(Synteny_list ** A, Synteny_list ** B, uint64_t copy_length, arguments_multiple_alignment * mul_al);
+/*
 	Concatenates two synteny_blocks
 */
 void concat_two_synteny_blocks(Synteny_list ** A, Synteny_list ** B);
