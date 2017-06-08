@@ -130,7 +130,7 @@ void generate_strand_matrix(Synteny_block * sb, char ** strand_matrix);
 /*
 	Reverses a duplication and adds the operation to the event queue
 */
-void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, Block * dup, hash_table * ht, events_queue * operations_queue, uint64_t last_s_id);
+void reverse_duplication(Synteny_list * A, Synteny_list * B, Synteny_list * C, Block * dup, hash_table * ht, uint64_t last_s_id);
 
 
 /*

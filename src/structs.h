@@ -47,10 +47,13 @@
 #define SEQUENCE_INDELS_LEN 1000*10 // 1 M
 
 #define IGAP -24
-#define EGAP -4
+#define EGAP -8
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
+
+// To globally measure RAM usage
+extern uint64_t total_bytes_in_use;
 
 //Class prototypes
 class memory_pool;
@@ -227,6 +230,7 @@ struct triplet{
     Synteny_list * B;
     Synteny_list * C;
     struct triplet * next;
+    Event etype;
 };
 //Class for allocating memory only once and requesting particular amounts of bytes
 class memory_pool{
@@ -244,6 +248,7 @@ public:
     void reset_n_bytes(uint64_t bytes);
     void reset_to(uint64_t pool, uint64_t position){ this->current_pool = 0; this->base->at(this->current_pool) = 0;}
     void full_reset();
+    uint64_t get_pools_used(){ return current_pool; }
     ~memory_pool();
 };
 

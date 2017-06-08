@@ -9,6 +9,7 @@ int valOfNucl(char c){
 	if(c=='C') return 1;
 	if(c=='G') return 2;
 	if(c=='T') return 3;
+    if(c=='-') return 4;
 	return 4;
 }
 
@@ -683,6 +684,8 @@ struct cell NWscore2rows(char * X, uint64_t Xstart, uint64_t Xend, char * Y, uin
     //printf("    %03"PRId64" ", f0[iCounter].score);
     iCounter++;
 
+
+    printf("Align between %"PRIu64", %"PRIu64"\n", Ystart+1, Yend);
     for(i=Ystart+1;i<Yend;i++){
 
         f0[iCounter].score = PAM[valOfNucl(X[Xstart])][valOfNucl(Y[i])] + iGap + ((i-Ystart)-1)*eGap;

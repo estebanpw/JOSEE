@@ -54,6 +54,7 @@ void load_fragments_local(FILE * fragsfile, uint64_t * n_frags, struct FragFile 
     //Allocate memory for all frags
     struct FragFile * temp_frags_array = (struct FragFile *) std::malloc(total_frags * sizeofFragment());
     if(temp_frags_array == NULL) terror("Could not allocate heap for all fragments");
+    total_bytes_in_use += total_frags * sizeofFragment();
 
     fprintf(stdout, "[INFO] There are %"PRIu64" fragments to be loaded, requiring %"PRIu64" Megabyte(s) of RAM\n", total_frags, (total_frags*sizeof(struct FragFile))/(1024*1024));
 
@@ -1495,26 +1496,26 @@ void find_event_location(Slist * dendrogram, Event e, void * data, Event_handlin
                     }
                     genomes_affected->type_of_event = inversion;
 
-                    return;
                 }
                 else if(e == transposition){
-                    strand_matrix * h = (strand_matrix *) data;
-                    h->print_strand_matrix();
-                    if((h->get_strands(next->s->id, next->s->id) == h->get_strands(d->s->id, d->s->id)) == (h->get_strands(d->s->id, d->s->id) == h->get_strands(prev->s->id, prev->s->id))){
-                        //A transposition happened in 'prev'
+                    strand_matrix * sm_B = (strand_matrix *) data;
+                    sm_B->print_strand_matrix();
+                    if(sm_B->get_strands(next->s->id, d->s->id) == sm_B->get_strands(d->s->id, prev->s->id)){
+                        //A reversion happened in 'prev'
                         genomes_affected->genomes_affected[prev->s->id] = true;
-                    }
-                    if((h->get_strands(next->s->id, next->s->id) == h->get_strands(prev->s->id, prev->s->id)) == (h->get_strands(prev->s->id, prev->s->id) == h->get_strands(d->s->id, d->s->id))){
-                        //A transposition  happened in 'd'
+                    }                        
+                    if(sm_B->get_strands(next->s->id, prev->s->id) == sm_B->get_strands(prev->s->id, d->s->id)){
+                        //A reversion happened in 'd'
                         genomes_affected->genomes_affected[d->s->id] = true;
                     }
                     genomes_affected->type_of_event = transposition;
 
-                    return;
                 }
                 else if(e == indel){
 
-                    printf("ARE YOU CALLING ME?????????\n\n\n");
+                    // TODO this should be remade 
+
+                    
                     Indel_handling * indel_hd = (Indel_handling *) data;
 
 
@@ -1640,3 +1641,7 @@ long double median_from_vector(uint64_t * v, uint64_t l){
     }
 }
 
+void print_memory_usage(){
+    //fprintf(stdout, "[INFO] Current RAM usage: %"PRIu64" (MB)\n", total_bytes_in_use/(1024*1024));
+    fprintf(stdout, "[INFO] Current RAM usage: %"PRIu64" bytes, which are %"PRIu64" Megabytes. \n", total_bytes_in_use, total_bytes_in_use/(1024*1024));
+}

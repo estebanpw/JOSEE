@@ -181,4 +181,9 @@ int compare_distances_indel(const void * a, const void * b);
 */
 long double median_from_vector(uint64_t * v, uint64_t l);
 
+/*
+	Prints memory requested from heap 
+*/
+void print_memory_usage();
+
 #endif /* COMMON_FUNCTIONS_H */

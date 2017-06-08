@@ -177,6 +177,11 @@ void printBlockWriteMode(Block * b);
 void printSyntenyBlock(Synteny_block * b);
 
 /*
+	Prints the blocks in the synteny blocks in a synteny list
+*/
+void printSyntenyList(Synteny_list * sbl);
+
+/*
 	Prints all frags that correspond to a synteny block
 	for all synteny blocks in a synteny node
 */

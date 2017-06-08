@@ -369,6 +369,14 @@ void printSyntenyBlock(Synteny_block * b){
     }
 }
 
+void printSyntenyList(Synteny_list * sbl){
+    Synteny_block * sb_ptr = sbl->sb;
+    while(sb_ptr != NULL){
+        printSyntenyBlock(sb_ptr);
+        sb_ptr = sb_ptr->next;
+    }
+}
+
 void printSyntenyListNode(Synteny_list * sbl){
     Synteny_block * sb_ptr = sbl->sb;
     while(sb_ptr != NULL){

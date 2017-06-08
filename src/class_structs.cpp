@@ -8,6 +8,7 @@
 #include "commonFunctions.h"
 #include "comparisonFunctions.h"
 
+extern uint64_t total_bytes_in_use;
 
 memory_pool::memory_pool(uint64_t pool_size)
 {
@@ -23,10 +24,12 @@ memory_pool::memory_pool(uint64_t pool_size)
 	//if (this->mem_pool == NULL) terror("Could not allocate memory pools");
 	//this->mem_pool[0] = (char *) std::calloc(pool_size, sizeof(char));
 	char * a_pool = (char *) std::calloc(pool_size, sizeof(char));
+	
 	this->mem_pool->push_back(a_pool);
 	//if (this->mem_pool[0] == NULL) terror("Could not allocate initial memory pool");
 	this->max_pools = 1;
 	this->pool_size = pool_size;
+	total_bytes_in_use += this->pool_size;
 }
 
 void * memory_pool::request_bytes(uint64_t n_bytes)
@@ -40,6 +43,7 @@ void * memory_pool::request_bytes(uint64_t n_bytes)
 			//if(this->current_pool == this->max_pools) terror("Reached maximum number of pools. Exiting.");
 			//this->mem_pool[this->current_pool] = (char *) std::calloc(this->pool_size, sizeof(char));
 			char * a_pool = (char *) std::calloc(this->pool_size, sizeof(char));
+			total_bytes_in_use += this->pool_size;
 			if(a_pool == NULL) throw "Could not allocate new memory pool";
 			this->mem_pool->push_back(a_pool);
 			//if (this->mem_pool[this->current_pool] == NULL) terror("Could not allocate memory pool");
@@ -104,10 +108,12 @@ hash_table::hash_table(memory_pool * main_mem_pool, uint64_t init_size, sequence
 	this->mp = main_mem_pool;
 	this->ht_size = init_size;
 	this->ht = (Bucket **) this->mp->request_bytes(init_size*sizeof(Bucket *));
+	
 	this->sequences = sequences;
 	this->n_buckets = init_size;
 
 	this->last_blocks = (Block **) std::calloc(sequences->get_number_of_sequences(), sizeof(Block *));
+	total_bytes_in_use += sequences->get_number_of_sequences() * sizeof(Block *);
 	if(this->last_blocks == NULL) terror("Could not allocate last blocks to generate double link");
 
 	uint64_t i;
@@ -147,6 +153,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 	//Get memory for buckets
 	Bucket * bkt_x = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
+	
 
 	//Fill data of block
 	bkt_x->next = NULL;
@@ -164,6 +171,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 		if(isBlockEqualTo(&bkt_x->b, &ptr->b)){
 			
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
+			
 			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
 
@@ -199,6 +207,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		
+		
 		//Insert between theoretical position and its next
 		
 		if(theoretical_position == NULL){
@@ -228,6 +237,7 @@ void hash_table::insert_x_side(struct FragFile * f){
 	if(ptr != NULL && insert_on_list == 1){
 		
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		total_bytes_in_use += this->computed_sizeof_frags_list;
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
 		ptr->b.f_list = frag_pointer;
@@ -247,6 +257,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 	//Get memory for buckets
 	Bucket * bkt_y = (Bucket *) this->mp->request_bytes(this->computed_sizeof_block);
+	
 
 	//Fill data of block
 	bkt_y->next = NULL;
@@ -265,6 +276,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 		if(isBlockEqualTo(&bkt_y->b, &ptr->b)){
 
 			this->mp->reset_n_bytes(this->computed_sizeof_block); //First reset the bytes taken for the block
+			
 			if(idNotInList(ptr->b.f_list, f)){
 				//The block exists but not linked to this fragment, so add it to the list
 				insert_on_list = 1;	
@@ -299,6 +311,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
 		
+		
 		//Insert between theoretical position and its next
 		if(theoretical_position == NULL){
 			bkt_y->next = ht[hash_y];  //Insert at the head
@@ -324,6 +337,7 @@ void hash_table::insert_y_side(struct FragFile * f){
 	if(ptr != NULL && insert_on_list == 1){
 		
 		Frags_list * frag_pointer = (Frags_list *) this->mp->request_bytes(this->computed_sizeof_frags_list);
+		
 		frag_pointer->next = ptr->b.f_list;
 		frag_pointer->f = f;
 		ptr->b.f_list = frag_pointer;	
@@ -538,6 +552,7 @@ strand_matrix::strand_matrix(uint64_t sequences){
 	this->n_seqs = sequences;
 	this->squared_sequences = sequences * sequences;
 	this->sm = (unsigned char **) std::calloc(sequences, sizeof(unsigned char *));
+	total_bytes_in_use += squared_sequences;
 	if(this->sm == NULL) terror("Could not allocate strand matrix");
 	this->acu_frags_forward = 0;
 	this->acu_frags_reverse = 0;
@@ -670,6 +685,7 @@ uint64_t sequence_manager::load_sequences_descriptors(FILE * lengths_file){
     
     //Allocate heap for sequences struct to hold lengths and ids
 	this->sequences = (Sequence *) std::malloc(n_sequences*sizeofSequence());
+	total_bytes_in_use += n_sequences*sizeofSequence();
 
 
     if(this->sequences == NULL) terror("Could not allocate memory for sequence descriptors");
@@ -726,6 +742,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
         all_sequences_names[i] = (char *) std::malloc(READLINE*sizeof(char));
         if(all_sequences_names[i] == NULL) terror("Could not allocate paths to files");
     }
+	
 
 
     i = 0;
@@ -826,6 +843,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
 		//all_sequences[i] = (char *) std::realloc(all_sequences[i], _m_len*sizeof(char));
 		//Realloc to a lot for testing
 		all_sequences[i] = (char *) std::realloc(all_sequences[i], SEQUENCE_INDELS_LEN*sizeof(char));
+		total_bytes_in_use += SEQUENCE_INDELS_LEN*sizeof(char);
 		this->sequences[i].seq = all_sequences[i];
 		this->sequences[i].seq[_m_len] = '\0';
 
@@ -985,10 +1003,13 @@ sequence_manager::~sequence_manager(){
 dictionary_hash::dictionary_hash(uint64_t init_size, uint64_t highest_key, uint32_t kmer_size){
 	this->ht_size = init_size;
 	this->kmer_size = kmer_size;
-	this->mp = new memory_pool((init_size * sizeofWordbucket()));
-
+	
+	this->mp = new memory_pool(init_size * sizeofWordbucket());
+	
 	this->list_allocs = 1;
 	this->list = (Wordbucket **) std::malloc(INIT_CANDIDATES_ALIGN * sizeof(Wordbucket *));
+	
+	total_bytes_in_use += INIT_CANDIDATES_ALIGN*sizeof(Wordbucket *);
 	if(this->list == NULL) terror("Could not allocate list for candidate hits");
 
 	this->words = (Wordbucket **) this->mp->request_bytes(init_size * sizeof(Wordbucket *));
@@ -1270,7 +1291,8 @@ ee_log::~ee_log(){
 
 
 markdown_event_hash::markdown_event_hash(uint64_t size){
-	this->array = (triplet **) std::calloc(size, size*sizeof(triplet *));
+	this->array = (triplet **) std::calloc(size, sizeof(triplet *));
+	total_bytes_in_use += size*sizeof(triplet *);
 	if(this->array == NULL) terror("Could not allocate triplet array for markdown");
 	this->mp = new memory_pool(POOL_SIZE);
 	this->size = size;
@@ -1282,14 +1304,16 @@ void markdown_event_hash::put(triplet * k){
 	if(ptr == NULL){
 		// Put new 
 		this->array[hash] = (triplet *) mp->request_bytes(sizeofTriplet());
+		
 		this->array[hash]->A = k->A;
 		this->array[hash]->B = k->B;
 		this->array[hash]->C = k->C;
+		this->array[hash]->etype = k->etype;
 		this->array[hash]->next = NULL;
 	}else{
 		// Traverse and find 
 		while(ptr != NULL){
-			if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+			if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C && ptr->etype == k->etype){
 				// Found, break and do nothing
 				return;
 			}
@@ -1297,9 +1321,11 @@ void markdown_event_hash::put(triplet * k){
 		}
 		// Out of the loop implies insertion 
 		triplet * aux = (triplet *) mp->request_bytes(sizeofTriplet());
+		
 		aux->A = k->A;
 		aux->B = k->B;
 		aux->C = k->C;
+		aux->etype = k->etype;
 		aux->next = this->array[hash];
 		this->array[hash] = aux;
 	}
@@ -1309,7 +1335,7 @@ triplet * markdown_event_hash::find_triplet(triplet * k){
 	uint64_t hash = this->compute_hash(k);
 	triplet * ptr = this->array[hash];
 	while(ptr != NULL){
-		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C && ptr->etype == k->etype){
 			// Found, break and do nothing
 			return ptr;
 		}
@@ -1323,7 +1349,7 @@ void markdown_event_hash::remove(triplet * k){
 	triplet * ptr = this->array[hash];
 	triplet * previous = this->array[hash];
 	while(ptr != NULL){
-		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C){
+		if(ptr->A == k->A && ptr->B == k->B && ptr->C == k->C && ptr->etype == k->etype){
 			// Found, break
 			break;
 		}

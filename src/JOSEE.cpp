@@ -11,6 +11,7 @@
 #include "comparisonFunctions.h"
 #include "evolutionaryEventsFunctions.h"
 
+uint64_t total_bytes_in_use = 0;
 int DEBUG_ACTIVE = 0;
 int HARD_DEBUG_ACTIVE = 0;
 
@@ -83,6 +84,7 @@ int main(int ac, char **av) {
     begin = clock();
     load_fragments_local(frags_file, &total_frags, &loaded_frags);
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Loaded fragments into memory. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     fclose(frags_file); 
 
@@ -90,9 +92,11 @@ int main(int ac, char **av) {
     //Initial mapping of fragments to table of genomes %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     unsigned char ** map_table = (unsigned char **) std::calloc(n_files, sizeof(unsigned char *));
+    total_bytes_in_use += n_files*sizeof(unsigned char *);
     //Allocate map table
     for(i=0; i<n_files; i++){ 
         map_table[i] = (unsigned char *) std::calloc(seq_manager->get_sequence_by_label(i)->len, sizeof(unsigned char)); 
+        total_bytes_in_use += seq_manager->get_sequence_by_label(i)->len * sizeof(unsigned char);
         if(map_table[i] == NULL) terror("Could not allocate map table"); 
     }
     map_frags_to_genomes(map_table, loaded_frags, total_frags, seq_manager);
@@ -100,6 +104,7 @@ int main(int ac, char **av) {
     get_coverage_from_genome_grid(map_table, seq_manager, n_files, min_len);
     seq_manager->print_sequences_data();
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Initial mapping completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
     //Trimming %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -108,12 +113,15 @@ int main(int ac, char **av) {
     //Check if frags had already been computed and exist 
     if(trim_frags_file != NULL && trim_frags_file_write == false){
         // Load fragments trimmed
+        total_bytes_in_use -= total_frags * sizeofFragment();
         if(0 == fread(&total_frags, sizeof(uint64_t), 1, trim_frags_file)) terror("Incorrect number of fragments to load");
         loaded_frags = (struct FragFile *) std::realloc(loaded_frags, total_frags*sizeofFragment());
+        total_bytes_in_use += total_frags * sizeofFragment();
         if(loaded_frags == NULL) terror("Could not load existing trimmed frags");
         if(0 == fread(loaded_frags, sizeofFragment(), total_frags, trim_frags_file)) terror("Specified fragments are of size zero");
     }else{
         // Compute fragments trim
+        total_bytes_in_use -= total_frags * sizeofFragment();
         for(i=0;i<N_ITERA;i++){
             if(i % ratio_itera == 0) fprintf(stdout, "[INFO] Iteration %"PRIu64"\n", i);
             aux_pointer = trim_fragments_and_map(map_table, loaded_frags, &total_frags, min_len);
@@ -121,6 +129,7 @@ int main(int ac, char **av) {
             free(loaded_frags); //A new list is being allocated in the function
             loaded_frags = aux_pointer;
         }
+        total_bytes_in_use += total_frags * sizeofFragment();
     }
     
     
@@ -134,6 +143,7 @@ int main(int ac, char **av) {
     }
     //seq_manager->print_sequences_data();
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Trimming of fragments completed after %"PRIu64" iteration(s).\n       Number of final fragments: %"PRIu64". T = %e\n", N_ITERA, total_frags, (double)(end-begin)/CLOCKS_PER_SEC);
 
     
@@ -142,6 +152,7 @@ int main(int ac, char **av) {
     memory_pool * mp = new memory_pool(POOL_SIZE);
     uint64_t max_len_sequence = seq_manager->get_maximum_length();
     uint64_t coord_aux;
+    // ram debug over here
     hash_table * ht = new hash_table(mp, max_len_sequence/ht_size, seq_manager, max_len_sequence);
     for(i=0;i<total_frags;i++){
         //Switch coordinates of reversed fragments. This can only be done at the end of trimming and not meanwhile!
@@ -153,6 +164,7 @@ int main(int ac, char **av) {
     compute_order_of_blocks(ht, n_files);
     end = clock();
     //fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. Load factor = %e. T = %e\n", ht->get_load_factor(), (double)(end-begin)/CLOCKS_PER_SEC);
+    print_memory_usage();
     fprintf(stdout, "[INFO] Insertion of fragments into hash table completed. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
      
     
@@ -163,6 +175,7 @@ int main(int ac, char **av) {
     traverse_synteny_list_and_write(synteny_block_list, n_files, "init");
     //traverse_synteny_list(synteny_block_list);
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Generated synteny blocks. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
 
@@ -172,6 +185,7 @@ int main(int ac, char **av) {
     //And load annotations if provided
     if(seq_manager->get_path_annotations() != NULL) seq_manager->read_annotations();
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Loaded DNA sequences. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
 
     //Write blocks and breakpoints to file %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -190,6 +204,7 @@ int main(int ac, char **av) {
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     //traverse_synteny_list(synteny_block_list);
     end = clock();
+    print_memory_usage();
     fprintf(stdout, "[INFO] Finished detecting evolutionary events. T = %e\n", (double)(end-begin)/CLOCKS_PER_SEC);
     
 
@@ -219,7 +234,6 @@ int main(int ac, char **av) {
     print_maptable_portion(map_table, 834361  , 834776, 60, 3);
     */
     /*
-    printf("Despeerate.: \n");find_fragments_from_maptable(map_table, 208419, 208998, 0, loaded_frags, total_frags);
     getchar();
     */
     /*
