@@ -835,7 +835,7 @@ void sequence_manager::read_dna_sequences(char * paths_to_files){
     std::free(temp_seq_buffer);
     std::free(n_reallocs);
 
-	
+	if(_m_len > SEQUENCE_INDELS_LEN) terror("Increase sequence indels len");
 
     for(i=0;i<this->n_sequences;i++){
 		//Realloc to largest size to enable future insertions
