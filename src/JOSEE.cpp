@@ -362,6 +362,7 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE 
             *out_file = fopen64(av[pNum+1], "wt");
             char tmp[MAX_LINE];
             sprintf(&tmp[0], "%s.log", av[pNum+1]);
+            strcpy(file_out_char, tmp); 
             *out_file_log = fopen64(tmp, "wt");
             if(out_file==NULL) terror("Could not open output file");
             if(out_file_log==NULL) terror("Could not open output log file");

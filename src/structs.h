@@ -10,7 +10,7 @@
 
 #define SEQ_REALLOC 5000000
 //#define MAX_READ_SIZE 5000 //Maximum length of read to have a portion of the table allocated
-#define MAX_WINDOW_SIZE 1000 //Maximum window length to explore NW table
+#define MAX_WINDOW_SIZE 70 //Maximum window length to explore NW table
 #define SYN_TABLE_REALLOC 10000
 #define INIT_SEQS 20
 #define INIT_ANNOTS 5000
@@ -44,7 +44,7 @@
 #define POINT 4
 
 #define UINT64_T_MAX 0xFFFFFFFFFFFFFFFF
-#define SEQUENCE_INDELS_LEN 1000*10 // 1 M
+#define SEQUENCE_INDELS_LEN 1000*1000*2 // 1 M
 
 #define IGAP -24
 #define EGAP -8
