@@ -1190,8 +1190,9 @@ events_queue::~events_queue(){
 }
 
 
-ee_log::ee_log(FILE * logfile){
+ee_log::ee_log(FILE * logfile, char * path){
 	this->logfile = logfile;
+	strcpy(this->path, path);
 	this->write_buffer = (char *) std::malloc(WRITE_BUFFER_CAPACITY*sizeof(char));
 	if(this->write_buffer == NULL) terror("Could not allocate writing buffer for ee log");
 	this->write_buffer[0] = '\0';
@@ -1202,12 +1203,14 @@ ee_log::ee_log(FILE * logfile){
 
 void ee_log::write(const char * data){
 	uint64_t to_add = strlen(data);
-	if((this->write_index + to_add) < WRITE_BUFFER_CAPACITY){
+	if((this->write_index + to_add) < WRITE_BUFFER_CAPACITY && this->event_count % EVENTS_WRITE_TIME != 0){
 		strcat(this->write_buffer, data);
 		this->write_index += to_add;
 	}else{
 		fprintf(this->logfile, "%s", this->write_buffer);
 		strcat(&this->write_buffer[0], data);
+		fclose(this->logfile);
+		this->logfile = fopen(this->path, "a+");
 		this->write_index = to_add;
 	}
 }

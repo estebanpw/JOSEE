@@ -160,5 +160,5 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp);
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char);
 

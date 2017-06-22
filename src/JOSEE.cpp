@@ -19,7 +19,7 @@ void print_all();
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE ** out_file_log,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
-    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write);
+    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write, char * file_out_write);
 int main(int ac, char **av) {
     
     
@@ -53,12 +53,15 @@ int main(int ac, char **av) {
     //The kmer size for blocks alignment 
     uint32_t kmer_size = 16; //Default
     //Default behaviour is the trimmed frags do not already exist
-    bool trim_frags_file_write = true;
+    bool trim_frags_file_write = true; 
+    // Fix
+    char file_out_char[512];
+    file_out_char[0] = '\0';
 
 
     //Open frags file, lengths file and output files %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     FILE * frags_file, * lengths_file, * out_file, * out_file_log, * out_blocks = NULL, * out_breakpoints = NULL, * trim_frags_file = NULL;
-    init_args(ac, av, &frags_file, &out_file, &out_file_log, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size, &trim_frags_file, &trim_frags_file_write);
+    init_args(ac, av, &frags_file, &out_file, &out_file_log, &min_len, &N_ITERA, multifrags_path, &ht_size, &out_blocks, &out_breakpoints, fastas_path, path_annotations, &kmer_size, &trim_frags_file, &trim_frags_file_write, file_out_char);
 
     //Concat .lengths to path of multifrags %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     char path_lengths[READLINE];
@@ -200,7 +203,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id, out_file_log);
+    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id, out_file_log, file_out_char);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     //traverse_synteny_list(synteny_block_list);
     end = clock();
@@ -304,7 +307,7 @@ void print_all(){
 void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE ** out_file_log,
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
-    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write){
+    uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write, char * file_out_char){
     
     int pNum = 0;
     while(pNum < argc){

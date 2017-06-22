@@ -474,7 +474,11 @@ inline char complement(char c){
     case ('N'): return 'N';
     break;
     case ('-'): return '-'; // Gaps
+    break;
+    case ('\0'): return '\0';
+    
     }
+    
     printf("T B: (%c) ____\n", c);
     terror("Unrecognized nucleotide in hit");
     return 0; 

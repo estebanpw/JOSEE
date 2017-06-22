@@ -1794,7 +1794,7 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp){
 }
 
 
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char){
 	
 	//Data structures needed
 	uint64_t i;
@@ -1806,7 +1806,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 
 	// Output log 
-	ee_log * event_log_output = new ee_log(output_log);
+	ee_log * event_log_output = new ee_log(output_log, file_out_char);
 
 	//Until nothing else cant be done, keep iterating
 	bool stop_criteria = false; 

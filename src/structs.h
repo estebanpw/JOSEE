@@ -49,6 +49,8 @@
 #define IGAP -24
 #define EGAP -8
 
+#define EVENTS_WRITE_TIME 5
+
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
@@ -491,9 +493,10 @@ private:
     uint64_t write_index;
     uint64_t event_count;
     char tmp[256];
+    char path[MAX_LINE];
 
 public:
-    ee_log(FILE * logfile);
+    ee_log(FILE * logfile, char * path);
     void register_event(Event e, void * event_data);    
     ~ee_log();
 
