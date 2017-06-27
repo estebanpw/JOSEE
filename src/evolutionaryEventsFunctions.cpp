@@ -2016,6 +2016,7 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 	// TODO put conditional on memory requesting
 	
 	bool event_just_took_place = false;
+	uint64_t n_syntenys_from_blocks_not_found = 0;
 
 	print_memory_usage();
 
@@ -2037,23 +2038,29 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 		
 
-		// Get head of synteny list
-		// Advance pointers
-		//A = sbl;
+		back_to_selector:
 		ptr = blocks_ht->get_key_at(0);
 		while(ptr == NULL || ptr->b.genome->id != current_genome_start || ptr->b.present_in_synteny == NULL){
-			if(ptr != NULL){
-				ptr = ptr->next;
-			}else{
-				ptr = blocks_ht->get_key_at(current_head_block++);
-			}
-			if(current_head_block >= blocks_ht->get_size()) break;
+				if(ptr != NULL){
+						ptr = ptr->next;
+				}else{
+						ptr = blocks_ht->get_key_at(current_head_block++);
+				}
+				if(current_head_block >= blocks_ht->get_size()) break;
 
-			#ifdef VERBOSE
-			printf("in loop ::: %"PRIu64" \n", current_genome_start); if(ptr != NULL) { printBlock(&ptr->b);} //getchar();
-			#endif 
+				#ifdef VERBOSE
+				if(ptr != NULL) { printf("Passing by: "); printBlock(&ptr->b);} //getchar();
+				#endif
 		}
 		current_head_block = 0;
+		if(ptr == NULL){
+				current_genome_start = (current_genome_start + 1) % n_sequences;
+				n_syntenys_from_blocks_not_found++;
+				if(n_syntenys_from_blocks_not_found == n_sequences) terror("No synteny list to retrieve - Check synteny lists or lower frag restrictions");
+				goto back_to_selector;
+		}else{
+				n_syntenys_from_blocks_not_found = 0;
+		}
 
 
 
@@ -2588,7 +2595,21 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							mp->full_reset();
 							memset(resolution_of_events.genomes_affected, false, n_sequences*sizeof(bool));
 
-							args_mul_al.sbl = generate_artificial_synteny(A, mp); 
+							args_mul_al.sbl = generate_artificial_synteny(A, mp);
+							uint64_t log_startcoords[n_sequences];
+							uint64_t log_endcoords[n_sequences];
+
+							Synteny_block * original_blocks = A->sb;
+							while(original_blocks != NULL){
+								log_startcoords[original_blocks->b->genome->id] = original_blocks->b->end;
+								original_blocks = original_blocks->next;
+							}
+							original_blocks = A->sb;
+							while(original_blocks != NULL){
+								log_endcoords[original_blocks->b->genome->id] = original_blocks->b->start;
+								original_blocks = original_blocks->next;
+							}
+
 							uint64_t copy_length = generate_multiple_alignment(&args_mul_al);
 
 							concat_two_synteny_blocks_after_multiple_alignment(&A, &B, copy_length, &args_mul_al);
@@ -2604,6 +2625,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 								e_concatenation ec;
 								
 								ec.involved = all_blocks->b;
+								ec.coords1 = log_startcoords[all_blocks->b->genome->id];
+								ec.coords2 = log_endcoords[all_blocks->b->genome->id];
 								event_log_output->register_event(concatenation, (void *) &ec);
 								all_blocks = all_blocks->next;
 							}
@@ -2667,6 +2690,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 
 							
 							// Repoint
+							A->next = C;
+							C->prev = A;
+							traverse_synteny_list(sbl);
 							B = A;
 							A = NULL; C = NULL;
 

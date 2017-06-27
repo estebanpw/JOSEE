@@ -374,6 +374,7 @@ void hash_table::remove_block(Block * b){
 	}
 }
 
+
 void hash_table::print_hash_table(int print){
 	uint64_t i, bck_counter, total_buckets = 0, block_len_verifier;
 	Bucket * ptr;
@@ -384,8 +385,9 @@ void hash_table::print_hash_table(int print){
 		ptr = this->ht[i];
 		had_reversed = 0;
 		while(ptr != NULL){ 
-			if(print == 2){
-				printBlock(&ptr->b);
+			
+			printBlock(&ptr->b);
+			if(print == PRINT_BLOCKS_AND_FRAGS){
 				had_reversed = 0;
 				block_len_verifier = ptr->b.end - ptr->b.start + 1;
 				fl = ptr->b.f_list;
@@ -399,13 +401,16 @@ void hash_table::print_hash_table(int print){
 			}
 			bck_counter++; ptr = ptr->next; 
 		}
+		/*
 		if(print >= 1){
 			fprintf(stdout, "Entry %"PRIu64" contains %"PRIu64" buckets\n", i, bck_counter);
 			if(had_reversed == 1) getchar();
 		}
+		*/
 		total_buckets += bck_counter;
 	}
-	fprintf(stdout, "%"PRIu64" buckets.\n", total_buckets);
+
+	//fprintf(stdout, "%"PRIu64" buckets.\n", total_buckets);
 }
 
 Bucket * hash_table::get_value_at(uint64_t pos){
@@ -1215,6 +1220,15 @@ void ee_log::write(const char * data){
 	}
 }
 
+void ee_log::force_write(){
+	fprintf(this->logfile, "%s", this->write_buffer);
+	this->write_index = 0;
+	this->write_buffer[0] = '\0';
+	fclose(this->logfile);
+	this->logfile = fopen(this->path, "a+");
+	if(this->logfile == NULL) terror("Output log file is null");	
+}
+
 void ee_log::register_event(Event e, void * event_data){
 
 	switch(e){
@@ -1267,7 +1281,7 @@ void ee_log::register_event(Event e, void * event_data){
 			this->write(this->tmp);
 			sprintf(&this->tmp[0], "CONCATENATION\t");
 			this->write(this->tmp);
-			sprintf(&this->tmp[0], "@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\n", e_concat->involved->genome->id, e_concat->involved->start, e_concat->involved->end);
+			sprintf(&this->tmp[0], "@%"PRIu64"\t[%"PRIu64", %"PRIu64"]\t[%"PRIu64", %"PRIu64"]\n", e_concat->involved->genome->id, e_concat->coords1, e_concat->coords2, e_concat->involved->start, e_concat->involved->end);
 			this->write(this->tmp);
 
 		}
@@ -1284,6 +1298,9 @@ void ee_log::register_event(Event e, void * event_data){
 			this->write(this->tmp);
 		}
 	}
+	#ifdef VERBOSE
+	this->force_write();
+	#endif
 	this->event_count++;
 }
 

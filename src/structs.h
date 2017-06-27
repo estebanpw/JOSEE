@@ -51,6 +51,9 @@
 
 #define EVENTS_WRITE_TIME 5
 
+#define PRINT_BLOCKS 1
+#define PRINT_BLOCKS_AND_FRAGS 2
+
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
 
@@ -455,6 +458,8 @@ struct e_deletion{
 
 struct e_concatenation{
     Block * involved;
+    uint64_t coords1;
+    uint64_t coords2;
 };
 
 // Struct to modify blocks given previous rearrangments
@@ -497,7 +502,8 @@ private:
 
 public:
     ee_log(FILE * logfile, char * path);
-    void register_event(Event e, void * event_data);    
+    void register_event(Event e, void * event_data); 
+    void force_write();   
     ~ee_log();
 
 private:
