@@ -44,7 +44,7 @@
 #define POINT 4
 
 #define UINT64_T_MAX 0xFFFFFFFFFFFFFFFF
-#define SEQUENCE_INDELS_LEN 1000*1000*2 // 1 M
+#define SEQUENCE_INDELS_LEN 1000*200 // 1 M
 
 #define IGAP -24
 #define EGAP -8
@@ -53,6 +53,8 @@
 
 #define PRINT_BLOCKS 1
 #define PRINT_BLOCKS_AND_FRAGS 2
+
+#define DIFFUSE_PERCENTAGE 0.2 // TO make artificial blocks
 
 #define MIN(X, Y) (((X) < (Y)) ? (X) : (Y))
 #define MAX(X, Y) (((X) > (Y)) ? (X) : (Y))
@@ -411,7 +413,8 @@ class strand_matrix
 {
 
 public:
-    unsigned char ** sm;
+    unsigned char ** sm; // For strands 
+    uint64_t * sm_orders; // For orders 
     uint64_t n_seqs;
     uint64_t squared_sequences;
     uint64_t acu_frags_forward;
@@ -426,9 +429,13 @@ public:
     void set_strands(uint64_t l1, uint64_t l2, unsigned char v);
     uint64_t get_frags_forward(){ return this->acu_frags_forward; }
     uint64_t get_frags_reverse(){ return this->acu_frags_reverse; }
+    bool compare_with_other_matrix(strand_matrix * m);
+    bool compare_order_with_other_matrix(strand_matrix * m);
+    uint64_t get_order(uint64_t l1) { return this->sm_orders[l1]; }
     void reset();
     void add_fragment_strands(Synteny_list * sbl);
     void print_strand_matrix();
+    void print_strand_matrix_order();
     ~strand_matrix();
 };
 

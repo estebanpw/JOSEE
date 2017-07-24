@@ -224,9 +224,9 @@ void traverse_synteny_list_and_write(Synteny_list * sbl, uint64_t n_sequences, c
         }
         fclose(writer);
     }
-
-
 }
+
+
 
 Synteny_list * find_synteny_block_from_block(Synteny_list * sbl, Block * b){
     Synteny_list * ptr_sbl = sbl;
@@ -1651,3 +1651,42 @@ void print_memory_usage(){
     //fprintf(stdout, "[INFO] Current RAM usage: %"PRIu64" (MB)\n", total_bytes_in_use/(1024*1024));
     fprintf(stdout, "[INFO] Current RAM usage: %"PRIu64" bytes, which are %"PRIu64" Megabytes. \n", total_bytes_in_use, total_bytes_in_use/(1024*1024));
 }
+
+long double average_from_vector(uint64_t * values, uint64_t n_sequences){
+    long double acum = 0;
+    for(uint64_t w=0; w<n_sequences; w++){
+        acum += (long double) values[w];
+    }
+    return acum / (long double) n_sequences;
+}
+
+long double average_from_synteny_block(Synteny_block * sb){
+    Synteny_block * sb_ptr = sb;
+    long double acum = 0;
+    uint64_t used_seqs = 0;
+    while(sb_ptr != NULL){
+        acum += (long double) sb_ptr->b->end - sb_ptr->b->start;
+        used_seqs++;
+    }
+    return acum / (long double) used_seqs;
+}
+
+bool is_similar_to_rest_diffuse(uint64_t c, int64_t * values, long double diffuse_percentage, uint64_t n_sequences){
+    long double acum = 0;
+    uint64_t used_seqs = 0;
+    for(uint64_t w=0; w<n_sequences; w++){
+        if(values[w] != -1){
+            acum += (long double) values[w];
+            used_seqs++;
+        }
+        
+    }
+    acum = acum / (long double) used_seqs;
+
+    if((long double)c > (acum * (1.0 - diffuse_percentage)) && (long double)c < (acum * (1.0 + diffuse_percentage))){
+        return true;
+    }else{
+        return false;
+    }
+}
+

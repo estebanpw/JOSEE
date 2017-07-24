@@ -557,8 +557,10 @@ strand_matrix::strand_matrix(uint64_t sequences){
 	this->n_seqs = sequences;
 	this->squared_sequences = sequences * sequences;
 	this->sm = (unsigned char **) std::calloc(sequences, sizeof(unsigned char *));
+	this->sm_orders = (uint64_t *) std::calloc(sequences, sizeof(uint64_t));
 	total_bytes_in_use += squared_sequences;
 	if(this->sm == NULL) terror("Could not allocate strand matrix");
+	if(this->sm_orders == NULL) terror("Could not allocate strand matrix of orders");
 	this->acu_frags_forward = 0;
 	this->acu_frags_reverse = 0;
 	for(i=0;i<sequences;i++){
@@ -577,6 +579,9 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 		while(sb_ptr != NULL){
 
 			fl = sb_ptr->b->f_list;
+
+			this->sm_orders[sb_ptr->b->genome->id] = sb_ptr->b->order;
+
 			while(fl != NULL){
 				//printf("A frag...\n");
 
@@ -589,6 +594,7 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 					this->sm[fl->f->seqY][fl->f->seqX] = REVERSE;
 					this->acu_frags_reverse++;
 				}
+
 				
 				fl = fl->next;
 			}
@@ -598,6 +604,33 @@ void strand_matrix::add_fragment_strands(Synteny_list * sbl){
 		}
 	}
 	//printf("==========================================\n");
+}
+
+bool strand_matrix::compare_order_with_other_matrix(strand_matrix * m){
+
+	uint64_t i, j;
+	for(i=0; i<this->n_seqs; i++){
+		for(j=i+1; j<this->n_seqs; j++){
+			if(this->sm[i][j] == FORWARD && m->get_strands(i,j) == FORWARD){
+				if(this->sm_orders[i] >= m->get_order(i)) return false;
+			}
+			if(this->sm[i][j] == REVERSE && m->get_strands(i,j) == REVERSE){
+				if(this->sm_orders[i] < m->get_order(i)) return false;
+			}
+		}
+	}
+
+	return true;
+}
+
+bool strand_matrix::compare_with_other_matrix(strand_matrix * m){
+	uint64_t i, j;
+	for(i=0; i<this->n_seqs; i++){
+		for(j=0; j<this->n_seqs; j++){
+			if(this->sm[i][j] != m->get_strands(i,j)) return false;
+		}
+	}
+	return true;
 }
 
 unsigned char strand_matrix::get_strands(uint64_t l1, uint64_t l2){
@@ -617,6 +650,7 @@ void strand_matrix::reset(){
 	for(uint64_t i=0;i<n_seqs;i++){
 		for(uint64_t j=0;j<n_seqs;j++){
 			this->sm[i][j] = 0;
+			this->sm_orders[i] = 0;
 		}
 	}
 	
@@ -648,6 +682,15 @@ void strand_matrix::print_strand_matrix(){
 	}
 }
 
+void strand_matrix::print_strand_matrix_order(){
+	uint64_t i;
+	for(i=0;i<n_seqs;i++){
+		fprintf(stdout, "%"PRIu64"\t", sm_orders[i]);
+	}
+	fprintf(stdout, "\n");
+}
+
+
 int strand_matrix::is_block_reversed(uint64_t block_number){
 	uint64_t i, n_rev = 0, n_for = 0;
 	for(i=0; i<block_number; i++){
@@ -671,6 +714,7 @@ strand_matrix::~strand_matrix(){
 		std::free(this->sm[i]);
 	}
 	std::free(this->sm);
+	std::free(this->sm_orders);
 }
 
 sequence_manager::sequence_manager(){

@@ -1,6 +1,7 @@
 #include <cstdarg>
 #include "structs.h"
 #include "commonFunctions.h"
+#include "comparisonFunctions.h"
 
 
 
@@ -117,6 +118,12 @@ void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list **
 	Concats two synteny blocks that have been aligned 
 */
 void concat_two_synteny_blocks_after_multiple_alignment(Synteny_list ** A, Synteny_list ** B, uint64_t copy_length, arguments_multiple_alignment * mul_al);
+
+/*
+	Checks if the strand matrices for a series of synteny lists are equal or not
+*/
+bool check_strand_matrices_equalness(uint64_t n_sequences, uint64_t args_count, ...);
+
 /*
 	Concatenates two synteny_blocks
 */
@@ -160,5 +167,5 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp);
 /*
 	Detects candidates for evolutionary events
 */
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char);
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char, memory_pool * mporig);
 

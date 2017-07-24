@@ -203,7 +203,7 @@ int main(int ac, char **av) {
 
     //Start detecting evolutionary events %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
-    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id, out_file_log, file_out_char);
+    detect_evolutionary_event(synteny_block_list, seq_manager, kmer_size, ht, &last_s_id, out_file_log, file_out_char, mp);
     //fprintf(stdout, "\t\t After applying EE(s)\n");
     //traverse_synteny_list(synteny_block_list);
     end = clock();

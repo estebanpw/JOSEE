@@ -186,4 +186,19 @@ long double median_from_vector(uint64_t * v, uint64_t l);
 */
 void print_memory_usage();
 
+/*
+	Compares a value against the average of the others and checks if its within a diffuse range of it
+*/
+bool is_similar_to_rest_diffuse(uint64_t c, int64_t * values, long double diffuse_percentage, uint64_t n_sequences);
+
+/*
+	Computes average from uint64_t vector
+*/
+long double average_from_vector(uint64_t * values, uint64_t n_sequences);
+
+/*
+	Computes average from a synteny block's block lengths
+*/
+long double average_from_synteny_block(Synteny_block * sb);
+
 #endif /* COMMON_FUNCTIONS_H */

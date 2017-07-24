@@ -1034,7 +1034,69 @@ void handle_indels(Synteny_list * A, Synteny_list * B, Synteny_list * C, uint64_
 	#endif
 }
 
+bool check_strand_matrices_equalness(uint64_t n_sequences, uint64_t args_count, ...){
+	va_list mat_args;
+	va_start(mat_args, args_count);
+	strand_matrix * smat[args_count];
+		
+	uint64_t i,j,k,l;
+	for(i=0;i<args_count;i++){
+		smat[i] = va_arg(mat_args, strand_matrix *);
+	}
 
+	for(i=0;i<args_count;i++){
+		for(j=0;j<args_count;j++){
+			for(k=0;k<n_sequences;k++){
+				for(l=0;l<n_sequences;l++){
+					if(smat[i]->get_strands(k,l) != smat[j]->get_strands(k,l)){
+						if(smat[i]->get_order(k) < smat[j]->get_order(k)) return false;
+					}else if(i != j){
+						#ifdef VERBOSE
+						printf("Strand matrices comparison failed (for seqs (%"PRIu64", %"PRIu64") at rows %"PRIu64" and %"PRIu64": check below\n", i, j, k, l);
+						printf("Strand...\n");
+						smat[i]->print_strand_matrix();
+						printf("With...\n");
+						smat[j]->print_strand_matrix();
+						printf("Orders...\n");
+						smat[i]->print_strand_matrix_order();
+						printf("With...\n");
+						smat[j]->print_strand_matrix_order();
+						//getchar();
+						#endif
+					}
+				}
+			}
+			/*
+			if(!smat[i]->compare_with_other_matrix(smat[j])){
+				#ifdef VERBOSE
+				printf("Strand matrices comparison failed: STRANDS!!! check below\n");
+				smat[i]->print_strand_matrix();
+				printf("With...\n");
+				smat[j]->print_strand_matrix();
+				//getchar();
+				#endif
+
+				return false;
+			} 
+
+			if(j > i && !smat[i]->compare_order_with_other_matrix(smat[j])){
+				#ifdef VERBOSE
+				printf("Strand matrices comparison failed: ORDER!!!! check below\n");
+				smat[i]->print_strand_matrix_order();
+				printf("With...\n");
+				smat[j]->print_strand_matrix_order();
+				//getchar();
+				#endif
+				return false;
+			}
+			*/
+		}
+	}
+
+	
+	va_end(mat_args);
+	return true;
+}
 
 void concat_synteny_blocks(Synteny_list ** A, Synteny_list ** B, Synteny_list ** C){
 	//printf("I would like to concat\n");
@@ -1794,7 +1856,7 @@ Synteny_list * generate_artificial_synteny(Synteny_list * A, memory_pool * mp){
 }
 
 
-void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char){
+void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, uint32_t kmer_size, hash_table * blocks_ht, uint64_t * last_s_id, FILE * output_log, char * file_out_char, memory_pool * mporig){
 	
 	//Data structures needed
 	uint64_t i;
@@ -2546,14 +2608,135 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				#endif
 			}
 			
+			// Additional concatenation that creates new block if needed
+			if(A != NULL && B != NULL && C != NULL && synteny_level_across_lists(2, A, C) > 0 && synteny_level_across_lists(2, A, B) == 0){
+
+				memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));				
+				
+				if(genomes_involved_in_synteny(genomes_block_count, n_sequences, 2, A, C)){
+					unsigned char group_consequent_A_C[n_sequences];
+					
+					int64_t distances[n_sequences]; for(uint64_t w=0;w<n_sequences;w++) distances[w] = -1;
+
+					Synteny_block * sb_ptr_A = A->sb;
+					Synteny_block * sb_ptr_B = B->sb;
+					Synteny_block * sb_ptr_C = C->sb;
+
+					// Measure distances between blocks from A and C
+					while(sb_ptr_A != NULL){
+						distances[sb_ptr_A->b->genome->id] = sb_ptr_C->b->end - sb_ptr_A->b->end;
+						sb_ptr_A = sb_ptr_A->next;
+						sb_ptr_C = sb_ptr_C->next;
+					}
+
+					printf("DETECTING ARTIFICIAL \n"); getchar();
+					sb_ptr_A = A->sb;
+					sb_ptr_C = C->sb;
+					while(sb_ptr_A != NULL){
+						// Also it could happen that instead of A,B,C its C,B,A!!!!!!!!!!!!
+						if(sb_ptr_A->b->next == sb_ptr_C->b){
+							group_consequent_A_C[sb_ptr_A->b->genome->id] = 1;
+							// No B block
+
+							
+							if(1 || is_similar_to_rest_diffuse((uint64_t) distances[sb_ptr_A->b->genome->id], distances, DIFFUSE_PERCENTAGE, n_sequences)){
+
+								
+								// Create artificial block
+								//long double b_len = average_from_synteny_block(B->sb);
+								uint64_t midpos = (sb_ptr_A->b->next->start + sb_ptr_A->b->end)/2;
+								// Check that there is space 
+								if(sb_ptr_A->b->next->start - sb_ptr_A->b->end >= (sb_ptr_B->b->end - sb_ptr_B->b->start)){
+									Block * artificial_block = (Block *) mporig->request_bytes(sizeofBlock());
+									artificial_block->next = sb_ptr_A->b->next;
+									artificial_block->prev = sb_ptr_A->b;
+									sb_ptr_A->b->next->prev = artificial_block;
+									sb_ptr_A->b->next = artificial_block;
+									artificial_block->order = sb_ptr_B->b->order + 1;
+									artificial_block->present_in_synteny = B;
+									artificial_block->genome = sb_ptr_A->b->genome;
+									
+									artificial_block->start = midpos - (sb_ptr_B->b->end - sb_ptr_B->b->start)/2;
+									artificial_block->end = midpos + (sb_ptr_B->b->end - sb_ptr_B->b->start)/2;
+									if(!sb_ptr_B->b->end - sb_ptr_B->b->start % 2 == 0)  artificial_block->end += 1;
+									artificial_block->id = 0;
+
+
+									// meter en synteny B
+
+									sb_ptr_B = B->sb;
+									Synteny_block * last_ptr = NULL;
+									while(sb_ptr_B != NULL){
+										// ordered insertion
+
+										if(artificial_block->genome->id > sb_ptr_B->b->genome->id){
+											last_ptr = sb_ptr_B;
+										}else{
+											break;
+										}
+										sb_ptr_B = sb_ptr_B->next;
+									}
+									printf("ID genome: %"PRIu64"\n", artificial_block->genome->id);
+									Synteny_block * artificial_syn_block = (Synteny_block *) mporig->request_bytes(sizeofSyntenyBlock());
+									artificial_syn_block->b = artificial_block;
+									artificial_syn_block->next = sb_ptr_B;
+									if(last_ptr != NULL){
+										last_ptr->next = artificial_syn_block;
+									}else{
+										B->sb = artificial_syn_block;
+									}
+									B->synteny_level++;
+
+
+									apply_operation(artificial_block, (int64_t) 0, (int64_t) 1, artificial_block->next->start, UINT64_T_MAX);
+									
+
+									printf("CREATED ARTIFICIAL !!!!!!! @%"PRIu64" %"PRIu64", %"PRIu64"\n", artificial_block->genome->id, artificial_block->start, artificial_block->end);
+									
+									printBlock(artificial_block);
+									getchar();
+
+									#ifdef VERBOSE
+									if(A != NULL){ printSyntenyBlock(A->sb); printf("=was A=======00with %"PRIu64"\n", A->id);}
+									if(B != NULL){ printSyntenyBlock(B->sb); printf("=was B=======00with %"PRIu64"\n", B->id);}
+									if(C != NULL){ printSyntenyBlock(C->sb); printf("=was C=======00with %"PRIu64"\n", C->id);}
+									getchar();
+									#endif
+
+									// We should check whether strand is f or r
+									for(uint64_t w=0;w<n_sequences;w++){
+										if(sm_B->get_strands(0, w) != 0){
+											sm_B->set_strands(artificial_block->genome->id, w, FORWARD);
+											sm_B->set_strands(w, artificial_block->genome->id, FORWARD);
+										}
+									}
+								}
+								
+							}
+						}
+						sb_ptr_A = sb_ptr_A->next;
+						sb_ptr_C = sb_ptr_C->next;
+					}
+
+				}else{
+					printf("different genomes involved for artfiicial block"); getchar();
+				}
+				// Now the blocks are separated by consequent and non consequent
+
+			}else{
+				printf("syntenys are null or different synteny level for artificial block"); getchar();
+			}
 
 			// Concatenation %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 			//Check they share the synteny level
 			if(A != NULL && B != NULL && synteny_level_across_lists(2, A, B) > 0){
 				//Concat synteny blocks if they have the same strand
-				if(sm_A->get_strands_type() != MIXED && 
-				sm_A->get_strands_type() == sm_B->get_strands_type()){
+				
+				
+				//if(sm_A->get_strands_type() != MIXED && sm_A->get_strands_type() == sm_B->get_strands_type()){
+				// New condition: strand matrices equal allow different strands 
+				if(check_strand_matrices_equalness(n_sequences, 2, sm_A, sm_B)){
 
 					//Erase genome counter
 					memset(genomes_block_count, 0, n_sequences*sizeof(uint64_t));
@@ -2708,7 +2891,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 					}
 				}else{
 					#ifdef VERBOSE
-					printf("Frags differ in strand for concat...\n"); //getchar();
+					printf("Failed strand or order checking\n");
+					//printf("Frags differ in strand for concat...\n"); //getchar();
 					#endif
 				}	
 			}else{
@@ -2716,6 +2900,8 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 				printf("Different synteny levels for concat...\n"); //getchar();
 				#endif
 			}
+
+			
 
 			//Advance pointers
 			
