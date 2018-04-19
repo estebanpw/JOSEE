@@ -20,9 +20,8 @@ void init_args(int argc, char ** av, FILE ** multifrags, FILE ** out_file, FILE 
     uint64_t * min_len_trimming, uint64_t * min_trim_itera, char * path_frags, uint64_t * ht_size,
     FILE ** out_blocks, FILE ** out_breakpoints, char * path_files, char * path_annotations, 
     uint32_t * kmer_size, FILE ** trim_frags_file, bool * trim_frags_file_write, char * file_out_write);
+
 int main(int ac, char **av) {
-    
-    
     //Iterator
     uint64_t i;
     //Number of frags loaded, number of sequences loaded
@@ -175,6 +174,7 @@ int main(int ac, char **av) {
     //Generate synteny blocks %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     begin = clock();
     Synteny_list * synteny_block_list = compute_synteny_list(ht, n_files, mp, &last_s_id);
+    printf("$$$$$$$$$$$$$$$$$$$$$ESSKETIIT\n");
     traverse_synteny_list_and_write(synteny_block_list, n_files, "init");
     //traverse_synteny_list(synteny_block_list);
     end = clock();

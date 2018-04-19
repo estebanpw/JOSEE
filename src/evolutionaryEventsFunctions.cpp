@@ -2874,7 +2874,9 @@ void detect_evolutionary_event(Synteny_list * sbl, sequence_manager * seq_man, u
 							
 							// Repoint
 							A->next = C;
-							C->prev = A;
+							if (C != NULL) {
+								C->prev = A;
+							}
 							traverse_synteny_list(sbl);
 							B = A;
 							A = NULL; C = NULL;
